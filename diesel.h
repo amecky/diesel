@@ -1,9 +1,13 @@
 #pragma once
 #include <stdint.h>
 
+typedef uint32_t RID;
+
+const RID INVALID_RID = UINT32_MAX;
+
 namespace ds {
 
-	typedef struct {
+	typedef struct Color {
 
 		float values[4];
 		struct {
@@ -12,6 +16,10 @@ namespace ds {
 			float b;
 			float a;
 		};
+
+		Color() : r(1.0f), g(1.0f), b(1.0f), a(1.0f) {}
+		Color(float _r, float _g, float _b, float _a) : r(_r), g(_g), b(_b), a(_a) {}
+		Color(float _r, float _g, float _b) : r(_r), g(_g), b(_b), a(1.0f) {}
 
 		operator float* () {
 			return &values[0];
@@ -23,6 +31,67 @@ namespace ds {
 
 	} Color;
 
+	enum BufferAttribute {
+		POSITION,
+		COLOR0,
+		TEXCOORD0,
+		NORNAML
+	};
+
+	enum BufferAttributeType {
+		FLOAT,
+		UINT_8
+	};
+
+	enum BufferType {
+		STATIC,
+		DYNAMIC
+	};
+
+	enum TextureAddressModes {
+		WRAP,
+		MIRROR,
+		CLAMP,
+		BORDER,
+		MIRROR_ONCE
+	};
+
+	enum TextureFilters {
+		POINT,
+		LINEAR,
+		ANISOTROPIC
+	};
+
+	enum PrimitiveTypes {
+		POINT_LIST
+	};
+
+	struct VertexDeclaration {
+		BufferAttribute attribute;
+		BufferAttributeType type;
+		uint8_t size;
+	};
+
+	enum BlendStates {
+		ZERO,
+		ONE,
+		SRC_COLOR,
+		INV_SRC_COLOR,
+		SRC_ALPHA,
+		INV_SRC_ALPHA,
+		DEST_ALPHA,
+		INV_DEST_ALPHA,
+		DEST_COLOR,
+		INV_DEST_COLOR,
+		SRC_ALPHA_SAT,
+		BLEND_FACTOR,
+		INV_BLEND_FACTOR,
+		SRC1_COLOR,
+		INV_SRC1_COLOR,
+		SRC1_ALPHA,
+		INV_SRC1_ALPHA
+	};
+
 	typedef struct {
 		uint16_t width;
 		uint16_t height;
@@ -31,6 +100,46 @@ namespace ds {
 	} RenderSettings;
 
 	bool init(const RenderSettings& settings);
+
+	RID create_vertex_declaration(VertexDeclaration* decl, uint8_t num);
+
+	RID create_consant_buffer(int byteWidth);
+
+	void update_constant_buffer(RID rid, void* data, size_t size);
+
+	void set_vertex_constant_buffer(RID rid);
+
+	void set_pixel_constant_buffer(RID rid);
+
+	void set_geometry_constant_buffer(RID rid);
+
+	RID create_index_buffer(int size, BufferType type);
+
+	RID create_index_buffer(BufferType type, uint32_t* data);
+
+	void set_index_buffer(RID rid);
+
+	RID create_vertex_buffer(BufferType type, int numVertices, RID vertexDecl);
+
+	RID create_vertex_buffer(BufferType type, int numVertices, RID vertexDecl, void* data);
+
+	void set_vertex_buffer(RID rid, uint32_t* stride, uint32_t* offset, PrimitiveTypes topology);
+
+	RID create_sampler_state(TextureAddressModes addressMode, TextureFilters filter);
+
+	RID create_blend_state(BlendStates srcBlend, BlendStates srcAlphaBlend, BlendStates destBlend, BlendStates destAlphaBlend, bool alphaEnabled);	
+
+	RID create_shader();
+
+	void load_vertex_shader(RID shader, const char* csoName);
+
+	void load_pixel_shader(RID shader, const char* csoName);
+
+	void set_blend_state(RID rid);
+
+	void drawIndexed(uint32_t num);
+
+	void draw(uint32_t num);
 
 	void begin();
 
@@ -47,6 +156,7 @@ namespace ds {
 #include <Windows.h>
 #include <crtdbg.h>  
 #include <d3d11.h>
+#include <vector>
 //#include <d3dx11.h>
 //#include <DxErr.h>
 // This function was inspired by:
@@ -149,7 +259,17 @@ namespace ds {
 		return true;
 	}
 
+	struct Shader {
+		ID3D11VertexShader* vertexShader;
+		ID3D11PixelShader* pixelShader;
+		ID3D11GeometryShader* geometryShader;
+		ID3DBlob* vertexShaderBuffer;
+		ID3D11SamplerState* samplerState;
+		ID3DBlob* geometryShaderBuffer;
 
+		Shader() : vertexShader(0), pixelShader(0), vertexShaderBuffer(0), geometryShader(0), samplerState(0) {}
+
+	};
 
 	typedef struct {
 		HWND hwnd;
@@ -171,6 +291,13 @@ namespace ds {
 
 		ID3D11DepthStencilState* depthDisabledStencilState;
 		ID3D11DepthStencilState* depthEnabledStencilState;
+
+		std::vector<ID3D11Buffer*> constantBuffers;
+		std::vector<ID3D11Buffer*> buffers;
+		std::vector<ID3D11SamplerState*> samplerStates;
+		std::vector<ID3D11BlendState*> blendStates;
+		std::vector<Shader*> shaders;
+
 	} InternalContext;
 
 	static InternalContext* _ctx;
@@ -433,6 +560,19 @@ namespace ds {
 
 	void shutdown() {
 		if (_ctx != 0) {
+			for (size_t i = 0; i < _ctx->constantBuffers.size(); ++i) {
+				_ctx->constantBuffers[i]->Release();
+			}
+			for (size_t i = 0; i < _ctx->buffers.size(); ++i) {
+				_ctx->buffers[i]->Release();
+			}
+			for (size_t i = 0; i < _ctx->samplerStates.size(); ++i) {
+				_ctx->samplerStates[i]->Release();
+			}
+			for (size_t i = 0; i < _ctx->blendStates.size(); ++i) {
+				_ctx->blendStates[i]->Release();
+			}
+			// FIXME: release shaders
 			if (_ctx->backBufferTarget) _ctx->backBufferTarget->Release();
 			if (_ctx->swapChain) _ctx->swapChain->Release();
 			if (_ctx->d3dContext) _ctx->d3dContext->Release();
@@ -463,5 +603,447 @@ namespace ds {
 	void end() {
 		_ctx->swapChain->Present(0, 0);
 	}
+
+	static const char* DXBufferAttributeNames[] = {
+		"POSITION",
+		"COLOR0",
+		"TEXCOORD0",
+		"NORNAML"
+	};
+
+	struct DXBufferAttributeType {
+		BufferAttributeType type;
+		DXGI_FORMAT format;
+		int size;
+	};
+
+	static const DXBufferAttributeType DXBufferAttributeTypes[] = {
+		{ FLOAT, DXGI_FORMAT_R32G32_FLOAT , 2 },
+		{ FLOAT, DXGI_FORMAT_R32G32B32_FLOAT , 3},
+		{ FLOAT, DXGI_FORMAT_R32G32B32A32_FLOAT, 4 },
+
+	};
+
+	static int find_format(BufferAttributeType type, int size) {
+		for (int i = 0; i < 3; ++i) {
+			if (DXBufferAttributeTypes[i].type == type && DXBufferAttributeTypes[i].size == size) {
+				return i;
+			}
+		}
+		return -1;
+	}
+	// ------------------------------------------------------
+	// input layout / vertex declaration
+	// ------------------------------------------------------
+	RID create_vertex_declaration(VertexDeclaration* decl, uint8_t num) {
+		D3D11_INPUT_ELEMENT_DESC* descriptors = new D3D11_INPUT_ELEMENT_DESC[num];
+		uint32_t index = 0;
+		uint32_t counter = 0;
+		int si[8] = { 0 };
+		for (int i = 0; i < num; ++i) {
+			D3D11_INPUT_ELEMENT_DESC& desc = descriptors[i];
+			int fidx = find_format(decl[i].type, decl[i].size);
+			if (fidx == -1) {
+				return INVALID_RID;
+			}
+			const DXBufferAttributeType& formatType = DXBufferAttributeTypes[fidx];
+			desc.SemanticName = DXBufferAttributeNames[decl[i].attribute];
+			desc.SemanticIndex = si[fidx];// d.semanticIndex;
+			desc.Format = formatType.format;
+			desc.InputSlot = 0;
+			desc.AlignedByteOffset = index;
+			desc.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+			desc.InstanceDataStepRate = 0;
+			index += formatType.size;
+			si[fidx] += 1;
+		}
+		ID3D11InputLayout* layout = 0;
+		//if (descriptor.shader == INVALID_RID) {
+			//_resCtx->device->CreateInputLayout(descriptors, descriptor.num, descriptor.byteCode, descriptor.byteCodeSize, &layout);
+		//}
+		//else {
+			//ShaderResource* sr = static_cast<ShaderResource*>(_resCtx->resources[descriptor.shader]);
+			//Shader* s = sr->get();
+			//assert(s != 0);
+			//HRESULT d3dResult = _ctx->d3dDevice->CreateInputLayout(descriptors, num, s->vertexShaderBuffer->GetBufferPointer(), s->vertexShaderBuffer->GetBufferSize(), &layout);
+			//if (d3dResult < 0) {
+				//LOGE << "Cannot create input layout '" << name << "'";
+				//return INVALID_RID;
+			//}
+		//delete[] descriptors;
+		//InputLayoutResource* ilr = new InputLayoutResource(layout, index);
+		//_resCtx->resources.push_back(ilr);
+		//return create(name, ResourceType::INPUTLAYOUT);
+		return INVALID_RID;
+	}
+
+	// ------------------------------------------------------
+	// constant buffer
+	// ------------------------------------------------------
+	RID create_consant_buffer(int byteWidth) {
+		D3D11_BUFFER_DESC constDesc;
+		ZeroMemory(&constDesc, sizeof(constDesc));
+		constDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		constDesc.ByteWidth = byteWidth;
+		constDesc.Usage = D3D11_USAGE_DYNAMIC;
+		constDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		ID3D11Buffer* buffer = 0;
+		HRESULT d3dResult = _ctx->d3dDevice->CreateBuffer(&constDesc, 0, &buffer);
+		if (FAILED(d3dResult)) {
+			printf("Failed to create constant buffer!");
+			return INVALID_RID;
+		}
+		_ctx->constantBuffers.push_back(buffer);
+		return (RID)(_ctx->constantBuffers.size() - 1);
+	}
+
+	void update_constant_buffer(RID rid, void* data, size_t size) {
+		ID3D11Buffer* buffer = _ctx->constantBuffers[rid];
+		//_context->d3dContext->UpdateSubresource(buffer, 0, 0, data, 0, 0);
+		D3D11_MAPPED_SUBRESOURCE resource;
+		HRESULT hResult = _ctx->d3dContext->Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
+		void* ptr = resource.pData;
+		// Copy the data into the vertex buffer.
+		memcpy(ptr, data, size);
+		_ctx->d3dContext->Unmap(buffer, 0);
+	}
+
+	void set_vertex_constant_buffer(RID rid) {
+		ID3D11Buffer* buffer = _ctx->constantBuffers[rid];
+		_ctx->d3dContext->VSSetConstantBuffers(0, 1, &buffer);
+	}
+
+	void set_pixel_constant_buffer(RID rid) {
+		ID3D11Buffer* buffer = _ctx->constantBuffers[rid];
+		_ctx->d3dContext->PSSetConstantBuffers(0, 1, &buffer);
+	}
+
+	void set_geometry_constant_buffer(RID rid) {
+		ID3D11Buffer* buffer = _ctx->constantBuffers[rid];
+		_ctx->d3dContext->GSSetConstantBuffers(0, 1, &buffer);
+	}
+
+	// ------------------------------------------------------
+	// index buffer
+	// ------------------------------------------------------
+	RID create_index_buffer(int size, BufferType type) {
+		D3D11_BUFFER_DESC bufferDesc;
+		if (type == BufferType::DYNAMIC) {
+			bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+			bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		}
+		else {
+			bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+			bufferDesc.CPUAccessFlags = 0;
+		}
+		bufferDesc.ByteWidth = sizeof(uint32_t) * size;
+		bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		bufferDesc.MiscFlags = 0;
+		ID3D11Buffer* buffer;
+		HRESULT hr = _ctx->d3dDevice->CreateBuffer(&bufferDesc, 0, &buffer);
+		if (FAILED(hr)) {
+			printf("Failed to create index buffer!");
+			return INVALID_RID;
+		}
+		_ctx->buffers.push_back(buffer);
+		return (RID)(_ctx->buffers.size() - 1);
+	}
+
+	// ------------------------------------------------------
+	// index buffer with data
+	// ------------------------------------------------------
+	RID create_index_buffer(BufferType type, uint32_t* data) {
+		D3D11_BUFFER_DESC bufferDesc;
+		if (type == BufferType::DYNAMIC) {
+			bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+			bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		}
+		else {
+			bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+			bufferDesc.CPUAccessFlags = 0;
+		}
+		bufferDesc.ByteWidth = sizeof(data);
+		bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		bufferDesc.MiscFlags = 0;
+
+		D3D11_SUBRESOURCE_DATA InitData;
+		InitData.pSysMem = data;
+		InitData.SysMemPitch = 0;
+		InitData.SysMemSlicePitch = 0;
+
+		ID3D11Buffer* buffer;
+		HRESULT hr = _ctx->d3dDevice->CreateBuffer(&bufferDesc, &InitData, &buffer);
+		if (FAILED(hr)) {
+			printf("Failed to create index buffer!");
+			return INVALID_RID;
+		}
+		_ctx->buffers.push_back(buffer);
+		return (RID)(_ctx->buffers.size() - 1);
+	}
+
+	void set_index_buffer(RID rid) {
+		_ctx->d3dContext->IASetIndexBuffer(_ctx->buffers[rid], DXGI_FORMAT_R32_UINT, 0);
+	}
+
+	// ------------------------------------------------------
+	// vertex buffer with data
+	// ------------------------------------------------------
+	RID create_vertex_buffer(BufferType type, int numVertices, RID vertexDecl) {
+		UINT size = numVertices;// *res->size();
+
+		D3D11_BUFFER_DESC bufferDesciption;
+		ZeroMemory(&bufferDesciption, sizeof(bufferDesciption));
+		if (type == BufferType::DYNAMIC) {
+			bufferDesciption.Usage = D3D11_USAGE_DYNAMIC;
+			bufferDesciption.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		}
+		else {
+			bufferDesciption.Usage = D3D11_USAGE_DEFAULT;
+			bufferDesciption.CPUAccessFlags = 0;
+		}
+		bufferDesciption.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		bufferDesciption.ByteWidth = size;
+
+		ID3D11Buffer* buffer = 0;
+		//if (descriptor.dataSize == 0) {
+			HRESULT d3dResult = _ctx->d3dDevice->CreateBuffer(&bufferDesciption, 0, &buffer);
+			if (FAILED(d3dResult)) {
+				printf("Failed to create buffer!");
+				return INVALID_RID;
+			}
+		//}
+			/*
+		else {
+			D3D11_SUBRESOURCE_DATA resource;
+			resource.pSysMem = descriptor.data;
+			resource.SysMemPitch = 0;
+			resource.SysMemSlicePitch = 0;
+			HRESULT d3dResult = _resCtx->device->CreateBuffer(&bufferDesciption, &resource, &buffer);
+			if (FAILED(d3dResult)) {
+				DXTRACE_MSG("Failed to create buffer!");
+				return -1;
+			}
+		}
+		*/
+			_ctx->buffers.push_back(buffer);
+			return (RID)(_ctx->buffers.size() - 1);
+	}
+
+	// ------------------------------------------------------
+	// vertex buffer with data
+	// ------------------------------------------------------
+	RID create_vertex_buffer(BufferType type, int numVertices, RID vertexDecl, void* data) {
+		UINT size = numVertices;// *res->size();
+
+		D3D11_BUFFER_DESC bufferDesciption;
+		ZeroMemory(&bufferDesciption, sizeof(bufferDesciption));
+		if (type == BufferType::DYNAMIC) {
+			bufferDesciption.Usage = D3D11_USAGE_DYNAMIC;
+			bufferDesciption.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		}
+		else {
+			bufferDesciption.Usage = D3D11_USAGE_DEFAULT;
+			bufferDesciption.CPUAccessFlags = 0;
+		}
+		bufferDesciption.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		bufferDesciption.ByteWidth = size;
+
+		ID3D11Buffer* buffer = 0;
+		D3D11_SUBRESOURCE_DATA resource;
+		resource.pSysMem = data;
+		resource.SysMemPitch = 0;
+		resource.SysMemSlicePitch = 0;
+		HRESULT d3dResult = _ctx->d3dDevice->CreateBuffer(&bufferDesciption, &resource, &buffer);
+		if (FAILED(d3dResult)) {
+			printf("Failed to create buffer!");
+			return INVALID_RID;
+		}
+		_ctx->buffers.push_back(buffer);
+		return (RID)(_ctx->buffers.size() - 1);
+	}
+
+	static const D3D11_PRIMITIVE_TOPOLOGY PRIMITIVE_TOPOLOGIES[] = {
+		D3D11_PRIMITIVE_TOPOLOGY_POINTLIST
+	};
+
+	void set_vertex_buffer(RID rid, uint32_t* stride, uint32_t* offset, PrimitiveTypes topology) {
+		//ds::VertexBufferResource* res = static_cast<ds::VertexBufferResource*>(ds::res::getResource(rid, ds::ResourceType::VERTEXBUFFER));
+		//ID3D11InputLayout* layout = ds::res::getInputLayout(res->getInputLayout());
+		//_ctx->d3dContext->IASetInputLayout(layout);
+		ID3D11Buffer* buffer = _ctx->buffers[rid];
+		_ctx->d3dContext->IASetVertexBuffers(0, 1, &buffer, stride, offset);
+		_ctx->d3dContext->IASetPrimitiveTopology(PRIMITIVE_TOPOLOGIES[topology]);
+	}
+
+	// ------------------------------------------------------
+	// Sampler State
+	// ------------------------------------------------------
+	static const D3D11_TEXTURE_ADDRESS_MODE TEXTURE_ADDRESS_MODES[] = {
+		{ D3D11_TEXTURE_ADDRESS_WRAP },
+		{ D3D11_TEXTURE_ADDRESS_MIRROR },
+		{ D3D11_TEXTURE_ADDRESS_CLAMP },
+		{ D3D11_TEXTURE_ADDRESS_BORDER },
+		{ D3D11_TEXTURE_ADDRESS_MIRROR_ONCE },
+	};
+
+	static const D3D11_FILTER TEXTURE_FILTER_MODES[] = {
+		{ D3D11_FILTER_MIN_MAG_MIP_POINT },
+		{ D3D11_FILTER_MIN_MAG_MIP_LINEAR },
+		{ D3D11_FILTER_ANISOTROPIC },
+	};
+
+	RID create_sampler_state(TextureAddressModes addressMode,TextureFilters filter) {
+		D3D11_SAMPLER_DESC colorMapDesc;
+		ZeroMemory(&colorMapDesc, sizeof(colorMapDesc));
+
+		colorMapDesc.AddressU = TEXTURE_ADDRESS_MODES[addressMode];
+		colorMapDesc.AddressV = TEXTURE_ADDRESS_MODES[addressMode];
+		colorMapDesc.AddressW = TEXTURE_ADDRESS_MODES[addressMode];
+
+		colorMapDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+		colorMapDesc.Filter = TEXTURE_FILTER_MODES[filter];
+		colorMapDesc.MaxLOD = D3D11_FLOAT32_MAX;
+		ID3D11SamplerState* sampler;
+		HRESULT d3dResult = _ctx->d3dDevice->CreateSamplerState(&colorMapDesc, &sampler);
+		if (FAILED(d3dResult)) {
+			printf("Failed to create SamplerState!");
+			return INVALID_RID;
+		}
+		_ctx->samplerStates.push_back(sampler);
+		return (RID)(_ctx->samplerStates.size() - 1);
+	}
+
+	// ------------------------------------------------------
+	// Blend States
+	// ------------------------------------------------------
+	static const D3D11_BLEND BLEND_STATE_MAPPINGS[] = {
+		D3D11_BLEND_ZERO,
+		D3D11_BLEND_ONE,
+		D3D11_BLEND_SRC_COLOR,
+		D3D11_BLEND_INV_SRC_COLOR,
+		D3D11_BLEND_SRC_ALPHA,
+		D3D11_BLEND_INV_SRC_ALPHA,
+		D3D11_BLEND_DEST_ALPHA,
+		D3D11_BLEND_INV_DEST_ALPHA,
+		D3D11_BLEND_DEST_COLOR,
+		D3D11_BLEND_INV_DEST_COLOR,
+		D3D11_BLEND_SRC_ALPHA_SAT,
+		D3D11_BLEND_BLEND_FACTOR,
+		D3D11_BLEND_INV_BLEND_FACTOR,
+		D3D11_BLEND_SRC1_COLOR,
+		D3D11_BLEND_INV_SRC1_COLOR,
+		D3D11_BLEND_SRC1_ALPHA,
+		D3D11_BLEND_INV_SRC1_ALPHA
+	};
+
+	RID create_blend_state(BlendStates srcBlend, BlendStates srcAlphaBlend, BlendStates destBlend, BlendStates destAlphaBlend, bool alphaEnabled) {
+		D3D11_BLEND_DESC blendDesc;
+		ZeroMemory(&blendDesc, sizeof(blendDesc));
+		if (alphaEnabled) {
+			blendDesc.RenderTarget[0].BlendEnable = TRUE;
+		}
+		else {
+			blendDesc.RenderTarget[0].BlendEnable = FALSE;
+			//blendDesc.RenderTarget[0].BlendEnable = (srcBlend != D3D11_BLEND_ONE) || (destBlend != D3D11_BLEND_ZERO);
+		}
+		blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		blendDesc.RenderTarget[0].SrcBlend = BLEND_STATE_MAPPINGS[srcBlend];
+		blendDesc.RenderTarget[0].DestBlend = BLEND_STATE_MAPPINGS[destBlend];
+		blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		blendDesc.RenderTarget[0].SrcBlendAlpha = BLEND_STATE_MAPPINGS[srcAlphaBlend];
+		blendDesc.RenderTarget[0].DestBlendAlpha = BLEND_STATE_MAPPINGS[destAlphaBlend];
+		blendDesc.RenderTarget[0].RenderTargetWriteMask = 0x0F;
+
+		ID3D11BlendState* state;
+		HRESULT d3dResult = _ctx->d3dDevice->CreateBlendState(&blendDesc, &state);
+		if (FAILED(d3dResult)) {
+			printf("Failed to create blendstate!");
+			return INVALID_RID;
+		}
+		_ctx->blendStates.push_back(state);
+		return (RID)(_ctx->blendStates.size() - 1);
+	}
+
+	void set_blend_state(RID rid) {
+		float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		_ctx->d3dContext->OMSetBlendState(_ctx->blendStates[rid], blendFactor, 0xFFFFFFFF);
+	}
+
+	// ------------------------------------------------------
+	// Draw
+	// ------------------------------------------------------
+	void drawIndexed(uint32_t num) {
+		_ctx->d3dContext->DrawIndexed(num, 0, 0);
+	}
+
+	void draw(uint32_t num) {
+		_ctx->d3dContext->Draw(num, 0);
+	}
+
+	
+
+	RID create_shader() {
+		Shader* s = new Shader;
+		_ctx->shaders.push_back(s);
+		return (RID)(_ctx->shaders.size() - 1);
+	}
+
+	struct DataFile {
+		char* data;
+		int size;
+	};
+
+	static DataFile read_data(const char* name) {
+		DataFile df;
+		df.data = 0;
+		df.size = -1;
+		FILE *fp = fopen(name, "rb");
+		if (fp) {			
+			fseek(fp, 0, SEEK_END);
+			int sz = ftell(fp);
+			fseek(fp, 0, SEEK_SET);
+			df.data = new char[sz + 1];
+			fread(df.data, 1, sz, fp);
+			df.data[sz] = '\0';
+			fclose(fp);
+			df.size = sz;
+		}
+		return df;
+	}
+
+	void load_vertex_shader(RID shader, const char* csoName) {
+		DataFile file = read_data(csoName);
+		if (file.size != -1) {
+			Shader* s = _ctx->shaders[shader];
+			_ctx->d3dDevice->CreateVertexShader(
+				file.data,
+				file.size,
+				nullptr,
+				&s->vertexShader
+			);
+			delete[] file.data;
+		}
+		else {
+			printf("Cannot load file %s\n", csoName);
+		}
+	}
+
+	void load_pixel_shader(RID shader, const char* csoName) {
+		DataFile file = read_data(csoName);
+		if (file.size != -1) {
+			Shader* s = _ctx->shaders[shader];
+			_ctx->d3dDevice->CreatePixelShader(
+				file.data,
+				file.size,
+				nullptr,
+				&s->pixelShader
+			);
+			delete[] file.data;
+		}
+		else {
+			printf("Cannot load file %s\n", csoName);
+		}
+	}
+
 }
 #endif
