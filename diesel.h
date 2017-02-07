@@ -1,5 +1,7 @@
 #pragma once
 #include <stdint.h>
+#define MATH_IMPLEMENTATION
+#include "..\math\math.h"
 
 typedef uint32_t RID;
 
@@ -8,15 +10,15 @@ const RID INVALID_RID = UINT32_MAX;
 namespace ds {
 
 	typedef struct Color {
-
-		float values[4];
-		struct {
-			float r;
-			float g;
-			float b;
-			float a;
+		union {
+			float values[4];
+			struct {
+				float r;
+				float g;
+				float b;
+				float a;
+			};
 		};
-
 		Color() : r(1.0f), g(1.0f), b(1.0f), a(1.0f) {}
 		Color(float _r, float _g, float _b, float _a) : r(_r), g(_g), b(_b), a(_a) {}
 		Color(float _r, float _g, float _b) : r(_r), g(_g), b(_b), a(1.0f) {}
@@ -33,8 +35,8 @@ namespace ds {
 
 	enum BufferAttribute {
 		POSITION,
-		COLOR0,
-		TEXCOORD0,
+		COLOR,
+		TEXCOORD,
 		NORNAML
 	};
 
@@ -63,7 +65,8 @@ namespace ds {
 	};
 
 	enum PrimitiveTypes {
-		POINT_LIST
+		POINT_LIST,
+		TRIANGLE_LIST
 	};
 
 	struct VertexDeclaration {
@@ -101,7 +104,9 @@ namespace ds {
 
 	bool init(const RenderSettings& settings);
 
-	RID create_vertex_declaration(VertexDeclaration* decl, uint8_t num);
+	RID create_vertex_declaration(VertexDeclaration* decl, uint8_t num, RID shaderId);
+
+	void set_vertex_declaration(RID rid);
 
 	RID create_consant_buffer(int byteWidth);
 
@@ -115,13 +120,13 @@ namespace ds {
 
 	RID create_index_buffer(int size, BufferType type);
 
-	RID create_index_buffer(BufferType type, uint32_t* data);
+	RID create_index_buffer(BufferType type, uint32_t* data, int size);
 
 	void set_index_buffer(RID rid);
 
 	RID create_vertex_buffer(BufferType type, int numVertices, RID vertexDecl);
 
-	RID create_vertex_buffer(BufferType type, int numVertices, RID vertexDecl, void* data);
+	RID create_vertex_buffer(BufferType type, int numVertices, RID vertexDecl, void* data, int vertexSize);
 
 	void set_vertex_buffer(RID rid, uint32_t* stride, uint32_t* offset, PrimitiveTypes topology);
 
@@ -134,6 +139,8 @@ namespace ds {
 	void load_vertex_shader(RID shader, const char* csoName);
 
 	void load_pixel_shader(RID shader, const char* csoName);
+
+	void set_shader(RID rid);
 
 	void set_blend_state(RID rid);
 
@@ -148,6 +155,12 @@ namespace ds {
 	bool isRunning();
 
 	void shutdown();
+
+	const matrix& get_view_matrix();
+
+	const matrix& get_projection_matrix();
+
+	const matrix& get_view_projection_matrix();
 
 }
 
@@ -263,7 +276,8 @@ namespace ds {
 		ID3D11VertexShader* vertexShader;
 		ID3D11PixelShader* pixelShader;
 		ID3D11GeometryShader* geometryShader;
-		ID3DBlob* vertexShaderBuffer;
+		void* vertexShaderBuffer;
+		UINT bufferSize;
 		ID3D11SamplerState* samplerState;
 		ID3DBlob* geometryShaderBuffer;
 
@@ -292,11 +306,16 @@ namespace ds {
 		ID3D11DepthStencilState* depthDisabledStencilState;
 		ID3D11DepthStencilState* depthEnabledStencilState;
 
+		matrix viewMatrix;
+		matrix projectionMatrix;
+		matrix viewProjectionMatrix;
+
 		std::vector<ID3D11Buffer*> constantBuffers;
 		std::vector<ID3D11Buffer*> buffers;
 		std::vector<ID3D11SamplerState*> samplerStates;
 		std::vector<ID3D11BlendState*> blendStates;
 		std::vector<Shader*> shaders;
+		std::vector<ID3D11InputLayout*> layouts;
 
 	} InternalContext;
 
@@ -479,9 +498,17 @@ namespace ds {
 			return false;
 		}
 
-		//_context->viewMatrix = ds::matrix::m4identity();
-		//_context->projectionMatrix = ds::matrix::mat4OrthoLH(static_cast<float>(settings.screenWidth), static_cast<float>(settings.screenHeight), 0.1f, 100.0f);
-		//_context->viewProjectionMatrix = _context->viewMatrix * _context->projectionMatrix;
+		_ctx->viewMatrix = mat_identity();
+
+		v3 position = v3(0, 0, -2);
+		v3 target = v3(0, 0, 0);
+		v3 up = v3(0, 1, 0);
+		_ctx->viewMatrix = mat_LookAtLH(position, target, up);
+
+
+		//_ctx->projectionMatrix = mat_OrthoLH(static_cast<float>(_ctx->screenWidth), static_cast<float>(_ctx->screenHeight), 0.1f, 100.0f);
+		_ctx->projectionMatrix = mat_PerspectiveFovLH(3.141592654f * 0.25f, _ctx->screenWidth / _ctx->screenHeight, 0.01f, 100.0f);
+		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
 
 		//_context->camera = 0;
 		//_context->orthoCamera = new ds::OrthoCamera(graphics::getScreenWidth(), graphics::getScreenHeight());
@@ -518,6 +545,7 @@ namespace ds {
 		_ctx->instance = GetModuleHandle(NULL);
 		_ctx->screenWidth = settings.width;
 		_ctx->screenHeight = settings.height;
+		_ctx->clearColor = settings.clearColor;
 
 		WNDCLASSEX wndClass = { 0 };
 		wndClass.cbSize = sizeof(WNDCLASSEX);
@@ -572,6 +600,9 @@ namespace ds {
 			for (size_t i = 0; i < _ctx->blendStates.size(); ++i) {
 				_ctx->blendStates[i]->Release();
 			}
+			for (size_t i = 0; i < _ctx->layouts.size(); ++i) {
+				_ctx->layouts[i]->Release();
+			}
 			// FIXME: release shaders
 			if (_ctx->backBufferTarget) _ctx->backBufferTarget->Release();
 			if (_ctx->swapChain) _ctx->swapChain->Release();
@@ -583,6 +614,18 @@ namespace ds {
 			if (_ctx->d3dDevice) _ctx->d3dDevice->Release();
 			delete _ctx;
 		}
+	}
+
+	const matrix& get_view_matrix() {
+		return _ctx->viewMatrix;
+	}
+
+	const matrix& get_projection_matrix() {
+		return _ctx->projectionMatrix;
+	}
+
+	const matrix& get_view_projection_matrix() {
+		return _ctx->viewProjectionMatrix;
 	}
 
 	// ------------------------------------------------------
@@ -606,8 +649,8 @@ namespace ds {
 
 	static const char* DXBufferAttributeNames[] = {
 		"POSITION",
-		"COLOR0",
-		"TEXCOORD0",
+		"COLOR",
+		"TEXCOORD",
 		"NORNAML"
 	};
 
@@ -615,12 +658,13 @@ namespace ds {
 		BufferAttributeType type;
 		DXGI_FORMAT format;
 		int size;
+		int bytes;
 	};
 
 	static const DXBufferAttributeType DXBufferAttributeTypes[] = {
-		{ FLOAT, DXGI_FORMAT_R32G32_FLOAT , 2 },
-		{ FLOAT, DXGI_FORMAT_R32G32B32_FLOAT , 3},
-		{ FLOAT, DXGI_FORMAT_R32G32B32A32_FLOAT, 4 },
+		{ FLOAT, DXGI_FORMAT_R32G32_FLOAT , 2, 8 },
+		{ FLOAT, DXGI_FORMAT_R32G32B32_FLOAT , 3, 12},
+		{ FLOAT, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, 16 },
 
 	};
 
@@ -635,7 +679,7 @@ namespace ds {
 	// ------------------------------------------------------
 	// input layout / vertex declaration
 	// ------------------------------------------------------
-	RID create_vertex_declaration(VertexDeclaration* decl, uint8_t num) {
+	RID create_vertex_declaration(VertexDeclaration* decl, uint8_t num, RID shaderId) {
 		D3D11_INPUT_ELEMENT_DESC* descriptors = new D3D11_INPUT_ELEMENT_DESC[num];
 		uint32_t index = 0;
 		uint32_t counter = 0;
@@ -654,29 +698,24 @@ namespace ds {
 			desc.AlignedByteOffset = index;
 			desc.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 			desc.InstanceDataStepRate = 0;
-			index += formatType.size;
+			index += formatType.bytes;
 			si[fidx] += 1;
 		}
 		ID3D11InputLayout* layout = 0;
-		//if (descriptor.shader == INVALID_RID) {
-			//_resCtx->device->CreateInputLayout(descriptors, descriptor.num, descriptor.byteCode, descriptor.byteCodeSize, &layout);
-		//}
-		//else {
-			//ShaderResource* sr = static_cast<ShaderResource*>(_resCtx->resources[descriptor.shader]);
-			//Shader* s = sr->get();
-			//assert(s != 0);
-			//HRESULT d3dResult = _ctx->d3dDevice->CreateInputLayout(descriptors, num, s->vertexShaderBuffer->GetBufferPointer(), s->vertexShaderBuffer->GetBufferSize(), &layout);
-			//if (d3dResult < 0) {
-				//LOGE << "Cannot create input layout '" << name << "'";
-				//return INVALID_RID;
-			//}
-		//delete[] descriptors;
-		//InputLayoutResource* ilr = new InputLayoutResource(layout, index);
-		//_resCtx->resources.push_back(ilr);
-		//return create(name, ResourceType::INPUTLAYOUT);
-		return INVALID_RID;
+		Shader* s = _ctx->shaders[shaderId];
+		HRESULT d3dResult = _ctx->d3dDevice->CreateInputLayout(descriptors, num, s->vertexShaderBuffer, s->bufferSize, &layout);
+		if (d3dResult < 0) {
+			printf("Cannot create input layout\n");
+			return INVALID_RID;
+		}
+		_ctx->layouts.push_back(layout);
+		return (RID)(_ctx->layouts.size() - 1);
 	}
 
+	void set_vertex_declaration(RID rid) {
+		ID3D11InputLayout* layout = _ctx->layouts[rid];
+		_ctx->d3dContext->IASetInputLayout(layout);
+	}
 	// ------------------------------------------------------
 	// constant buffer
 	// ------------------------------------------------------
@@ -752,7 +791,7 @@ namespace ds {
 	// ------------------------------------------------------
 	// index buffer with data
 	// ------------------------------------------------------
-	RID create_index_buffer(BufferType type, uint32_t* data) {
+	RID create_index_buffer(BufferType type, uint32_t* data, int size) {
 		D3D11_BUFFER_DESC bufferDesc;
 		if (type == BufferType::DYNAMIC) {
 			bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
@@ -762,7 +801,7 @@ namespace ds {
 			bufferDesc.Usage = D3D11_USAGE_DEFAULT;
 			bufferDesc.CPUAccessFlags = 0;
 		}
-		bufferDesc.ByteWidth = sizeof(data);
+		bufferDesc.ByteWidth = sizeof(data) * size;
 		bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 		bufferDesc.MiscFlags = 0;
 
@@ -832,8 +871,8 @@ namespace ds {
 	// ------------------------------------------------------
 	// vertex buffer with data
 	// ------------------------------------------------------
-	RID create_vertex_buffer(BufferType type, int numVertices, RID vertexDecl, void* data) {
-		UINT size = numVertices;// *res->size();
+	RID create_vertex_buffer(BufferType type, int numVertices, RID vertexDecl, void* data,int vertexSize) {
+		UINT size = numVertices * vertexSize;// *res->size();
 
 		D3D11_BUFFER_DESC bufferDesciption;
 		ZeroMemory(&bufferDesciption, sizeof(bufferDesciption));
@@ -863,7 +902,8 @@ namespace ds {
 	}
 
 	static const D3D11_PRIMITIVE_TOPOLOGY PRIMITIVE_TOPOLOGIES[] = {
-		D3D11_PRIMITIVE_TOPOLOGY_POINTLIST
+		D3D11_PRIMITIVE_TOPOLOGY_POINTLIST,
+		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
 	};
 
 	void set_vertex_buffer(RID rid, uint32_t* stride, uint32_t* offset, PrimitiveTypes topology) {
@@ -1021,6 +1061,9 @@ namespace ds {
 				nullptr,
 				&s->vertexShader
 			);
+			s->vertexShaderBuffer = new char[file.size];
+			memcpy(s->vertexShaderBuffer, file.data, file.size);
+			s->bufferSize = file.size;
 			delete[] file.data;
 		}
 		else {
@@ -1043,6 +1086,29 @@ namespace ds {
 		else {
 			printf("Cannot load file %s\n", csoName);
 		}
+	}
+
+	void set_shader(RID rid) {
+		ds::Shader* s = _ctx->shaders[rid];
+		if (s->vertexShader != 0) {
+			_ctx->d3dContext->VSSetShader(s->vertexShader, 0, 0);
+		}
+		else {
+			_ctx->d3dContext->VSSetShader(NULL, NULL, 0);
+		}
+		if (s->pixelShader != 0) {
+			_ctx->d3dContext->PSSetShader(s->pixelShader, 0, 0);
+		}
+		else {
+			_ctx->d3dContext->PSSetShader(NULL, NULL, 0);
+		}
+		if (s->geometryShader != 0) {
+			_ctx->d3dContext->GSSetShader(s->geometryShader, 0, 0);
+		}
+		else {
+			_ctx->d3dContext->GSSetShader(NULL, NULL, 0);
+		}
+		//_ctx->d3dContext->PSSetSamplers(0, 1, &s->samplerState);
 	}
 
 }

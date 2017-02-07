@@ -1,5 +1,7 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
+#define MATH_IMPLEMENTATION
+#include "..\..\..\math\math.h"
 
 struct Vertex {
 	float x;
@@ -11,21 +13,19 @@ struct Vertex {
 static Vertex s_cubeVertices[8] =
 {
 	{ -1.0f,  1.0f,  1.0f,ds::Color(1.0f,1.0f,1.0f,1.0f) },
-	{ 1.0f,  1.0f,  1.0f, ds::Color(1.0f,1.0f,1.0f,1.0f) },
-	{ -1.0f, -1.0f,  1.0f, ds::Color(1.0f,1.0f,1.0f,1.0f) },
-	{ 1.0f, -1.0f,  1.0f, ds::Color(1.0f,1.0f,1.0f,1.0f) },
-	{ -1.0f,  1.0f, -1.0f, ds::Color(1.0f,1.0f,1.0f,1.0f) },
-	{ 1.0f,  1.0f, -1.0f, ds::Color(1.0f,1.0f,1.0f,1.0f) },
-	{ -1.0f, -1.0f, -1.0f, ds::Color(1.0f,1.0f,1.0f,1.0f) },
-	{ 1.0f, -1.0f, -1.0f, ds::Color(1.0f,1.0f,1.0f,1.0f) },
+	{ 1.0f,  1.0f,  1.0f, ds::Color(0.0f,1.0f,1.0f,1.0f) },
+	{ -1.0f, -1.0f,  1.0f, ds::Color(1.0f,0.0f,1.0f,1.0f) },
+	{ 1.0f, -1.0f,  1.0f, ds::Color(1.0f,1.0f,0.0f,1.0f) },
+	{ -1.0f,  1.0f, -1.0f, ds::Color(0.0f,0.0f,1.0f,1.0f) },
+	{ 1.0f,  1.0f, -1.0f, ds::Color(1.0f,0.0f,0.0f,1.0f) },
+	{ -1.0f, -1.0f, -1.0f, ds::Color(0.0f,1.0f,0.0f,1.0f) },
+	{ 1.0f, -1.0f, -1.0f, ds::Color(1.0f,0.0f,1.0f,1.0f) },
 };
 
 
-struct CBTest {
-	float one;
-	float two;
-	float three;
-	float four;
+struct CubeCB {
+	matrix viewProjectionMatrix;
+	matrix worldMatrix;
 };
 
 int main(const char** args) {
@@ -45,70 +45,58 @@ int main(const char** args) {
 		6, 3, 7,
 	};
 
-	CBTest test;
+	CubeCB constantBuffer;
 
 	ds::RenderSettings rs;
 	rs.width = 1024;
 	rs.height = 768;
 	rs.title = "Hello world";
+	rs.clearColor = ds::Color(0.2f, 0.2f, 0.2f, 1.0f);
 	if (ds::init(rs)) {
 
 		RID bs_id = ds::create_blend_state(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 
-		ds::VertexDeclaration decl[] = {
-			{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
-			{ ds::BufferAttribute::TEXCOORD0,ds::BufferAttributeType::FLOAT,2 },
-			{ ds::BufferAttribute::COLOR0,ds::BufferAttributeType::FLOAT,4 }
-		};
-
-		RID rid = ds::create_vertex_declaration(decl, 3);
-		RID cbid = ds::create_consant_buffer(sizeof(CBTest));
-		printf("CB: %d\n", cbid);
-		RID iid = ds::create_index_buffer(ds::BufferType::STATIC, indices);
-		printf("IndexBuffer: %d (%zd)\n", iid,sizeof(indices));
-		RID vbid = ds::create_vertex_buffer(ds::BufferType::STATIC, 8, 0, s_cubeVertices);
-		printf("VertexBuffer: %d\n", vbid);
-		RID ssid = ds::create_sampler_state(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
-		printf("sampler state: %d\n", ssid);
 		RID sid = ds::create_shader();
 		ds::load_vertex_shader(sid, "Coloured_vs.cso");
 		ds::load_pixel_shader(sid, "Coloured_ps.cso");
+
+		ds::VertexDeclaration decl[] = {
+			{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
+			//{ ds::BufferAttribute::TEXCOORD0,ds::BufferAttributeType::FLOAT,2 },
+			{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
+		};
+
+		RID rid = ds::create_vertex_declaration(decl, 2, sid);
+		RID cbid = ds::create_consant_buffer(sizeof(CubeCB));
+		RID iid = ds::create_index_buffer(ds::BufferType::STATIC, indices,36);
+		RID vbid = ds::create_vertex_buffer(ds::BufferType::STATIC, 8, 0, s_cubeVertices,sizeof(Vertex));
+		RID ssid = ds::create_sampler_state(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
+		
+		v3 scale(1.0f, 1.0f, 1.0f);
+		v3 rotation(0.0f, 0.0f, 0.0f);
 		while (ds::isRunning()) {
 			ds::begin();
-			/*
-			mat4 w = matrix::m4identity();
-			mat4 rotY = matrix::mat4RotationY(rotation.y);
-			mat4 rotX = matrix::mat4RotationX(rotation.x);
-			mat4 rotZ = matrix::mat4RotationZ(rotation.z);
-			mat4 s = matrix::mat4Scale(scale);
-			w = rotZ * rotY * rotX * s * world;
-			*/
+			matrix world = mat_identity();
+			matrix w = mat_identity();
+			w = mat_Translate(v3(0.0f, 0.0f, 5.0f));
+			matrix rotY = mat_RotationY(rotation.y);
+			matrix rotX = mat_RotationX(rotation.x);
+			matrix rotZ = mat_RotationZ(rotation.z);
+			matrix s = mat_Scale(scale);
+			//w = rotZ * rotY * rotX * s * world;
 			unsigned int stride = sizeof(Vertex);
 			unsigned int offset = 0;
 
-			ds::set_vertex_buffer(vbid, &stride, &offset, ds::PrimitiveTypes::POINT_LIST);
+			ds::set_vertex_buffer(vbid, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
+			ds::set_vertex_declaration(rid);
 			ds::set_index_buffer(iid);
 			ds::set_blend_state(bs_id);
-			/*
-			setShader(m->shader);
-			if (m->texture != INVALID_RID) {
-				setPixelShaderResourceView(m->texture);
-			}
-			Camera* camera = graphics::getCamera();
-			ds::mat4 mvp = w * camera->getViewProjectionMatrix();
-			_buffer.viewProjectionMatrix = ds::matrix::mat4Transpose(mvp);
-			_buffer.worldMatrix = ds::matrix::mat4Transpose(w);
-			_buffer.cameraPos = camera->getPosition();
-			_buffer.lightPos = _lightPos;
-			_buffer.diffuseColor = color;// Color(192, 0, 0, 255);
-			//graphics::mapData(_descriptor.vertexBuffer, mesh->vertices.data(), mesh->vertices.size() * sizeof(PNTCVertex));
-			*/
-			ds::update_constant_buffer(cbid, &test, sizeof(CBTest));
-			
+			ds::set_shader(sid);
+			constantBuffer.viewProjectionMatrix = mat_Transpose(ds::get_view_projection_matrix());
+			constantBuffer.worldMatrix = mat_Transpose(w);
+			ds::update_constant_buffer(cbid, &constantBuffer, sizeof(CubeCB));
 			ds::set_vertex_constant_buffer(cbid);
-			ds::set_pixel_constant_buffer(cbid);
-			//ds::drawIndexed(36);
-
+			ds::drawIndexed(36);
 			ds::end();
 		}
 		ds::shutdown();
