@@ -500,7 +500,7 @@ namespace ds {
 
 		_ctx->viewMatrix = mat_identity();
 
-		v3 position = v3(0, 0, -2);
+		v3 position = v3(0, 0, -12);
 		v3 target = v3(0, 0, 0);
 		v3 up = v3(0, 1, 0);
 		_ctx->viewMatrix = mat_LookAtLH(position, target, up);

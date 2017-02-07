@@ -22,6 +22,14 @@ static Vertex s_cubeVertices[8] =
 	{ 1.0f, -1.0f, -1.0f, ds::Color(1.0f,0.0f,1.0f,1.0f) },
 };
 
+static Vertex s_plane[4] =
+{
+	{ -1.0f, -1.0f,  1.0f, ds::Color(1.0f,0.0f,0.0f,1.0f) },
+	{ -1.0f,  1.0f,  1.0f, ds::Color(1.0f,0.0f,0.0f,1.0f) },
+	{  1.0f,  1.0f,  1.0f, ds::Color(1.0f,0.0f,0.0f,1.0f) },
+	{  1.0f, -1.0f,  1.0f, ds::Color(1.0f,0.0f,0.0f,1.0f) }
+};
+
 
 struct CubeCB {
 	matrix viewProjectionMatrix;
@@ -45,8 +53,12 @@ int main(const char** args) {
 		6, 3, 7,
 	};
 
-	CubeCB constantBuffer;
+	uint32_t p_indices[6] = {
+		0, 1, 2, 2, 3, 0,		
+	};
 
+	CubeCB constantBuffer;
+	float t = 0.0f;
 	ds::RenderSettings rs;
 	rs.width = 1024;
 	rs.height = 768;
@@ -62,28 +74,29 @@ int main(const char** args) {
 
 		ds::VertexDeclaration decl[] = {
 			{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
-			//{ ds::BufferAttribute::TEXCOORD0,ds::BufferAttributeType::FLOAT,2 },
 			{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
 		};
 
 		RID rid = ds::create_vertex_declaration(decl, 2, sid);
 		RID cbid = ds::create_consant_buffer(sizeof(CubeCB));
-		RID iid = ds::create_index_buffer(ds::BufferType::STATIC, indices,36);
-		RID vbid = ds::create_vertex_buffer(ds::BufferType::STATIC, 8, 0, s_cubeVertices,sizeof(Vertex));
+		RID iid = ds::create_index_buffer(ds::BufferType::STATIC, p_indices,6);
+		RID vbid = ds::create_vertex_buffer(ds::BufferType::STATIC, 4, 0, s_plane,sizeof(Vertex));
 		RID ssid = ds::create_sampler_state(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 		
 		v3 scale(1.0f, 1.0f, 1.0f);
 		v3 rotation(0.0f, 0.0f, 0.0f);
 		while (ds::isRunning()) {
 			ds::begin();
+			t += 0.001f;
+			//rotation.z += 0.001f;
 			matrix world = mat_identity();
 			matrix w = mat_identity();
-			w = mat_Translate(v3(0.0f, 0.0f, 5.0f));
+			//w = mat_Translate(v3(0.0f, 0.0f, 12.0f));
 			matrix rotY = mat_RotationY(rotation.y);
 			matrix rotX = mat_RotationX(rotation.x);
 			matrix rotZ = mat_RotationZ(rotation.z);
 			matrix s = mat_Scale(scale);
-			//w = rotZ * rotY * rotX * s * world;
+			w = rotZ * rotY * rotX * s * world;
 			unsigned int stride = sizeof(Vertex);
 			unsigned int offset = 0;
 
