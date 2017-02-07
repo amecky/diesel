@@ -1,13 +1,17 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
 #define MATH_IMPLEMENTATION
-#include "..\..\..\math\math.h"
+#include "..\..\math.h"
 
 struct Vertex {
 	float x;
 	float y;
 	float z;
 	ds::Color color;
+
+	Vertex() : x(0.0f), y(0.0f), z(0.0f), color(1.0f, 1.0f, 1.0f, 1.0f) {}
+	Vertex(float xp, float yp, float zp, const ds::Color& c) : x(xp), y(yp), z(zp), color(c) {}
+	Vertex(const v3& p, const ds::Color& c) : x(p.x), y(p.y), z(p.z), color(c) {}
 };
 
 static Vertex s_cubeVertices[8] =
@@ -22,6 +26,10 @@ static Vertex s_cubeVertices[8] =
 	{ 1.0f, -1.0f, -1.0f, ds::Color(1.0f,0.0f,1.0f,1.0f) },
 };
 
+// 12
+// 03
+// v0 / v2  -1,-1,1 / 1,1,1 v0/v0.x,v2.y,1.0/v2,v2.x,v0.y,1.0
+
 static Vertex s_plane[4] =
 {
 	{ -1.0f, -1.0f,  1.0f, ds::Color(1.0f,0.0f,0.0f,1.0f) },
@@ -30,6 +38,13 @@ static Vertex s_plane[4] =
 	{  1.0f, -1.0f,  1.0f, ds::Color(1.0f,0.0f,0.0f,1.0f) }
 };
 
+void addPlane(const v3& p0, const v3& p2, const ds::Color& color, Vertex* vertices, int side) {
+	int idx = side * 4;
+	vertices[idx] = Vertex(p0, color);
+	vertices[idx + 1] = Vertex(v3(p0.x,p2.y,p0.z), color);
+	vertices[idx + 2] = Vertex(p2, color);
+	vertices[idx + 3] = Vertex(v3(p2.x,p0.y,p0.z), color);
+}
 
 struct CubeCB {
 	matrix viewProjectionMatrix;
@@ -56,6 +71,8 @@ int main(const char** args) {
 	uint32_t p_indices[6] = {
 		0, 1, 2, 2, 3, 0,		
 	};
+
+	Vertex v[8];
 
 	CubeCB constantBuffer;
 	float t = 0.0f;

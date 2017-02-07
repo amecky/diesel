@@ -1,13 +1,15 @@
 #pragma once
 #include <stdint.h>
 #define MATH_IMPLEMENTATION
-#include "..\math\math.h"
+#include "math.h"
 
 typedef uint32_t RID;
 
 const RID INVALID_RID = UINT32_MAX;
 
 namespace ds {
+
+	const float PI = 3.141592654f;
 
 	typedef struct Color {
 		union {
@@ -500,14 +502,15 @@ namespace ds {
 
 		_ctx->viewMatrix = mat_identity();
 
-		v3 position = v3(0, 0, -12);
+		v3 position = v3(0, 0, -6);
 		v3 target = v3(0, 0, 0);
 		v3 up = v3(0, 1, 0);
 		_ctx->viewMatrix = mat_LookAtLH(position, target, up);
 
-
+		float fieldOfView = PI / 4.0f;
+		float screenAspect = (float)_ctx->screenWidth / (float)_ctx->screenHeight;
 		//_ctx->projectionMatrix = mat_OrthoLH(static_cast<float>(_ctx->screenWidth), static_cast<float>(_ctx->screenHeight), 0.1f, 100.0f);
-		_ctx->projectionMatrix = mat_PerspectiveFovLH(3.141592654f * 0.25f, _ctx->screenWidth / _ctx->screenHeight, 0.01f, 100.0f);
+		_ctx->projectionMatrix = mat_PerspectiveFovLH(fieldOfView, screenAspect, 0.01f, 100.0f);
 		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
 
 		//_context->camera = 0;

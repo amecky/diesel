@@ -765,7 +765,6 @@ matrix mat_Translate(const v3& pos) {
 }
 
 matrix mat_LookAtLH(const v3& eye, const v3& lookAt, const v3& up) {
-	//mat4 tmp = m4identity();
 	// see msdn.microsoft.com/de-de/library/windows/desktop/bb205342(v=vs.85).aspx
 	v3 zAxis = normalize(lookAt - eye);
 	v3 xAxis = normalize(cross(up, zAxis));
