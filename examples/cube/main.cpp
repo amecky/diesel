@@ -1,7 +1,5 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
-#define MATH_IMPLEMENTATION
-#include "..\..\math.h"
 
 struct Vertex {
 	float x;
@@ -14,36 +12,37 @@ struct Vertex {
 	Vertex(const v3& p, const ds::Color& c) : x(p.x), y(p.y), z(p.z), color(c) {}
 };
 
-static Vertex s_cubeVertices[8] =
-{
-	{ -1.0f,  1.0f,  1.0f,ds::Color(1.0f,1.0f,1.0f,1.0f) },
-	{ 1.0f,  1.0f,  1.0f, ds::Color(0.0f,1.0f,1.0f,1.0f) },
-	{ -1.0f, -1.0f,  1.0f, ds::Color(1.0f,0.0f,1.0f,1.0f) },
-	{ 1.0f, -1.0f,  1.0f, ds::Color(1.0f,1.0f,0.0f,1.0f) },
-	{ -1.0f,  1.0f, -1.0f, ds::Color(0.0f,0.0f,1.0f,1.0f) },
-	{ 1.0f,  1.0f, -1.0f, ds::Color(1.0f,0.0f,0.0f,1.0f) },
-	{ -1.0f, -1.0f, -1.0f, ds::Color(0.0f,1.0f,0.0f,1.0f) },
-	{ 1.0f, -1.0f, -1.0f, ds::Color(1.0f,0.0f,1.0f,1.0f) },
+const v3 CUBE_VERTICES[8] = {
+	v3(-0.5f,-0.5f,-0.5f),
+	v3(-0.5f, 0.5f,-0.5f),
+	v3( 0.5f, 0.5f,-0.5f),
+	v3( 0.5f,-0.5f,-0.5f),
+	v3(-0.5f,-0.5f, 0.5f),
+	v3(-0.5f, 0.5f, 0.5f),
+	v3( 0.5f, 0.5f, 0.5f),
+	v3( 0.5f,-0.5f, 0.5f)
 };
 
-// 12
-// 03
-// v0 / v2  -1,-1,1 / 1,1,1 v0/v0.x,v2.y,1.0/v2,v2.x,v0.y,1.0
-
-static Vertex s_plane[4] =
-{
-	{ -1.0f, -1.0f,  1.0f, ds::Color(1.0f,0.0f,0.0f,1.0f) },
-	{ -1.0f,  1.0f,  1.0f, ds::Color(1.0f,0.0f,0.0f,1.0f) },
-	{  1.0f,  1.0f,  1.0f, ds::Color(1.0f,0.0f,0.0f,1.0f) },
-	{  1.0f, -1.0f,  1.0f, ds::Color(1.0f,0.0f,0.0f,1.0f) }
+const int CUBE_PLANES[6][4] = {
+	{ 0, 1, 2, 3 }, // front
+	{ 3, 2, 6, 7 }, // left
+	{ 1, 5, 6, 2 }, // top
+	{ 4, 5, 1, 0 }, // right
+	{ 4, 0, 3, 7 }, // bottom
+	{ 7, 6, 5, 4 }, // back
 };
 
-void addPlane(const v3& p0, const v3& p2, const ds::Color& color, Vertex* vertices, int side) {
+void addPlane(int side, const ds::Color& color, Vertex* vertices, uint32_t* indices) {
 	int idx = side * 4;
-	vertices[idx] = Vertex(p0, color);
-	vertices[idx + 1] = Vertex(v3(p0.x,p2.y,p0.z), color);
-	vertices[idx + 2] = Vertex(p2, color);
-	vertices[idx + 3] = Vertex(v3(p2.x,p0.y,p0.z), color);
+	for (int i = 0; i < 4; ++i) {
+		int p = idx + i;
+		vertices[p] = Vertex(CUBE_VERTICES[CUBE_PLANES[side][i]], color);
+	}
+	int offset = side * 4;
+	int ar[6] = { 0, 1, 2, 2, 3, 0 };
+	for (int i = 0; i < 6; ++i) {
+		indices[side * 6 + i] = offset + ar[i];
+	}
 }
 
 struct CubeCB {
@@ -53,26 +52,14 @@ struct CubeCB {
 
 int main(const char** args) {
 
-	uint32_t indices[36] = {
-		0, 1, 2, // 0
-		1, 3, 2,
-		4, 6, 5, // 2
-		5, 6, 7,
-		0, 2, 4, // 4
-		4, 2, 6,
-		1, 5, 3, // 6
-		5, 7, 3,
-		0, 4, 1, // 8
-		4, 5, 1,
-		2, 3, 6, // 10
-		6, 3, 7,
-	};
-
-	uint32_t p_indices[6] = {
-		0, 1, 2, 2, 3, 0,		
-	};
-
-	Vertex v[8];
+	uint32_t p_indices[36];
+	Vertex v[24];
+	addPlane(0, ds::Color(1.0f, 0.0f, 0.0f, 1.0f), v, p_indices);
+	addPlane(1, ds::Color(0.0f, 1.0f, 0.0f, 1.0f), v, p_indices);
+	addPlane(2, ds::Color(0.0f, 0.0f, 1.0f, 1.0f), v, p_indices);
+	addPlane(3, ds::Color(1.0f, 0.0f, 1.0f, 1.0f), v, p_indices);
+	addPlane(4, ds::Color(1.0f, 1.0f, 0.0f, 1.0f), v, p_indices);
+	addPlane(5, ds::Color(0.0f, 1.0f, 1.0f, 1.0f), v, p_indices);
 
 	CubeCB constantBuffer;
 	float t = 0.0f;
@@ -96,8 +83,8 @@ int main(const char** args) {
 
 		RID rid = ds::create_vertex_declaration(decl, 2, sid);
 		RID cbid = ds::create_consant_buffer(sizeof(CubeCB));
-		RID iid = ds::create_index_buffer(ds::BufferType::STATIC, p_indices,6);
-		RID vbid = ds::create_vertex_buffer(ds::BufferType::STATIC, 4, 0, s_plane,sizeof(Vertex));
+		RID iid = ds::create_index_buffer(ds::BufferType::STATIC, p_indices,36);
+		RID vbid = ds::create_vertex_buffer(ds::BufferType::STATIC, 24, 0, v,sizeof(Vertex));
 		RID ssid = ds::create_sampler_state(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 		
 		v3 scale(1.0f, 1.0f, 1.0f);
@@ -105,7 +92,8 @@ int main(const char** args) {
 		while (ds::isRunning()) {
 			ds::begin();
 			t += 0.001f;
-			//rotation.z += 0.001f;
+			rotation.y += 0.0001f;
+			rotation.x += 0.0001f;
 			matrix world = mat_identity();
 			matrix w = mat_identity();
 			//w = mat_Translate(v3(0.0f, 0.0f, 12.0f));
