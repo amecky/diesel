@@ -1,15 +1,18 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 struct Vertex {
 	float x;
 	float y;
 	float z;
-	ds::Color color;
+	float u;
+	float v;
 
-	Vertex() : x(0.0f), y(0.0f), z(0.0f), color(1.0f, 1.0f, 1.0f, 1.0f) {}
-	Vertex(float xp, float yp, float zp, const ds::Color& c) : x(xp), y(yp), z(zp), color(c) {}
-	Vertex(const v3& p, const ds::Color& c) : x(p.x), y(p.y), z(p.z), color(c) {}
+	Vertex() : x(0.0f), y(0.0f), z(0.0f), u(0.0f) , v(0.0f) {}
+	Vertex(float xp, float yp, float zp, float uv,float vv) : x(xp), y(yp), z(zp), u(uv), v(vv) {}
+	Vertex(const v3& p, float uv, float vv) : x(p.x), y(p.y), z(p.z), u(uv), v(vv) {}
 };
 
 const v3 CUBE_VERTICES[8] = {
@@ -32,11 +35,13 @@ const int CUBE_PLANES[6][4] = {
 	{ 7, 6, 5, 4 }, // back
 };
 
-void addPlane(int side, const ds::Color& color, Vertex* vertices, uint32_t* indices) {
+void addPlane(int side, Vertex* vertices, uint32_t* indices) {
 	int idx = side * 4;
+	float u[4] = { 0.0f,0.0f,1.0f,1.0f };
+	float v[4] = { 1.0f,0.0f,0.0f,1.0f };
 	for (int i = 0; i < 4; ++i) {
 		int p = idx + i;
-		vertices[p] = Vertex(CUBE_VERTICES[CUBE_PLANES[side][i]], color);
+		vertices[p] = Vertex(CUBE_VERTICES[CUBE_PLANES[side][i]], u[i],v[i]);
 	}
 	int offset = side * 4;
 	int ar[6] = { 0, 1, 2, 2, 3, 0 };
@@ -52,14 +57,17 @@ struct CubeConstantBuffer {
 
 int main(const char** args) {
 
+	
+	
+
 	uint32_t p_indices[36];
 	Vertex v[24];
-	addPlane(0, ds::Color(1.0f, 0.0f, 0.0f, 1.0f), v, p_indices);
-	addPlane(1, ds::Color(0.0f, 1.0f, 0.0f, 1.0f), v, p_indices);
-	addPlane(2, ds::Color(0.0f, 0.0f, 1.0f, 1.0f), v, p_indices);
-	addPlane(3, ds::Color(1.0f, 0.0f, 1.0f, 1.0f), v, p_indices);
-	addPlane(4, ds::Color(1.0f, 1.0f, 0.0f, 1.0f), v, p_indices);
-	addPlane(5, ds::Color(0.0f, 1.0f, 1.0f, 1.0f), v, p_indices);
+	addPlane(0, v, p_indices);
+	addPlane(1, v, p_indices);
+	addPlane(2, v, p_indices);
+	addPlane(3, v, p_indices);
+	addPlane(4, v, p_indices);
+	addPlane(5, v, p_indices);
 
 	CubeConstantBuffer constantBuffer;
 	float t = 0.0f;
@@ -70,6 +78,17 @@ int main(const char** args) {
 	rs.clearColor = ds::Color(0.2f, 0.2f, 0.2f, 1.0f);
 	if (ds::init(rs)) {
 
+		int x, y, n;
+		unsigned char *data = stbi_load("directx-11-logo.png", &x, &y, &n, 0);
+		printf("x: %d y: %d n: %d\n", x, y, n);
+		RID textureID = ds::createTexture(x, y, n, data);
+
+
+
+
+
+
+
 		RID bs_id = ds::create_blend_state(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 
 		RID sid = ds::create_shader();
@@ -78,7 +97,7 @@ int main(const char** args) {
 
 		ds::VertexDeclaration decl[] = {
 			{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
-			{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
+			{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }
 		};
 
 		RID rid = ds::create_vertex_declaration(decl, 2, sid);
@@ -117,6 +136,8 @@ int main(const char** args) {
 			ds::set_index_buffer(iid);
 			ds::set_blend_state(bs_id);
 			ds::setShader(sid);
+			ds::setSamplerState(ssid);
+			ds::setTexture(textureID);
 			constantBuffer.viewProjectionMatrix = mat_Transpose(ds::get_view_projection_matrix());
 			constantBuffer.worldMatrix = mat_Transpose(w);
 			ds::update_constant_buffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));

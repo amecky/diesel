@@ -163,9 +163,6 @@ const v3 V3_BACKWARD = v3(0, 0, 1);
 const v3 V3_ZERO = v3(0, 0, 0);
 const v3 V3_ONE = v3(1, 1, 1);
 
-template<int Size, class T>
-bool operator == (const Vector<Size, T>& u, const Vector<Size, T>& v);
-
 // ------------------------------------------------
 // Matrix
 // ------------------------------------------------
@@ -187,7 +184,6 @@ struct matrix {
 
 	operator float *() const { return (float *)&_11; }
 };
-
 
 matrix mat_identity();
 
@@ -213,7 +209,10 @@ matrix mat_PerspectiveFovLH(float fovy, float aspect, float zn, float zf);
 
 matrix operator * (const matrix& m1, const matrix& m2);
 
-#ifdef MATH_IMPLEMENTATION
+v3 operator * (const matrix& m, const v3& v);
+
+v4 operator * (const matrix& m, const v4& v);
+
 //! The == operator
 /*! The compound == operator will return true if both vectors are equals
 \param u first vector
@@ -642,7 +641,7 @@ inline matrix::matrix(float m11, float m12, float m13, float m14, float m21, flo
 	_43 = m43;
 	_44 = m44;
 }
-
+#ifdef MATH_IMPLEMENTATION
 matrix mat_identity() {
 	matrix m(
 		1.0f, 0.0f, 0.0f, 0.0f,
@@ -793,6 +792,31 @@ matrix mat_PerspectiveFovLH(float fovy, float aspect, float zn, float zf) {
 		0.0f, 0.0f, -zn*zf / (zf - zn), 0.0f
 		);
 	return tmp;
+}
+
+v4 operator * (const matrix& m, const v4& v) {
+	// column mode
+	/*
+	Vector4f tmp;
+	tmp.x = m._11 * v.x + m._12 * v.y + m._13 * v.z + m._14 * v.w;
+	tmp.y = m._21 * v.x + m._22 * v.y + m._23 * v.z + m._24 * v.w;
+	tmp.z = m._31 * v.x + m._32 * v.y + m._33 * v.z + m._34 * v.w;
+	tmp.w = m._41 * v.x + m._42 * v.y + m._43 * v.z + m._44 * v.w;
+	return tmp;
+	*/
+	// row mode
+	v4 tmp;
+	tmp.x = m._11 * v.x + m._21 * v.y + m._31 * v.z + m._41 * v.w;
+	tmp.y = m._12 * v.x + m._22 * v.y + m._32 * v.z + m._42 * v.w;
+	tmp.z = m._13 * v.x + m._23 * v.y + m._33 * v.z + m._43 * v.w;
+	tmp.w = m._14 * v.x + m._24 * v.y + m._34 * v.z + m._44 * v.w;
+	return tmp;
+}
+
+v3 operator * (const matrix& m, const v3& v) {
+	v4 nv(v.x, v.y, v.z, 1.0f);
+	v4 tmp = m * nv;
+	return v3(tmp.x, tmp.y, tmp.z);
 }
 
 #endif

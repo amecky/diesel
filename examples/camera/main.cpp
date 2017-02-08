@@ -1,5 +1,6 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
+#include "Camera.h"
 
 struct Vertex {
 	float x;
@@ -92,8 +93,10 @@ int main(const char** args) {
 		v3 scale(1.0f, 1.0f, 1.0f);
 		v3 rotation(0.0f, 0.0f, 0.0f);
 		v3 pos(0.0f, 0.0f, 0.0f);
-		
+		FPSCamera camera(1024,768);
+
 		while (ds::isRunning()) {
+			camera.update(0.0016f);
 			ds::begin();
 			t += 0.001f;
 			//rotation.y += 0.0001f;
@@ -117,7 +120,8 @@ int main(const char** args) {
 			ds::set_index_buffer(iid);
 			ds::set_blend_state(bs_id);
 			ds::setShader(sid);
-			constantBuffer.viewProjectionMatrix = mat_Transpose(ds::get_view_projection_matrix());
+			//constantBuffer.viewProjectionMatrix = mat_Transpose(ds::get_view_projection_matrix());
+			constantBuffer.viewProjectionMatrix = mat_Transpose(camera.getViewProjectionMatrix());
 			constantBuffer.worldMatrix = mat_Transpose(w);
 			ds::update_constant_buffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
 			ds::set_vertex_constant_buffer(cbid);

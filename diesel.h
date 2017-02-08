@@ -7,6 +7,13 @@ typedef uint32_t RID;
 
 const RID INVALID_RID = UINT32_MAX;
 
+#ifndef DEGTORAD
+#define DEGTORAD( degree ) ((degree) * (3.141592654f / 180.0f))
+#endif
+#ifndef RADTODEG
+#define RADTODEG( radian ) ((radian) * (180.0f / 3.141592654f))
+#endif
+
 namespace ds {
 
 	const float PI = 3.141592654f;
@@ -134,6 +141,8 @@ namespace ds {
 
 	RID create_sampler_state(TextureAddressModes addressMode, TextureFilters filter);
 
+	void setSamplerState(RID rid);
+
 	RID create_blend_state(BlendStates srcBlend, BlendStates srcAlphaBlend, BlendStates destBlend, BlendStates destAlphaBlend, bool alphaEnabled);	
 
 	RID create_shader();
@@ -142,7 +151,11 @@ namespace ds {
 
 	void load_pixel_shader(RID shader, const char* csoName);
 
-	void set_shader(RID rid);
+	RID createTexture(int width, int height, uint8_t channels, void* data);
+
+	void setTexture(RID rid);
+
+	void setShader(RID rid);
 
 	void set_blend_state(RID rid);
 
@@ -164,6 +177,19 @@ namespace ds {
 
 	const matrix& get_view_projection_matrix();
 
+	void set_view_position(const v3& viewPos);
+
+	void look_at(const v3& pos);
+
+	void set_projection_matrix(float fieldOfView, float aspectRatio);
+
+	void set_projection_matrix(float fieldOfView, float aspectRatio, float minDepth, float maxDepth);
+
+	bool isKeyPressed(uint8_t key);
+
+	v2 getMousePosition();
+
+	bool isMouseButtonPressed(int button);
 }
 
 #ifdef DS_IMPLEMENTATION
@@ -172,12 +198,12 @@ namespace ds {
 #include <crtdbg.h>  
 #include <d3d11.h>
 #include <vector>
-//#include <d3dx11.h>
-//#include <DxErr.h>
-// This function was inspired by:
 
 namespace ds {
 
+	// ------------------------------------------------------
+	// query refresh rate
+	// ------------------------------------------------------
 	// http://www.rastertek.com/dx11tut03.html
 	static bool QueryRefreshRate(UINT screenWidth, UINT screenHeight, bool vsync, DXGI_RATIONAL* rational) {
 		DXGI_RATIONAL refreshRate = { 0, 1 };
@@ -274,6 +300,9 @@ namespace ds {
 		return true;
 	}
 
+	// ------------------------------------------------------
+	// Shader
+	// ------------------------------------------------------
 	struct Shader {
 		ID3D11VertexShader* vertexShader;
 		ID3D11PixelShader* pixelShader;
@@ -287,6 +316,9 @@ namespace ds {
 
 	};
 
+	// ------------------------------------------------------
+	// Internal context
+	// ------------------------------------------------------
 	typedef struct {
 		HWND hwnd;
 		HINSTANCE instance;
@@ -318,11 +350,22 @@ namespace ds {
 		std::vector<ID3D11BlendState*> blendStates;
 		std::vector<Shader*> shaders;
 		std::vector<ID3D11InputLayout*> layouts;
+		std::vector<ID3D11ShaderResourceView*> shaderResourceViews;
+
+		v3 viewPosition;
+		v3 lookAt;
+		v3 up;
+
+		int mouseButtonState[2];
+		int keyState[256];
 
 	} InternalContext;
 
 	static InternalContext* _ctx;
 
+	// ------------------------------------------------------
+	// is running
+	// ------------------------------------------------------
 	bool isRunning() {
 		MSG msg = { 0 };
 		if (PeekMessage(&msg, 0, 0, 0, PM_REMOVE)) {
@@ -333,7 +376,9 @@ namespace ds {
 	}
 
 
-
+	// ------------------------------------------------------
+	// initialize device
+	// ------------------------------------------------------
 	static bool initializeDevice(const RenderSettings& settings) {
 		_ctx->clearColor = settings.clearColor;
 		//_context->depthEnabled = true;
@@ -502,40 +547,156 @@ namespace ds {
 
 		_ctx->viewMatrix = mat_identity();
 
-		v3 position = v3(0, 0, -6);
-		v3 target = v3(0, 0, 0);
-		v3 up = v3(0, 1, 0);
-		_ctx->viewMatrix = mat_LookAtLH(position, target, up);
+		_ctx->viewPosition = v3(0, 0, -6);
+		_ctx->lookAt = v3(0, 0, 0);
+		_ctx->up = v3(0, 1, 0);
+		_ctx->viewMatrix = mat_LookAtLH(_ctx->viewPosition, _ctx->lookAt, _ctx->up);
 
 		float fieldOfView = PI / 4.0f;
 		float screenAspect = (float)_ctx->screenWidth / (float)_ctx->screenHeight;
-		//_ctx->projectionMatrix = mat_OrthoLH(static_cast<float>(_ctx->screenWidth), static_cast<float>(_ctx->screenHeight), 0.1f, 100.0f);
 		_ctx->projectionMatrix = mat_PerspectiveFovLH(fieldOfView, screenAspect, 0.01f, 100.0f);
 		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
-
-		//_context->camera = 0;
-		//_context->orthoCamera = new ds::OrthoCamera(graphics::getScreenWidth(), graphics::getScreenHeight());
-		//_context->fpsCamera = new ds::FPSCamera(graphics::getScreenWidth(), graphics::getScreenHeight());
-
-		//ds::Viewport vw;
-		//vw.setDimension(graphics::getScreenWidth(), graphics::getScreenHeight());
-		//_context->viewports.push_back(vw);
-		//_context->selectedViewport = 0;
 		return true;
 	}
 
+	// ------------------------------------------------------
+	// set view position
+	// ------------------------------------------------------
+	void set_view_position(const v3& viewPos) {
+		_ctx->viewPosition = viewPos;
+		_ctx->viewMatrix = mat_LookAtLH(_ctx->viewPosition, _ctx->lookAt, _ctx->up);
+		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
+	}
+
+	// ------------------------------------------------------
+	// look at
+	// ------------------------------------------------------
+	void look_at(const v3& pos) {
+		_ctx->lookAt = pos;
+		_ctx->viewMatrix = mat_LookAtLH(_ctx->viewPosition, _ctx->lookAt, _ctx->up);
+		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
+	}
+
+	// ------------------------------------------------------
+	// set projection matrix
+	// ------------------------------------------------------
+	void set_projection_matrix(float fieldOfView, float aspectRatio) {
+		_ctx->projectionMatrix = mat_PerspectiveFovLH(fieldOfView, aspectRatio, 0.01f, 100.0f);
+		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
+	}
+
+	// ------------------------------------------------------
+	// set projection matrix
+	// ------------------------------------------------------
+	void set_projection_matrix(float fieldOfView, float aspectRatio, float minDepth, float maxDepth) {
+		_ctx->projectionMatrix = mat_PerspectiveFovLH(fieldOfView, aspectRatio, minDepth, maxDepth);
+		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
+	}
+
+	// ------------------------------------------------------
+	// internal windows procedure
+	// ------------------------------------------------------
+	bool update_input(RAWINPUT* raw) {
+		HWND current = GetForegroundWindow();
+		if (current == _ctx->hwnd) {
+			if (raw->header.dwType == RIM_TYPEKEYBOARD) {
+				const RAWKEYBOARD& rawKB = raw->data.keyboard;
+				UINT virtualKey = rawKB.VKey;
+				UINT scanCode = rawKB.MakeCode;
+				UINT flags = rawKB.Flags;
+				if (flags == 0) {
+					_ctx->keyState[virtualKey] = 80;
+				}
+				else {
+					_ctx->keyState[virtualKey] = 0;
+
+				}
+			}
+			if (raw->header.dwType == RIM_TYPEMOUSE) {
+				if (raw->data.mouse.ulButtons == 1) {
+					_ctx->mouseButtonState[0] = 1;
+				}
+				if (raw->data.mouse.ulButtons == 2) {
+					_ctx->mouseButtonState[0] = 0;
+				}
+				if (raw->data.mouse.ulButtons == 4) {
+					_ctx->mouseButtonState[1] = 1;
+				}
+				if (raw->data.mouse.ulButtons == 8) {
+					_ctx->mouseButtonState[1] = 0;
+				}
+			}
+		}
+		return true;
+	}
+
+	// ------------------------------------------------------
+	// get mouse position
+	// ------------------------------------------------------
+	v2 getMousePosition() {
+		v2 mp;
+		tagPOINT p;
+		if (GetCursorPos(&p)) {
+			if (ScreenToClient(ds::_ctx->hwnd, &p)) {
+				mp.x = p.x;
+				mp.y = ds::_ctx->screenHeight - p.y;
+			}
+		}
+		return mp;
+	}
+
+	// ------------------------------------------------------
+	// is key pressed
+	// ------------------------------------------------------
+	bool isKeyPressed(uint8_t key) {
+		return _ctx->keyState[key] == 80;
+	}
+
+	// ------------------------------------------------------
+	// is mouse button pressed
+	// ------------------------------------------------------
+	bool isMouseButtonPressed(int button) {
+		return _ctx->mouseButtonState[button] == 80;
+	}
+
+	// ------------------------------------------------------
+	// internal windows procedure
+	// ------------------------------------------------------
 	LRESULT CALLBACK WinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
 		switch (message) {
-		case WM_CLOSE:
-			_ctx->running = false;
+			case WM_INPUT: {
+				char buffer[sizeof(RAWINPUT)] = {};
+				UINT size = sizeof(RAWINPUT);
+				GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, buffer, &size, sizeof(RAWINPUTHEADER));
+				RAWINPUT* raw = reinterpret_cast<RAWINPUT*>(buffer);
+				update_input(raw);
+			}
 			return 0;
-		case WM_DESTROY:
-			PostQuitMessage(0);
-			return 0;
-		}
+			case WM_LBUTTONDOWN:
+				_ctx->mouseButtonState[0] = 80;
+				return 0;
+			case WM_LBUTTONUP:
+				_ctx->mouseButtonState[0] = 0;
+				return 0;
+			case WM_RBUTTONDOWN:
+				_ctx->mouseButtonState[1] = 80;
+				return 0;
+			case WM_RBUTTONUP:
+				_ctx->mouseButtonState[1] = 0;
+				return 0;
+			case WM_CLOSE:
+				_ctx->running = false;
+				return 0;
+			case WM_DESTROY:
+				PostQuitMessage(0);
+				return 0;
+			}
 		return DefWindowProc(hwnd, message, wParam, lParam);
 	}
 
+	// ------------------------------------------------------
+	// init
+	// ------------------------------------------------------
 	bool init(const RenderSettings& settings) {
 
 		int flag = _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG); // Get current flag
@@ -543,6 +704,8 @@ namespace ds {
 		flag |= _CRTDBG_CHECK_ALWAYS_DF; // Turn on CrtCheckMemory
 										 //flag |= _CRTDBG_DELAY_FREE_MEM_DF;
 		_CrtSetDbgFlag(flag); // Set flag to the new value
+
+		SetThreadAffinityMask(GetCurrentThread(), 1);
 
 		_ctx = new InternalContext;
 		_ctx->instance = GetModuleHandle(NULL);
@@ -586,9 +749,34 @@ namespace ds {
 
 		SetWindowText(_ctx->hwnd, settings.title);
 
+		RAWINPUTDEVICE Rid[2];
+
+		// Keyboard
+		Rid[0].usUsagePage = 1;
+		Rid[0].usUsage = 6;
+		Rid[0].dwFlags = 0;
+		Rid[0].hwndTarget = NULL;
+
+		// Mouse
+		Rid[1].usUsagePage = 1;
+		Rid[1].usUsage = 2;
+		Rid[1].dwFlags = 0;
+		Rid[1].hwndTarget = NULL;
+
+		RegisterRawInputDevices(Rid, 2, sizeof(RAWINPUTDEVICE));
+
+		for (int i = 0; i < 256; ++i) {
+			_ctx->keyState[i] = 0;
+		}
+		_ctx->mouseButtonState[0] = 0;
+		_ctx->mouseButtonState[1] = 0;
+
 		return initializeDevice(settings);
 	}
 
+	// ------------------------------------------------------
+	// shutdown
+	// ------------------------------------------------------
 	void shutdown() {
 		if (_ctx != 0) {
 			for (size_t i = 0; i < _ctx->constantBuffers.size(); ++i) {
@@ -619,14 +807,23 @@ namespace ds {
 		}
 	}
 
+	// ------------------------------------------------------
+	// get view matrix
+	// ------------------------------------------------------
 	const matrix& get_view_matrix() {
 		return _ctx->viewMatrix;
 	}
 
+	// ------------------------------------------------------
+	// get projection matrix
+	// ------------------------------------------------------
 	const matrix& get_projection_matrix() {
 		return _ctx->projectionMatrix;
 	}
 
+	// ------------------------------------------------------
+	// get view projection matrix
+	// ------------------------------------------------------
 	const matrix& get_view_projection_matrix() {
 		return _ctx->viewProjectionMatrix;
 	}
@@ -695,7 +892,7 @@ namespace ds {
 			}
 			const DXBufferAttributeType& formatType = DXBufferAttributeTypes[fidx];
 			desc.SemanticName = DXBufferAttributeNames[decl[i].attribute];
-			desc.SemanticIndex = si[fidx];// d.semanticIndex;
+			desc.SemanticIndex = si[fidx];
 			desc.Format = formatType.format;
 			desc.InputSlot = 0;
 			desc.AlignedByteOffset = index;
@@ -739,9 +936,11 @@ namespace ds {
 		return (RID)(_ctx->constantBuffers.size() - 1);
 	}
 
+	// ------------------------------------------------------
+	// update constant buffer
+	// ------------------------------------------------------
 	void update_constant_buffer(RID rid, void* data, size_t size) {
 		ID3D11Buffer* buffer = _ctx->constantBuffers[rid];
-		//_context->d3dContext->UpdateSubresource(buffer, 0, 0, data, 0, 0);
 		D3D11_MAPPED_SUBRESOURCE resource;
 		HRESULT hResult = _ctx->d3dContext->Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
 		void* ptr = resource.pData;
@@ -750,16 +949,25 @@ namespace ds {
 		_ctx->d3dContext->Unmap(buffer, 0);
 	}
 
+	// ------------------------------------------------------
+	// set vertex shader constant buffer
+	// ------------------------------------------------------
 	void set_vertex_constant_buffer(RID rid) {
 		ID3D11Buffer* buffer = _ctx->constantBuffers[rid];
 		_ctx->d3dContext->VSSetConstantBuffers(0, 1, &buffer);
 	}
 
+	// ------------------------------------------------------
+	// set pixel shader constant buffer
+	// ------------------------------------------------------
 	void set_pixel_constant_buffer(RID rid) {
 		ID3D11Buffer* buffer = _ctx->constantBuffers[rid];
 		_ctx->d3dContext->PSSetConstantBuffers(0, 1, &buffer);
 	}
 
+	// ------------------------------------------------------
+	// set geometry shader constant buffer
+	// ------------------------------------------------------
 	void set_geometry_constant_buffer(RID rid) {
 		ID3D11Buffer* buffer = _ctx->constantBuffers[rid];
 		_ctx->d3dContext->GSSetConstantBuffers(0, 1, &buffer);
@@ -847,28 +1055,13 @@ namespace ds {
 		bufferDesciption.ByteWidth = size;
 
 		ID3D11Buffer* buffer = 0;
-		//if (descriptor.dataSize == 0) {
-			HRESULT d3dResult = _ctx->d3dDevice->CreateBuffer(&bufferDesciption, 0, &buffer);
-			if (FAILED(d3dResult)) {
-				printf("Failed to create buffer!");
-				return INVALID_RID;
-			}
-		//}
-			/*
-		else {
-			D3D11_SUBRESOURCE_DATA resource;
-			resource.pSysMem = descriptor.data;
-			resource.SysMemPitch = 0;
-			resource.SysMemSlicePitch = 0;
-			HRESULT d3dResult = _resCtx->device->CreateBuffer(&bufferDesciption, &resource, &buffer);
-			if (FAILED(d3dResult)) {
-				DXTRACE_MSG("Failed to create buffer!");
-				return -1;
-			}
-		}
-		*/
-			_ctx->buffers.push_back(buffer);
-			return (RID)(_ctx->buffers.size() - 1);
+		HRESULT d3dResult = _ctx->d3dDevice->CreateBuffer(&bufferDesciption, 0, &buffer);
+		if (FAILED(d3dResult)) {
+			printf("Failed to create buffer!");
+			return INVALID_RID;
+		}		
+		_ctx->buffers.push_back(buffer);
+		return (RID)(_ctx->buffers.size() - 1);
 	}
 
 	// ------------------------------------------------------
@@ -956,6 +1149,10 @@ namespace ds {
 		return (RID)(_ctx->samplerStates.size() - 1);
 	}
 
+	void setSamplerState(RID rid) {
+		ID3D11SamplerState* sampler = _ctx->samplerStates[rid];
+		_ctx->d3dContext->PSSetSamplers(0, 1, &sampler);
+	}
 	// ------------------------------------------------------
 	// Blend States
 	// ------------------------------------------------------
@@ -1013,18 +1210,22 @@ namespace ds {
 	}
 
 	// ------------------------------------------------------
-	// Draw
+	// Draw indexed
 	// ------------------------------------------------------
 	void drawIndexed(uint32_t num) {
 		_ctx->d3dContext->DrawIndexed(num, 0, 0);
 	}
 
+	// ------------------------------------------------------
+	// draw
+	// ------------------------------------------------------
 	void draw(uint32_t num) {
 		_ctx->d3dContext->Draw(num, 0);
 	}
 
-	
-
+	// ------------------------------------------------------
+	// create shader
+	// ------------------------------------------------------
 	RID create_shader() {
 		Shader* s = new Shader;
 		_ctx->shaders.push_back(s);
@@ -1054,6 +1255,9 @@ namespace ds {
 		return df;
 	}
 
+	// ------------------------------------------------------
+	// load vertex shader
+	// ------------------------------------------------------
 	void load_vertex_shader(RID shader, const char* csoName) {
 		DataFile file = read_data(csoName);
 		if (file.size != -1) {
@@ -1074,6 +1278,9 @@ namespace ds {
 		}
 	}
 
+	// ------------------------------------------------------
+	// load pixel shader
+	// ------------------------------------------------------
 	void load_pixel_shader(RID shader, const char* csoName) {
 		DataFile file = read_data(csoName);
 		if (file.size != -1) {
@@ -1091,7 +1298,10 @@ namespace ds {
 		}
 	}
 
-	void set_shader(RID rid) {
+	// ------------------------------------------------------
+	// set shader
+	// ------------------------------------------------------
+	void setShader(RID rid) {
 		ds::Shader* s = _ctx->shaders[rid];
 		if (s->vertexShader != 0) {
 			_ctx->d3dContext->VSSetShader(s->vertexShader, 0, 0);
@@ -1111,7 +1321,51 @@ namespace ds {
 		else {
 			_ctx->d3dContext->GSSetShader(NULL, NULL, 0);
 		}
-		//_ctx->d3dContext->PSSetSamplers(0, 1, &s->samplerState);
+	}
+
+	// ------------------------------------------------------
+	// create texture
+	// ------------------------------------------------------
+	RID createTexture(int width, int height, uint8_t channels, void* data) {
+		D3D11_TEXTURE2D_DESC desc;
+		desc.Width = width;
+		desc.Height = height;
+		desc.MipLevels = 1;
+		desc.ArraySize = 1;
+		desc.Format = DXGI_FORMAT_R8G8B8A8_UINT;
+		desc.SampleDesc.Count = 1;
+		desc.SampleDesc.Quality = 0;
+		desc.Usage = D3D11_USAGE_DEFAULT;
+		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		desc.CPUAccessFlags = 0;
+		desc.MiscFlags = 0;
+
+		D3D11_SUBRESOURCE_DATA subres;
+		subres.pSysMem = data;
+		subres.SysMemPitch = width * channels;
+		subres.SysMemSlicePitch = 0;
+
+		ID3D11Texture2D *texture2D = 0;
+
+		HRESULT result = _ctx->d3dDevice->CreateTexture2D(&desc, &subres, &texture2D);
+		if (FAILED(result))	{
+			printf("Failed to create Texture2D");
+		}
+		ID3D11ShaderResourceView* srv = 0;
+		result = _ctx->d3dDevice->CreateShaderResourceView(texture2D, NULL, &srv);
+		if (FAILED(result)) {
+			printf("Failed to create resource view");
+		}
+		_ctx->shaderResourceViews.push_back(srv);
+		return (RID)(_ctx->shaderResourceViews.size() - 1);
+	}
+
+	// ------------------------------------------------------
+	// set texture
+	// ------------------------------------------------------
+	void setTexture(RID rid) {
+		ID3D11ShaderResourceView* srv = _ctx->shaderResourceViews[rid];
+		_ctx->d3dContext->PSSetShaderResources(0, 1, &srv);
 	}
 
 }
