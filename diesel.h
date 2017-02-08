@@ -794,6 +794,21 @@ namespace ds {
 			for (size_t i = 0; i < _ctx->layouts.size(); ++i) {
 				_ctx->layouts[i]->Release();
 			}
+			for (size_t i = 0; i < _ctx->shaderResourceViews.size(); ++i) {
+				_ctx->shaderResourceViews[i]->Release();
+			}
+			for (size_t i = 0; i < _ctx->shaders.size(); ++i) {
+				Shader* s = _ctx->shaders[i];
+				if (s->vertexShader != 0) {
+					s->vertexShader->Release();
+				}
+				if (s->pixelShader != 0) {
+					s->pixelShader->Release();
+				}
+				if (s->geometryShader != 0) {
+					s->geometryShader->Release();
+				}
+			}
 			// FIXME: release shaders
 			if (_ctx->backBufferTarget) _ctx->backBufferTarget->Release();
 			if (_ctx->swapChain) _ctx->swapChain->Release();

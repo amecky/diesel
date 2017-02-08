@@ -79,7 +79,7 @@ int main(const char** args) {
 	if (ds::init(rs)) {
 
 		int x, y, n;
-		unsigned char *data = stbi_load("directx-11-logo.png", &x, &y, &n, 0);
+		unsigned char *data = stbi_load("directx-11-logo.png", &x, &y, &n, 4);
 		printf("x: %d y: %d n: %d\n", x, y, n);
 		RID textureID = ds::createTexture(x, y, n, data);
 
@@ -102,10 +102,10 @@ int main(const char** args) {
 
 		RID rid = ds::create_vertex_declaration(decl, 2, sid);
 		RID cbid = ds::create_consant_buffer(sizeof(CubeConstantBuffer));
-		RID iid = ds::create_index_buffer(ds::BufferType::STATIC, p_indices,36);
-		RID vbid = ds::create_vertex_buffer(ds::BufferType::STATIC, 24, 0, v,sizeof(Vertex));
+		RID iid = ds::create_index_buffer(ds::BufferType::STATIC, p_indices,6);
+		RID vbid = ds::create_vertex_buffer(ds::BufferType::STATIC, 4, 0, v,sizeof(Vertex));
 		RID ssid = ds::create_sampler_state(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
-		v3 vp = v3(2.0f, 2.0f, -6.0f);
+		v3 vp = v3(0.0f, 0.0f, -6.0f);
 		ds::set_view_position(vp);
 		//ds::look_at(v3(2.0f, 0.0f, 0.0f));
 		v3 scale(1.0f, 1.0f, 1.0f);
@@ -114,20 +114,20 @@ int main(const char** args) {
 		
 		while (ds::isRunning()) {
 			ds::begin();
-			t += 0.001f;
+			//t += 0.001f;
 			//rotation.y += 0.0001f;
 			//rotation.x += 0.0001f;
-			vp.y = 2.0f * sin(t);
-			ds::set_view_position(vp);
-			pos.z = sin(t);
-			matrix world = mat_identity();
+			//vp.y = 2.0f * sin(t);
+			//ds::set_view_position(vp);
+			//pos.z = sin(t);
+			//matrix world = mat_identity();
 			matrix w = mat_identity();
 			//world = mat_Translate(pos);
-			matrix rotY = mat_RotationY(rotation.y);
-			matrix rotX = mat_RotationX(rotation.x);
-			matrix rotZ = mat_RotationZ(rotation.z);
-			matrix s = mat_Scale(scale);
-			w = rotZ * rotY * rotX * s * world;
+			//matrix rotY = mat_RotationY(rotation.y);
+			//matrix rotX = mat_RotationX(rotation.x);
+			//matrix rotZ = mat_RotationZ(rotation.z);
+			//matrix s = mat_Scale(scale);
+			//w = rotZ * rotY * rotX * s * world;
 			unsigned int stride = sizeof(Vertex);
 			unsigned int offset = 0;
 
@@ -142,7 +142,7 @@ int main(const char** args) {
 			constantBuffer.worldMatrix = mat_Transpose(w);
 			ds::update_constant_buffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
 			ds::set_vertex_constant_buffer(cbid);
-			ds::drawIndexed(36);
+			ds::drawIndexed(6);
 			ds::end();
 		}
 		ds::shutdown();
