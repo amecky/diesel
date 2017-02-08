@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "diesel", "diesel.vcxproj", "{4248D58D-2A87-4E81-BF1D-D97337EECE8A}"
 EndProject
@@ -10,6 +10,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Camera", "..\examples\camera\Camera.vcxproj", "{7881051E-C8E5-46FB-ADA0-7553FD361706}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Texture", "..\examples\texture\Texture.vcxproj", "{63B0F07A-2FCF-4161-813B-EB8E6B217C4F}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Obj", "..\examples\obj\Obj.vcxproj", "{A7C61895-5FC0-40A1-A5C4-E63A82B4BF3B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -51,6 +53,14 @@ Global
 		{63B0F07A-2FCF-4161-813B-EB8E6B217C4F}.Release|x64.Build.0 = Release|x64
 		{63B0F07A-2FCF-4161-813B-EB8E6B217C4F}.Release|x86.ActiveCfg = Release|Win32
 		{63B0F07A-2FCF-4161-813B-EB8E6B217C4F}.Release|x86.Build.0 = Release|Win32
+		{A7C61895-5FC0-40A1-A5C4-E63A82B4BF3B}.Debug|x64.ActiveCfg = Debug|x64
+		{A7C61895-5FC0-40A1-A5C4-E63A82B4BF3B}.Debug|x64.Build.0 = Debug|x64
+		{A7C61895-5FC0-40A1-A5C4-E63A82B4BF3B}.Debug|x86.ActiveCfg = Debug|Win32
+		{A7C61895-5FC0-40A1-A5C4-E63A82B4BF3B}.Debug|x86.Build.0 = Debug|Win32
+		{A7C61895-5FC0-40A1-A5C4-E63A82B4BF3B}.Release|x64.ActiveCfg = Release|x64
+		{A7C61895-5FC0-40A1-A5C4-E63A82B4BF3B}.Release|x64.Build.0 = Release|x64
+		{A7C61895-5FC0-40A1-A5C4-E63A82B4BF3B}.Release|x86.ActiveCfg = Release|Win32
+		{A7C61895-5FC0-40A1-A5C4-E63A82B4BF3B}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
