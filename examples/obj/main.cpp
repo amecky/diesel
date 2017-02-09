@@ -4,53 +4,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-struct Vertex {
-	float x;
-	float y;
-	float z;
-	float u;
-	float v;
-
-	Vertex() : x(0.0f), y(0.0f), z(0.0f), u(0.0f) , v(0.0f) {}
-	Vertex(float xp, float yp, float zp, float uv,float vv) : x(xp), y(yp), z(zp), u(uv), v(vv) {}
-	Vertex(const v3& p, float uv, float vv) : x(p.x), y(p.y), z(p.z), u(uv), v(vv) {}
-};
-
-const v3 CUBE_VERTICES[8] = {
-	v3(-0.5f,-0.5f,-0.5f),
-	v3(-0.5f, 0.5f,-0.5f),
-	v3( 0.5f, 0.5f,-0.5f),
-	v3( 0.5f,-0.5f,-0.5f),
-	v3(-0.5f,-0.5f, 0.5f),
-	v3(-0.5f, 0.5f, 0.5f),
-	v3( 0.5f, 0.5f, 0.5f),
-	v3( 0.5f,-0.5f, 0.5f)
-};
-
-const int CUBE_PLANES[6][4] = {
-	{ 0, 1, 2, 3 }, // front
-	{ 3, 2, 6, 7 }, // left
-	{ 1, 5, 6, 2 }, // top
-	{ 4, 5, 1, 0 }, // right
-	{ 4, 0, 3, 7 }, // bottom
-	{ 7, 6, 5, 4 }, // back
-};
-
-void addPlane(int side, Vertex* vertices, uint32_t* indices) {
-	int idx = side * 4;
-	float u[4] = { 0.0f,0.0f,1.0f,1.0f };
-	float v[4] = { 1.0f,0.0f,0.0f,1.0f };
-	for (int i = 0; i < 4; ++i) {
-		int p = idx + i;
-		vertices[p] = Vertex(CUBE_VERTICES[CUBE_PLANES[side][i]], u[i],v[i]);
-	}
-	int offset = side * 4;
-	int ar[6] = { 0, 1, 2, 2, 3, 0 };
-	for (int i = 0; i < 6; ++i) {
-		indices[side * 6 + i] = offset + ar[i];
-	}
-}
-
 struct CubeConstantBuffer {
 	matrix viewProjectionMatrix;
 	matrix worldMatrix;
@@ -70,7 +23,9 @@ int main(const char** args) {
 	for (int i = 0; i < q; ++i) {
 		for (int j = 0; j < 6; ++j) {
 			p_indices[i * 6 + j] = i * 4 + ind[j];
+			printf("%d ", p_indices[i * 6 + j]);
 		}
+		printf("\n");
 	}
 	//Vertex v[24];
 	//addPlane(0, v, p_indices);
@@ -121,20 +76,20 @@ int main(const char** args) {
 		while (ds::isRunning()) {
 			ds::begin();
 			//t += 0.001f;
-			rotation.y += 0.0001f;
-			rotation.x += 0.0001f;
+			//rotation.y += 0.0001f;
+			//rotation.x += 0.0001f;
 			matrix world = mat_identity();
 			matrix rotY = mat_RotationY(rotation.y);
 			matrix rotX = mat_RotationX(rotation.x);
 			matrix rotZ = mat_RotationZ(rotation.z);
 			matrix s = mat_Scale(scale);
 			matrix w = rotZ * rotY * rotX * s * world;
-			unsigned int stride = sizeof(Vertex);
+			unsigned int stride = sizeof(ObjVertex);
 			unsigned int offset = 0;
 
-			ds::setVertexBuffer(vbid, &stride, &offset, ds::PrimitiveTypes::LINE_LIST);
+			ds::setVertexBuffer(vbid, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_STRIP);
 			ds::setVertexDeclaration(rid);
-			//ds::setIndexBuffer(iid);
+			ds::setIndexBuffer(iid);
 			ds::setBlendState(bs_id);
 			ds::setShader(shaderID);
 			ds::setSamplerState(ssid);
@@ -143,8 +98,8 @@ int main(const char** args) {
 			constantBuffer.worldMatrix = mat_Transpose(w);
 			ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
 			ds::setVertexConstantBuffer(cbid);
-			//ds::drawIndexed(q*6);
-			ds::draw(num);
+			ds::drawIndexed(q*6);
+			//ds::draw(num);
 			ds::end();
 		}
 		ds::shutdown();

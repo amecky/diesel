@@ -9,3 +9,4 @@ SamplerState colorSampler_ : register(s0);
 float4 PS_Main( PS_Input frag ) : SV_TARGET {
     return colorMap_.Sample(colorSampler_, frag.texcoord);
 }
+

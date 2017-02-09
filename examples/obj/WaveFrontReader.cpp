@@ -66,5 +66,9 @@ int WaveFrontReader::load(const char * fileName, ObjVertex* objVertices, int max
 
 	}
 	printf("vertices: %d\n", cnt);
+	for (int i = 0; i < cnt; ++i) {
+		const ObjVertex& ov = objVertices[i];
+		printf("%d : %g %g %g\n", i,ov.position.x, ov.position.y, ov.position.z);
+	}
 	return cnt;
 }
