@@ -17,24 +17,7 @@ int main(const char** args) {
 	if ( num == -1) {
 		printf("Cannot load file\n");
 	}
-	int q = num / 4;
-	uint32_t* p_indices = new uint32_t[q*6];
-	int ind[6] = { 0,1,2,2,3,0 };
-	for (int i = 0; i < q; ++i) {
-		for (int j = 0; j < 6; ++j) {
-			p_indices[i * 6 + j] = i * 4 + ind[j];
-			printf("%d ", p_indices[i * 6 + j]);
-		}
-		printf("\n");
-	}
-	//Vertex v[24];
-	//addPlane(0, v, p_indices);
-	//addPlane(1, v, p_indices);
-	//addPlane(2, v, p_indices);
-	//addPlane(3, v, p_indices);
-	//addPlane(4, v, p_indices);
-	//addPlane(5, v, p_indices);
-
+	
 	CubeConstantBuffer constantBuffer;
 	float t = 0.0f;
 	ds::RenderSettings rs;
@@ -64,7 +47,7 @@ int main(const char** args) {
 
 		RID rid = ds::createVertexDeclaration(decl, 3, shaderID);
 		RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
-		RID iid = ds::createIndexBuffer(ds::BufferType::STATIC, p_indices,q*6);
+		RID indexBufferID = ds::createQuadIndexBuffer(num / 4);
 		RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, num, 0, vertices,sizeof(ObjVertex));
 		RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 		v3 vp = v3(0.0f, 0.0f, -6.0f);
@@ -72,6 +55,8 @@ int main(const char** args) {
 		v3 scale(1.0f, 1.0f, 1.0f);
 		v3 rotation(0.0f, 0.0f, 0.0f);
 		v3 pos(0.0f, 0.0f, 0.0f);
+
+		int q = num / 4 * 6;
 		
 		while (ds::isRunning()) {
 			ds::begin();
@@ -89,7 +74,7 @@ int main(const char** args) {
 
 			ds::setVertexBuffer(vbid, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_STRIP);
 			ds::setVertexDeclaration(rid);
-			ds::setIndexBuffer(iid);
+			ds::setIndexBuffer(indexBufferID);
 			ds::setBlendState(bs_id);
 			ds::setShader(shaderID);
 			ds::setSamplerState(ssid);

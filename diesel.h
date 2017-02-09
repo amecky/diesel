@@ -106,6 +106,11 @@ namespace ds {
 		INV_SRC1_ALPHA
 	};
 
+	enum DepthBufferState {
+		ENABLED,
+		DISABLED
+	};
+
 	enum TextureFormat {
 		R8G8B8A8_UINT,
 		R8G8B8A8_UNORM
@@ -136,7 +141,9 @@ namespace ds {
 
 	RID createIndexBuffer(int size, BufferType type);
 
-	RID createIndexBuffer(BufferType type, uint32_t* data, int size);
+	RID createIndexBuffer(BufferType type, uint32_t* data, int size);	
+
+	RID createQuadIndexBuffer(int numQuads);
 
 	void setIndexBuffer(RID rid);
 
@@ -145,6 +152,8 @@ namespace ds {
 	RID createVertexBuffer(BufferType type, int numVertices, RID vertexDecl, void* data, int vertexSize);
 
 	void setVertexBuffer(RID rid, uint32_t* stride, uint32_t* offset, PrimitiveTypes topology);
+
+	void mapBufferData(RID rid, void* data, uint32_t size);
 
 	RID createSamplerState(TextureAddressModes addressMode, TextureFilters filter);
 
@@ -159,6 +168,8 @@ namespace ds {
 	void loadVertexShader(RID shader, const char* csoName);
 
 	void loadPixelShader(RID shader, const char* csoName);
+
+	void loadGeometryShader(RID shader, const char* csoName);
 
 	RID createTexture(int width, int height, uint8_t channels, void* data, TextureFormat format);
 
@@ -199,6 +210,8 @@ namespace ds {
 	v2 getMousePosition();
 
 	bool isMouseButtonPressed(int button);
+
+	void setDepthBufferState(DepthBufferState state);
 }
 
 #ifdef DS_IMPLEMENTATION
@@ -367,6 +380,8 @@ namespace ds {
 
 		int mouseButtonState[2];
 		int keyState[256];
+
+		DepthBufferState depthBufferState;
 
 	} InternalContext;
 
@@ -1060,6 +1075,43 @@ namespace ds {
 		_ctx->d3dContext->IASetIndexBuffer(_ctx->buffers[rid], DXGI_FORMAT_R32_UINT, 0);
 	}
 
+	RID createQuadIndexBuffer(int numQuads) {
+		int size = numQuads * 6;
+		D3D11_BUFFER_DESC bufferDesc;
+		bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+		bufferDesc.CPUAccessFlags = 0;
+		bufferDesc.ByteWidth = sizeof(uint32_t) * size;
+		bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		bufferDesc.MiscFlags = 0;
+		uint32_t* data = new uint32_t[size];
+		int base = 0;
+		int cnt = 0;
+		for (int i = 0; i < numQuads; ++i) {
+			data[base] = cnt;
+			data[base + 1] = cnt + 1;
+			data[base + 2] = cnt + 3;
+			data[base + 3] = cnt + 1;
+			data[base + 4] = cnt + 2;
+			data[base + 5] = cnt + 3;
+			base += 6;
+			cnt += 4;
+		}
+		// Define the resource data.
+		D3D11_SUBRESOURCE_DATA InitData;
+		InitData.pSysMem = data;
+		InitData.SysMemPitch = 0;
+		InitData.SysMemSlicePitch = 0;
+		ID3D11Buffer* buffer;
+		HRESULT hr = _ctx->d3dDevice->CreateBuffer(&bufferDesc, &InitData, &buffer);
+		if (FAILED(hr)) {
+			printf("Failed to create index buffer!");
+			return INVALID_RID;
+		}
+		// FIXME: delete data
+		_ctx->buffers.push_back(buffer);
+		return (RID)(_ctx->buffers.size() - 1);
+	}
+
 	// ------------------------------------------------------
 	// vertex buffer with data
 	// ------------------------------------------------------
@@ -1133,6 +1185,26 @@ namespace ds {
 		ID3D11Buffer* buffer = _ctx->buffers[rid];
 		_ctx->d3dContext->IASetVertexBuffers(0, 1, &buffer, stride, offset);
 		_ctx->d3dContext->IASetPrimitiveTopology(PRIMITIVE_TOPOLOGIES[topology]);
+	}
+
+	// ------------------------------------------------------
+	// map data to vertex buffer
+	// ------------------------------------------------------
+	void mapBufferData(RID rid, void* data, uint32_t size) {
+
+		ID3D11Buffer* buffer = _ctx->buffers[rid];
+		D3D11_MAPPED_SUBRESOURCE resource;
+		HRESULT hResult = _ctx->d3dContext->Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
+		// This will be S_OK
+		if (hResult == S_OK) {
+			void* ptr = resource.pData;
+			// Copy the data into the vertex buffer.
+			memcpy(ptr, data, size);
+			_ctx->d3dContext->Unmap(buffer, 0);
+		}
+		else {
+			printf("ERROR mapping data\n");
+		}
 	}
 
 	// ------------------------------------------------------
@@ -1327,6 +1399,26 @@ namespace ds {
 	}
 
 	// ------------------------------------------------------
+	// load pixel shader
+	// ------------------------------------------------------
+	void loadGeometryShader(RID shader, const char* csoName) {
+		DataFile file = read_data(csoName);
+		if (file.size != -1) {
+			Shader* s = _ctx->shaders[shader];
+			_ctx->d3dDevice->CreateGeometryShader(
+				file.data,
+				file.size,
+				nullptr,
+				&s->geometryShader
+				);
+			delete[] file.data;
+		}
+		else {
+			printf("Cannot load file %s\n", csoName);
+		}
+	}
+
+	// ------------------------------------------------------
 	// set shader
 	// ------------------------------------------------------
 	void setShader(RID rid) {
@@ -1398,6 +1490,21 @@ namespace ds {
 	void setTexture(RID rid) {
 		ID3D11ShaderResourceView* srv = _ctx->shaderResourceViews[rid];
 		_ctx->d3dContext->PSSetShaderResources(0, 1, &srv);
+	}
+
+	// ------------------------------------------------------
+	// set depth buffer state
+	// ------------------------------------------------------
+	void setDepthBufferState(DepthBufferState state) {
+		if (_ctx->depthBufferState != state) {
+			if (state == DepthBufferState::ENABLED) {
+				_ctx->d3dContext->OMSetDepthStencilState(_ctx->depthEnabledStencilState, 1);
+			}
+			else {
+				_ctx->d3dContext->OMSetDepthStencilState(_ctx->depthDisabledStencilState, 1);
+			}
+		}
+		_ctx->depthBufferState = state;
 	}
 
 }
