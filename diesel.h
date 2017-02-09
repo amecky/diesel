@@ -874,9 +874,8 @@ namespace ds {
 		_ctx->d3dContext->OMSetRenderTargets(1, &_ctx->backBufferTarget, _ctx->depthStencilView);
 		_ctx->d3dContext->ClearRenderTargetView(_ctx->backBufferTarget, _ctx->clearColor);
 		_ctx->d3dContext->ClearDepthStencilView(_ctx->depthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0.0);
-		//_context->selectedBlendState = 0;
-		//turnOnZBuffer();
-		//_context->sprites->begin();
+		_ctx->d3dContext->OMSetDepthStencilState(_ctx->depthEnabledStencilState, 1);
+		_ctx->depthBufferState = DepthBufferState::ENABLED;
 	}
 
 	// ------------------------------------------------------
