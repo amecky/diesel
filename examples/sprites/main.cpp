@@ -48,7 +48,6 @@ struct SpriteConstantBuffer {
 int add(const v2& p, const Rect& r, Sprite* sprites, int index) {
 	if ((index + 1) < 64) {
 		Sprite& s = sprites[index];
-		s.position = p;
 		s.color = ds::Color(1.0f, 1.0f, 1.0f, 1.0f);
 		s.scale = v2(1.0f, 1.0f);
 		s.rotation = 0.0f;
@@ -130,6 +129,8 @@ int main(const char** args) {
 			matrix w = mat_identity();
 			constantBuffer.wvp = mat_Transpose(viewProjectionMatrix);
 			ds::updateConstantBuffer(cbid,&constantBuffer,sizeof(SpriteConstantBuffer));
+			ds::setGeometryConstantBuffer(cbid);
+			ds::setVertexConstantBuffer(cbid);
 			ds::draw(numSprites);
 			ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
 			ds::end();
