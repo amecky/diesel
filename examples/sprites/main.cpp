@@ -66,7 +66,7 @@ int main(const char** args) {
 	numSprites = add(v2(512, 364), Rect(0, 0, 256, 256),sprites,numSprites);
 
 	SpriteConstantBuffer constantBuffer;
-	constantBuffer.screenDimension = v4(1024.0f, 768.0f, 1024.0f, 1024.0f);
+	constantBuffer.screenDimension = v4(1024.0f, 768.0f, 256.0f, 256.0f);
 	constantBuffer.screenCenter = v4(512.0f, 384.0f, 0.0f, 0.0f);
 	float t = 0.0f;
 	ds::RenderSettings rs;
