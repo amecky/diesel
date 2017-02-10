@@ -212,6 +212,20 @@ namespace ds {
 	bool isMouseButtonPressed(int button);
 
 	void setDepthBufferState(DepthBufferState state);
+
+	uint64_t getElapsedTicks();
+
+	double getElapsedSeconds();
+
+	uint64_t getTotalTicks();
+
+	double GetTotalSeconds();
+
+	uint32_t getFrameCount();
+
+	uint32_t getFramesPerSecond();
+
+	float random(float min, float max);
 }
 
 #ifdef DS_IMPLEMENTATION
@@ -220,6 +234,7 @@ namespace ds {
 #include <crtdbg.h>  
 #include <d3d11.h>
 #include <vector>
+#include <random>
 
 namespace ds {
 
@@ -339,6 +354,14 @@ namespace ds {
 	};
 
 	// ------------------------------------------------------
+	// internal input layout 
+	// ------------------------------------------------------
+	struct InternalVertexDeclaration {
+		ID3D11InputLayout* layout;
+		int size;
+	};
+
+	// ------------------------------------------------------
 	// Internal context
 	// ------------------------------------------------------
 	typedef struct {
@@ -371,7 +394,7 @@ namespace ds {
 		std::vector<ID3D11SamplerState*> samplerStates;
 		std::vector<ID3D11BlendState*> blendStates;
 		std::vector<Shader*> shaders;
-		std::vector<ID3D11InputLayout*> layouts;
+		std::vector<InternalVertexDeclaration> layouts;
 		std::vector<ID3D11ShaderResourceView*> shaderResourceViews;
 
 		v3 viewPosition;
@@ -383,9 +406,75 @@ namespace ds {
 
 		DepthBufferState depthBufferState;
 
+		// Timing
+		LARGE_INTEGER timerFrequency;
+		LARGE_INTEGER lastTime;
+		// Derived timing data uses a canonical tick format. 
+		uint64_t elapsedTicks;
+		uint64_t totalTicks;
+		uint64_t leftOverTicks;
+
+		// Members for tracking the framerate. 
+		uint32_t frameCount;
+		uint32_t framesPerSecond;
+		uint32_t framesThisSecond;
+		uint64_t secondCounter;
+		uint64_t maxDelta;
+
 	} InternalContext;
 
 	static InternalContext* _ctx;
+
+	// -------------------------------------------------------
+	// random
+	// -------------------------------------------------------
+	static std::mt19937 mt;
+
+	static void init_random(unsigned long seed) {
+		std::random_device r;
+		std::seed_seq new_seed{ r(), r(), r(), r(), r(), r(), r(), r() };
+		mt.seed(new_seed);
+	}
+
+	
+	float random(float min, float max) {
+		std::uniform_real_distribution<float> dist(min, max);
+		return dist(mt);
+	}
+
+	static const uint64_t TicksPerSecond = 10000000;
+
+	static double TicksToSeconds(uint64_t ticks) { 
+		return static_cast<double>(ticks) / TicksPerSecond; 
+	}
+	static uint64_t SecondsToTicks(double seconds) { 
+		return static_cast<uint64_t>(seconds * TicksPerSecond); 
+	}
+
+	uint64_t getElapsedTicks() { 
+		return _ctx->elapsedTicks;
+	}
+	double getElapsedSeconds() { 
+		return TicksToSeconds(_ctx->elapsedTicks);
+	}
+
+	// Get total time since the start of the program. 
+	uint64_t getTotalTicks() { 
+		return _ctx->totalTicks;
+	}
+	double GetTotalSeconds() { 
+		return TicksToSeconds(_ctx->totalTicks);
+	}
+
+	// Get total number of updates since start of the program. 
+	uint32_t getFrameCount() { 
+		return _ctx->frameCount;
+	}
+
+	// Get the current framerate. 
+	uint32_t getFramesPerSecond() { 
+		return _ctx->framesPerSecond;
+	}
 
 	// ------------------------------------------------------
 	// is running
@@ -396,6 +485,42 @@ namespace ds {
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
+		LARGE_INTEGER currentTime;
+		QueryPerformanceCounter(&currentTime);
+
+		uint64_t timeDelta = currentTime.QuadPart - _ctx->lastTime.QuadPart;
+
+		_ctx->lastTime = currentTime;
+		_ctx->secondCounter += timeDelta;
+
+		// Clamp excessively large time deltas (e.g. after paused in the debugger). 
+		if (timeDelta > _ctx->maxDelta)
+		{
+			timeDelta = _ctx->maxDelta;
+		}
+
+		// Convert QPC units into a canonical tick format. This cannot overflow due to the previous clamp. 
+		timeDelta *= TicksPerSecond;
+		timeDelta /= _ctx->timerFrequency.QuadPart;
+
+		uint32_t lastFrameCount = _ctx->frameCount;
+		
+		// Variable timestep update logic. 
+		_ctx->elapsedTicks = timeDelta;
+		_ctx->totalTicks += timeDelta;
+		_ctx->leftOverTicks = 0;
+		_ctx->frameCount++;
+		// Track the current framerate. 
+		if (_ctx->frameCount != lastFrameCount) {
+			_ctx->framesThisSecond++;
+		}
+
+		if (_ctx->secondCounter >= static_cast<uint64_t>(_ctx->timerFrequency.QuadPart))	{
+			_ctx->framesPerSecond = _ctx->framesThisSecond;
+			_ctx->framesThisSecond = 0;
+			_ctx->secondCounter %= _ctx->timerFrequency.QuadPart;
+		}
+
 		return _ctx->running;
 	}
 
@@ -795,6 +920,16 @@ namespace ds {
 		_ctx->mouseButtonState[0] = 0;
 		_ctx->mouseButtonState[1] = 0;
 
+		init_random(GetTickCount());
+
+		QueryPerformanceFrequency(&_ctx->timerFrequency);
+		QueryPerformanceCounter(&_ctx->lastTime);
+
+		_ctx->leftOverTicks = 0;
+		_ctx->framesPerSecond = 0;
+		_ctx->framesThisSecond = 0;
+		_ctx->secondCounter = 0;
+		_ctx->maxDelta = _ctx->timerFrequency.QuadPart / 10;
 		return initializeDevice(settings);
 	}
 
@@ -816,7 +951,7 @@ namespace ds {
 				_ctx->blendStates[i]->Release();
 			}
 			for (size_t i = 0; i < _ctx->layouts.size(); ++i) {
-				_ctx->layouts[i]->Release();
+				_ctx->layouts[i].layout->Release();
 			}
 			for (size_t i = 0; i < _ctx->shaderResourceViews.size(); ++i) {
 				_ctx->shaderResourceViews[i]->Release();
@@ -940,19 +1075,21 @@ namespace ds {
 			index += formatType.bytes;
 			si[decl[i].attribute] += 1;
 		}
-		ID3D11InputLayout* layout = 0;
+		InternalVertexDeclaration id;
+		id.size = index;
 		Shader* s = _ctx->shaders[shaderId];
-		HRESULT d3dResult = _ctx->d3dDevice->CreateInputLayout(descriptors, num, s->vertexShaderBuffer, s->bufferSize, &layout);
+		HRESULT d3dResult = _ctx->d3dDevice->CreateInputLayout(descriptors, num, s->vertexShaderBuffer, s->bufferSize, &id.layout);
 		if (d3dResult < 0) {
 			printf("Cannot create input layout\n");
 			return INVALID_RID;
 		}
-		_ctx->layouts.push_back(layout);
+		
+		_ctx->layouts.push_back(id);
 		return (RID)(_ctx->layouts.size() - 1);
 	}
 
 	void setVertexDeclaration(RID rid) {
-		ID3D11InputLayout* layout = _ctx->layouts[rid];
+		ID3D11InputLayout* layout = _ctx->layouts[rid].layout;
 		_ctx->d3dContext->IASetInputLayout(layout);
 	}
 	// ------------------------------------------------------
@@ -1115,7 +1252,8 @@ namespace ds {
 	// vertex buffer with data
 	// ------------------------------------------------------
 	RID createVertexBuffer(BufferType type, int numVertices, RID vertexDecl) {
-		UINT size = numVertices;// *res->size();
+		const InternalVertexDeclaration& id = _ctx->layouts[vertexDecl];
+		UINT size = numVertices * id.size;
 
 		D3D11_BUFFER_DESC bufferDesciption;
 		ZeroMemory(&bufferDesciption, sizeof(bufferDesciption));
@@ -1144,7 +1282,8 @@ namespace ds {
 	// vertex buffer with data
 	// ------------------------------------------------------
 	RID createVertexBuffer(BufferType type, int numVertices, RID vertexDecl, void* data,int vertexSize) {
-		UINT size = numVertices * vertexSize;// *res->size();
+		const InternalVertexDeclaration& id = _ctx->layouts[vertexDecl];
+		UINT size = numVertices * id.size;
 
 		D3D11_BUFFER_DESC bufferDesciption;
 		ZeroMemory(&bufferDesciption, sizeof(bufferDesciption));
