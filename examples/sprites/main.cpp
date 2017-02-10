@@ -110,10 +110,13 @@ int main(const char** args) {
 			{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 			{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 },
 			{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,3 },
-			{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
+			{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,4 }
 		};
 
 		RID vertexDeclId = ds::createVertexDeclaration(decl, 4, shaderID);
+		if (vertexDeclId == INVALID_RID) {
+			printf("Error!!!!!! %s\n", ds::getLastError());
+		}
 		RID cbid = ds::createConstantBuffer(sizeof(SpriteConstantBuffer));
 		RID vertexBufferID = ds::createVertexBuffer(ds::BufferType::DYNAMIC, 64, vertexDeclId);
 		RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);

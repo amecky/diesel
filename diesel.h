@@ -226,6 +226,8 @@ namespace ds {
 	uint32_t getFramesPerSecond();
 
 	float random(float min, float max);
+
+	const char* getLastError();
 }
 
 #ifdef DS_IMPLEMENTATION
@@ -235,6 +237,15 @@ namespace ds {
 #include <d3d11.h>
 #include <vector>
 #include <random>
+
+static void reportLastError(const char* fileName, int line, const char* method, HRESULT hr);
+
+#ifndef FAIL
+#define FAIL(s, ...) do { reportLastError(__FILE__,__LINE__,s,__VA_ARGS__); } while(false);
+#endif
+#ifndef REPORT
+#define REPORT(s,d) do { reportLastError(__FILE__,__LINE__,s,d); } while(false);
+#endif
 
 namespace ds {
 
@@ -421,6 +432,9 @@ namespace ds {
 		uint64_t secondCounter;
 		uint64_t maxDelta;
 
+		char errorBuffer[256];
+		bool broken;
+
 	} InternalContext;
 
 	static InternalContext* _ctx;
@@ -440,6 +454,10 @@ namespace ds {
 	float random(float min, float max) {
 		std::uniform_real_distribution<float> dist(min, max);
 		return dist(mt);
+	}
+
+	const char* getLastError() {
+		return _ctx->errorBuffer;
 	}
 
 	static const uint64_t TicksPerSecond = 10000000;
@@ -474,6 +492,23 @@ namespace ds {
 	// Get the current framerate. 
 	uint32_t getFramesPerSecond() { 
 		return _ctx->framesPerSecond;
+	}
+
+	static void reportLastError(const char* fileName, int line, const char* method, HRESULT hr) {
+		char msg[256];
+		DWORD result = FormatMessage(
+			FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL,
+			hr,
+			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			(LPTSTR)&msg,
+			255, NULL);
+		if (result > 0) {
+			sprintf_s(_ctx->errorBuffer,"file: %s (%d) method: %s - %s\n", fileName, line, method, msg);
+			MessageBox(GetDesktopWindow(), _ctx->errorBuffer, "ERROR", NULL);
+			abort();
+		}
 	}
 
 	// ------------------------------------------------------
@@ -930,6 +965,9 @@ namespace ds {
 		_ctx->framesThisSecond = 0;
 		_ctx->secondCounter = 0;
 		_ctx->maxDelta = _ctx->timerFrequency.QuadPart / 10;
+		for (int i = 0; i < 256; ++i) {
+			_ctx->errorBuffer[i] = '\0';
+		}
 		return initializeDevice(settings);
 	}
 
@@ -1080,7 +1118,7 @@ namespace ds {
 		Shader* s = _ctx->shaders[shaderId];
 		HRESULT d3dResult = _ctx->d3dDevice->CreateInputLayout(descriptors, num, s->vertexShaderBuffer, s->bufferSize, &id.layout);
 		if (d3dResult < 0) {
-			printf("Cannot create input layout\n");
+			REPORT("createVertexDeclaration",d3dResult);
 			return INVALID_RID;
 		}
 		
