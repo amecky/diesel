@@ -35,19 +35,14 @@ const int CUBE_PLANES[6][4] = {
 	{ 7, 6, 5, 4 }, // back
 };
 
-void addPlane(int side, Vertex* vertices, uint32_t* indices) {
-	int idx = side * 4;
+void addPlane(int index, int side, Vertex* vertices, const v3& offset = v3(0.0f)) {
+	int idx = index * 4;
 	float u[4] = { 0.0f,0.0f,1.0f,1.0f };
 	float v[4] = { 1.0f,0.0f,0.0f,1.0f };
 	for (int i = 0; i < 4; ++i) {
 		int p = idx + i;
-		vertices[p] = Vertex(CUBE_VERTICES[CUBE_PLANES[side][i]], u[i],v[i]);
-	}
-	int offset = side * 4;
-	int ar[6] = { 0, 1, 2, 2, 3, 0 };
-	for (int i = 0; i < 6; ++i) {
-		indices[side * 6 + i] = offset + ar[i];
-	}
+		vertices[p] = Vertex(CUBE_VERTICES[CUBE_PLANES[side][i]] + offset, u[i],v[i]);
+	}	
 }
 
 struct CubeConstantBuffer {
@@ -55,15 +50,36 @@ struct CubeConstantBuffer {
 	matrix worldMatrix;
 };
 
+RID loadImage(const char* name) {
+	int x, y, n;
+	unsigned char *data = stbi_load(name, &x, &y, &n, 4);
+	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
+	stbi_image_free(data);
+	return textureID;
+}
+
 int main(const char** args) {
-	uint32_t p_indices[36];
 	Vertex v[24];
-	addPlane(0, v, p_indices);
-	addPlane(1, v, p_indices);
-	addPlane(2, v, p_indices);
-	addPlane(3, v, p_indices);
-	addPlane(4, v, p_indices);
-	addPlane(5, v, p_indices);
+	addPlane(0, 0, v);
+	addPlane(1, 1, v);
+	addPlane(2, 2, v);
+	addPlane(3, 3, v);
+	addPlane(4, 4, v);
+	addPlane(5, 5, v);
+
+	const int numFloorCells = 96;
+	const int numFloorVertices = numFloorCells * 4;
+	int numFloorIndices = numFloorCells * 6;
+	Vertex floorVertices[numFloorVertices];
+
+	int idx = 0;
+	for (int y = 0; y < 4; ++y) {
+		for (int x = 0; x < 6; ++x) {
+			v3 p = v3(-2.5f + x, -1.5f, -2.0f + y);
+			addPlane(idx, 2, floorVertices, p);
+			++idx;
+		}
+	}
 
 	CubeConstantBuffer constantBuffer;
 	float t = 0.0f;
@@ -72,12 +88,11 @@ int main(const char** args) {
 	rs.height = 768;
 	rs.title = "Hello world";
 	rs.clearColor = ds::Color(0.2f, 0.2f, 0.2f, 1.0f);
+	rs.multisampling = 1;
 	if (ds::init(rs)) {
 
-		int x, y, n;
-		unsigned char *data = stbi_load("directx-11-logo.png", &x, &y, &n, 4);
-		RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
-		stbi_image_free(data);
+		RID textureID = loadImage("directx-11-logo.png");
+		RID floorTexture = loadImage("Stonefloor7.png");
 
 
 		RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
@@ -93,10 +108,11 @@ int main(const char** args) {
 
 		RID rid = ds::createVertexDeclaration(decl, 2, shaderID);
 		RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
-		RID iid = ds::createIndexBuffer(ds::BufferType::STATIC, p_indices,36);
+		RID iid = ds::createQuadIndexBuffer(36);
 		RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, 24, 0, v,sizeof(Vertex));
-		RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
-		v3 vp = v3(0.0f, 0.0f, -6.0f);
+		RID floorBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, numFloorVertices, 0, floorVertices, sizeof(Vertex));
+		RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::POINT);
+		v3 vp = v3(0.0f, 2.0f, -6.0f);
 		ds::setViewPosition(vp);
 		v3 scale(1.0f, 1.0f, 1.0f);
 		v3 rotation(0.0f, 0.0f, 0.0f);
@@ -104,15 +120,7 @@ int main(const char** args) {
 		
 		while (ds::isRunning()) {
 			ds::begin();
-			//t += 0.001f;
-			rotation.y += 0.0001f;
-			rotation.x += 0.0001f;
-			matrix world = mat_identity();
-			matrix rotY = mat_RotationY(rotation.y);
-			matrix rotX = mat_RotationX(rotation.x);
-			matrix rotZ = mat_RotationZ(rotation.z);
-			matrix s = mat_Scale(scale);
-			matrix w = rotZ * rotY * rotX * s * world;
+			
 			unsigned int stride = sizeof(Vertex);
 			unsigned int offset = 0;
 
@@ -122,11 +130,30 @@ int main(const char** args) {
 			ds::setBlendState(bs_id);
 			ds::setShader(shaderID);
 			ds::setSamplerState(ssid);
-			ds::setTexture(textureID);
 			constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
+			
+			// floor
+			matrix world = mat_identity();
+			constantBuffer.worldMatrix = mat_Transpose(world);
+			ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
+			ds::setTexture(floorTexture);
+			ds::setVertexBuffer(floorBuffer, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
+			ds::drawIndexed(numFloorIndices);
+
+			world = mat_identity();
+			//t += 0.001f;
+			rotation.y += 0.0001f;
+			rotation.x += 0.0001f;
+			matrix rotY = mat_RotationY(rotation.y);
+			matrix rotX = mat_RotationX(rotation.x);
+			matrix rotZ = mat_RotationZ(rotation.z);
+			matrix s = mat_Scale(scale);
+			matrix w = rotZ * rotY * rotX * s * world;
 			constantBuffer.worldMatrix = mat_Transpose(w);
 			ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
 			ds::setVertexConstantBuffer(cbid);
+			ds::setTexture(textureID);
+			ds::setVertexBuffer(vbid, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
 			ds::drawIndexed(36);
 			ds::end();
 		}
