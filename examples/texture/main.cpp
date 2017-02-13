@@ -108,8 +108,8 @@ int main(const char** args) {
 
 		RID rid = ds::createVertexDeclaration(decl, 2, shaderID);
 		RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
-		RID iid = ds::createQuadIndexBuffer(36);
-		RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, 24, 0, v,sizeof(Vertex));
+		RID indexBuffer = ds::createQuadIndexBuffer(36);
+		RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, 0, v,sizeof(Vertex));
 		RID floorBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, numFloorVertices, 0, floorVertices, sizeof(Vertex));
 		RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::POINT);
 		v3 vp = v3(0.0f, 2.0f, -6.0f);
@@ -124,9 +124,9 @@ int main(const char** args) {
 			unsigned int stride = sizeof(Vertex);
 			unsigned int offset = 0;
 
-			ds::setVertexBuffer(vbid, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
+			//ds::setVertexBuffer(vbid, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
 			ds::setVertexDeclaration(rid);
-			ds::setIndexBuffer(iid);
+			ds::setIndexBuffer(indexBuffer);
 			ds::setBlendState(bs_id);
 			ds::setShader(shaderID);
 			ds::setSamplerState(ssid);
@@ -136,7 +136,7 @@ int main(const char** args) {
 			matrix world = mat_identity();
 			constantBuffer.worldMatrix = mat_Transpose(world);
 			ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
-			ds::setTexture(floorTexture);
+			ds::setTexture(floorTexture, ds::ShaderType::PIXEL);
 			ds::setVertexBuffer(floorBuffer, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
 			ds::drawIndexed(numFloorIndices);
 
@@ -152,8 +152,8 @@ int main(const char** args) {
 			constantBuffer.worldMatrix = mat_Transpose(w);
 			ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
 			ds::setVertexConstantBuffer(cbid);
-			ds::setTexture(textureID);
-			ds::setVertexBuffer(vbid, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
+			ds::setTexture(textureID, ds::ShaderType::PIXEL);
+			ds::setVertexBuffer(cubeBuffer, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
 			ds::drawIndexed(36);
 			ds::end();
 		}

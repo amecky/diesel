@@ -147,7 +147,7 @@ int main(const char** args) {
 			ds::setBlendState(bs_id);
 			ds::setShader(shaderID);
 			ds::setSamplerState(ssid);
-			ds::setTexture(textureID);
+			ds::setTexture(textureID, ds::ShaderType::PIXEL);
 			for (int i = 0; i < numSprites; ++i) {
 				const Sprite& sprite = sprites[i];
 				v4 t;

@@ -84,7 +84,7 @@ int main(const char** args) {
 
 		RID rid = ds::createVertexDeclaration(decl, 2, shaderID);
 		RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
-		RID iid = ds::createIndexBuffer(ds::BufferType::STATIC, p_indices,36);
+		RID iid = ds::createIndexBuffer(36, ds::IndexType::UINT_32, ds::BufferType::STATIC, p_indices);
 		RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, 24, 0, v,sizeof(Vertex));
 		RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 		v3 vp = v3(2.0f, 2.0f, -6.0f);

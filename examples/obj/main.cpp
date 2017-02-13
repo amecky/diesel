@@ -78,7 +78,7 @@ int main(const char** args) {
 			ds::setBlendState(bs_id);
 			ds::setShader(shaderID);
 			ds::setSamplerState(ssid);
-			ds::setTexture(textureID);
+			ds::setTexture(textureID, ds::ShaderType::PIXEL);
 			constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
 			constantBuffer.worldMatrix = mat_Transpose(w);
 			ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
