@@ -207,6 +207,10 @@ matrix mat_LookAtLH(const v3& eye, const v3& lookAt, const v3& up);
 
 matrix mat_PerspectiveFovLH(float fovy, float aspect, float zn, float zf);
 
+v3 mat_TransformNormal(const v3& v, const matrix& m);
+
+matrix mat_Rotation(const v3& v, float angle);
+
 matrix operator * (const matrix& m1, const matrix& m2);
 
 v3 operator * (const matrix& m, const v3& v);
@@ -791,6 +795,38 @@ matrix mat_PerspectiveFovLH(float fovy, float aspect, float zn, float zf) {
 		0.0f, 0.0f, zf / (zf - zn), 1.0f,
 		0.0f, 0.0f, -zn*zf / (zf - zn), 0.0f
 		);
+	return tmp;
+}
+
+v3 mat_TransformNormal(const v3& v, const matrix& m) {
+	v3 result =
+		v3(v.x * m._11 + v.y * m._21 + v.z * m._31,
+			v.x * m._12 + v.y * m._22 + v.z * m._32,
+			v.x * m._13 + v.y * m._23 + v.z * m._33);
+	return result;
+}
+
+matrix mat_Rotation(const v3& v, float angle) {
+	float L = (v.x * v.x + v.y * v.y + v.z * v.z);
+	float u2 = v.x * v.x;
+	float v2 = v.y * v.y;
+	float w2 = v.z * v.z;
+	matrix tmp = mat_identity();
+	tmp._11 = (u2 + (v2 + w2) * cos(angle)) / L;
+	tmp._12 = (v.x * v.y * (1 - cos(angle)) - v.z * sqrt(L) * sin(angle)) / L;
+	tmp._13 = (v.x * v.z * (1 - cos(angle)) + v.y * sqrt(L) * sin(angle)) / L;
+	tmp._14 = 0.0f;
+
+	tmp._21 = (v.x * v.y * (1 - cos(angle)) + v.z * sqrt(L) * sin(angle)) / L;
+	tmp._22 = (v2 + (u2 + w2) * cos(angle)) / L;
+	tmp._23 = (v.y * v.z * (1 - cos(angle)) - v.x * sqrt(L) * sin(angle)) / L;
+	tmp._24 = 0.0f;
+
+	tmp._31 = (v.x * v.z * (1 - cos(angle)) - v.y * sqrt(L) * sin(angle)) / L;
+	tmp._32 = (v.y * v.z * (1 - cos(angle)) + v.x * sqrt(L) * sin(angle)) / L;
+	tmp._33 = (w2 + (u2 + v2) * cos(angle)) / L;
+	tmp._34 = 0.0f;
+
 	return tmp;
 }
 

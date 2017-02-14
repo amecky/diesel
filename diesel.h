@@ -142,6 +142,23 @@ namespace ds {
 	};
 
 	// ---------------------------------------------------
+	// cull mode
+	// ---------------------------------------------------
+	enum CullMode {
+		NONE = 1,
+		FRONT = 2,
+		BACK = 3
+	};
+
+	// ---------------------------------------------------
+	// fill mode
+	// ---------------------------------------------------
+	enum FillMode {
+		WIREFRAME = 2,
+		SOLID = 3
+	};
+
+	// ---------------------------------------------------
 	// Render settings 
 	// ---------------------------------------------------
 	typedef struct {
@@ -238,6 +255,9 @@ namespace ds {
 	// render target
 
 	RID createRenderTarget(uint16_t width, uint16_t height);
+
+	// rasterizer state
+	RID createRasterizerState(CullMode cullMode, FillMode fillMode, bool multiSample, bool scissor, float depthBias, float slopeDepthBias);
 
 	void setDepthBufferState(DepthBufferState state);
 
@@ -513,6 +533,7 @@ namespace ds {
 		std::vector<Shader*> shaders;
 		std::vector<InternalVertexDeclaration> layouts;
 		std::vector<ID3D11ShaderResourceView*> shaderResourceViews;
+		std::vector<ID3D11RasterizerState*> rasterizerStates;
 
 		v3 viewPosition;
 		v3 lookAt;
@@ -544,6 +565,7 @@ namespace ds {
 		RID selectedShaderId;
 		RID selectedVertexDeclaration;
 		RID selectedIndexBuffer;
+		RID selectedRasterizerState;
 
 		RID selectedPSTextures[16];
 		RID selectedVSTextures[16];
@@ -1145,6 +1167,9 @@ namespace ds {
 			for (size_t i = 0; i < _ctx->indexBuffers.size(); ++i) {
 				_ctx->indexBuffers[i].buffer->Release();
 			}
+			for (size_t i = 0; i < _ctx->rasterizerStates.size(); ++i) {
+				_ctx->rasterizerStates[i]->Release();
+			}
 			for (size_t i = 0; i < _ctx->shaders.size(); ++i) {
 				Shader* s = _ctx->shaders[i];
 				if (s->vertexShader != 0) {
@@ -1203,6 +1228,7 @@ namespace ds {
 		_ctx->selectedShaderId = INVALID_RID;
 		_ctx->selectedVertexDeclaration = INVALID_RID;
 		_ctx->selectedIndexBuffer = INVALID_RID;
+		_ctx->selectedRasterizerState = INVALID_RID;
 		for (int i = 0; i < 16; ++i) {
 			_ctx->selectedVSTextures[i] = NO_RID;
 			_ctx->selectedPSTextures[i] = NO_RID;
@@ -1815,12 +1841,13 @@ namespace ds {
 		desc.MipLevels = 1;
 		desc.ArraySize = 1;
 		desc.Format = TEXTURE_FOMATS[format];
-		desc.SampleDesc.Count = _ctx->multisampling;
+		desc.SampleDesc.Count = 1;// _ctx->multisampling;
 		desc.SampleDesc.Quality = 0;		
 		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 		desc.CPUAccessFlags = 0;
 		desc.MiscFlags = 0;
 		ID3D11Texture2D *texture2D = 0;
+		/*
 		if (_ctx->multisampling > 1) {
 			desc.Usage = D3D11_USAGE_DEFAULT;
 			ASSERT_RESULT(_ctx->d3dDevice->CreateTexture2D(&desc, 0, &texture2D), "Failed to create Texture2D");
@@ -1831,21 +1858,22 @@ namespace ds {
 			_ctx->d3dContext->Unmap(texture2D, 0);
 		}
 		else {
+		*/
 			desc.Usage = D3D11_USAGE_IMMUTABLE;
 			D3D11_SUBRESOURCE_DATA subres;
 			subres.pSysMem = data;
 			subres.SysMemPitch = width * channels;
 			subres.SysMemSlicePitch = 0;			
 			ASSERT_RESULT(_ctx->d3dDevice->CreateTexture2D(&desc, &subres, &texture2D), "Failed to create Texture2D");
-		}
+		//}
 		ID3D11ShaderResourceView* srv = 0;
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
-		if (_ctx->multisampling > 1) {
-			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
-		}
-		else {
+		//if (_ctx->multisampling > 1) {
+			//srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
+		//}
+		//else {
 			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-		}
+		//}
 		srvDesc.Texture2D.MostDetailedMip = 0;
 		srvDesc.Texture2D.MipLevels = 1;
 		srvDesc.Format = TEXTURE_FOMATS[format];
@@ -1916,6 +1944,42 @@ namespace ds {
 			}
 		}
 		_ctx->depthBufferState = state;
+	}
+
+	// ------------------------------------------------------
+	// create rasterizer state
+	// ------------------------------------------------------
+	RID createRasterizerState(CullMode cullMode,FillMode fillMode, bool multiSample, bool scissor, float depthBias, float slopeDepthBias) {
+		D3D11_RASTERIZER_DESC desc;
+		desc.CullMode = (D3D11_CULL_MODE)cullMode;
+		desc.FillMode = (D3D11_FILL_MODE)fillMode;
+		desc.FrontCounterClockwise = FALSE;
+		desc.DepthBias = (INT)depthBias;
+		desc.DepthBiasClamp = 0.0f;
+		desc.SlopeScaledDepthBias = slopeDepthBias;
+		desc.AntialiasedLineEnable = FALSE;
+		desc.DepthClipEnable = TRUE;
+		desc.MultisampleEnable = (BOOL)multiSample;
+		desc.ScissorEnable = (BOOL)scissor;
+		ID3D11RasterizerState* state = 0;
+		assert_result(_ctx->d3dDevice->CreateRasterizerState(&desc, &state), "Failed to create rasterizer state");
+		_ctx->rasterizerStates.push_back(state);
+		return (RID)(_ctx->rasterizerStates.size() - 1);
+	}
+
+	// ------------------------------------------------------
+	// set rasterizer state
+	// ------------------------------------------------------
+	void setRasterizerState(RID rid) {
+		XASSERT(rid != INVALID_RID, "Invalid rasterizer state selected");
+		if (rid == NO_RID) {
+
+		}
+		else {
+			XASSERT(rid < _ctx->rasterizerStates.size(), "Invalid rasterizer state selected");
+			ID3D11RasterizerState* state = _ctx->rasterizerStates[rid];
+			_ctx->d3dContext->RSSetState(state);
+		}
 	}
 
 	// ------------------------------------------------------

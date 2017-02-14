@@ -3,6 +3,7 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="FPSCamera.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Coloured_ps.hlsl" />
@@ -10,5 +11,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="FPSCamera.h" />
   </ItemGroup>
 </Project>

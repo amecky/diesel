@@ -1,7 +1,7 @@
 struct PS_Input {
-    float4 pos  : SV_POSITION;
-    float2 texcoord : TEXCOORD;
+	float4 pos  : SV_POSITION;
 	float3 normal : NORMAL;
+	float4 color : COLOR;
 };
 
 cbuffer cbChangesPerObject : register(b0) {
@@ -15,7 +15,7 @@ Texture2D colorMap_ : register(t0);
 SamplerState colorSampler_ : register(s0);
 
 float4 PS_Main( PS_Input frag ) : SV_TARGET {
-	float4 textureColor = colorMap_.Sample(colorSampler_, frag.texcoord);
+	float4 textureColor = frag.color;
 	float4 color = ambientColor;
 	float3 lightDir = -lightDirection;
 	float lightIntensity = saturate(dot(frag.normal, lightDir));

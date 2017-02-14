@@ -1,6 +1,7 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
 #include "Camera.h"
+#include "FPSCamera.h"
 
 struct Vertex {
 	float x;
@@ -67,6 +68,7 @@ int main(const char** args) {
 	ds::RenderSettings rs;
 	rs.width = 1024;
 	rs.height = 768;
+	rs.multisampling = 4;
 	rs.title = "Hello world";
 	rs.clearColor = ds::Color(0.2f, 0.2f, 0.2f, 1.0f);
 	if (ds::init(rs)) {

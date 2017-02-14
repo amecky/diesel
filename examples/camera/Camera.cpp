@@ -30,7 +30,7 @@
 	}
 
 
-	FPSCamera::FPSCamera(float screenWidth, float screenHeight)  {
+	OldFPSCamera::OldFPSCamera(float screenWidth, float screenHeight)  {
 		_projectionMatrix = mat_PerspectiveFovLH(ds::PI * 0.25f, screenWidth / screenHeight, 0.01f, 100.0f);
 		_position = v3(3, 3, -12);
 		_lastMousePos = ds::getMousePosition();
@@ -45,11 +45,11 @@
 		buildView();
 	}
 
-	FPSCamera::~FPSCamera() {
+	OldFPSCamera::~OldFPSCamera() {
 
 	}
 
-	void FPSCamera::setPosition(const v3& pos, const v3& target) {
+	void OldFPSCamera::setPosition(const v3& pos, const v3& target) {
 		_position = pos;
 		_target = target;
 		_viewMatrix =mat_LookAtLH(_position, _target, _up);
@@ -57,7 +57,7 @@
 		buildView();
 	}
 
-	void FPSCamera::move(float unit) {
+	void OldFPSCamera::move(float unit) {
 		v3 tmp = _target * unit;
 		matrix R = mat_RotationX(_pitch);
 		tmp = R * tmp;
@@ -65,19 +65,19 @@
 		buildView();
 	}
 
-	void FPSCamera::strafe(float unit) {
+	void OldFPSCamera::strafe(float unit) {
 		v3 tmp = _right * unit;
 		_position = _position + tmp;
 		buildView();
 	}
 
-	void FPSCamera::up(float unit) {
+	void OldFPSCamera::up(float unit) {
 		v3 tmp = _up * unit;
 		_position = _position + tmp;
 		buildView();
 	}
 
-	void FPSCamera::setPitch(float angle) {				
+	void OldFPSCamera::setPitch(float angle) {
 		_pitch += angle;
 		matrix R = mat_RotationY(_pitch);
 		_right = R * v3(1,0,0);
@@ -85,7 +85,7 @@
 		buildView();
 	}
 
-	void FPSCamera::resetYaw(float angle) {
+	void OldFPSCamera::resetYaw(float angle) {
 		_yaw = angle;
 		matrix R = mat_RotationZ(_yaw);
 		_right = R * v3(1, 0, 0);
@@ -93,7 +93,7 @@
 		buildView();
 	}
 
-	void FPSCamera::setYaw(float angle) {
+	void OldFPSCamera::setYaw(float angle) {
 		_yaw += angle;
 		matrix R = mat_RotationZ(_yaw);
 		_right = R * v3(1, 0, 0);
@@ -109,7 +109,7 @@
 		buildView();
 	}
 	*/
-	void FPSCamera::resetPitch(float angle) {
+	void OldFPSCamera::resetPitch(float angle) {
 		_pitch = angle;
 		matrix R = mat_RotationY(_pitch);
 		_right = R * v3(1, 0, 0);
@@ -117,7 +117,7 @@
 		buildView();
 	}
 
-	void FPSCamera::update(float elapsedTime) {
+	void OldFPSCamera::update(float elapsedTime) {
 		if (ds::isKeyPressed('W')) {
 			move(5.0f*elapsedTime);
 		}
@@ -151,7 +151,7 @@
 		
 	}
 
-	void FPSCamera::buildView() {
+	void OldFPSCamera::buildView() {
 		_viewMatrix = FPSViewRH(_position, _pitch, _yaw);
 		_viewProjectionMatrix = _viewMatrix * _projectionMatrix;
 	}

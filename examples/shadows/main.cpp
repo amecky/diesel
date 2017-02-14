@@ -6,11 +6,10 @@
 struct Vertex {
 	v3 p;	
 	v3 n;
-	float u;
-	float v;	
+	ds::Color color;
 
-	Vertex() : p(0.0f), n(0.0f), u(0.0f) , v(0.0f) {}
-	Vertex(const v3& pv, const v3& nv, float uv, float vv) : p(pv), n(nv), u(uv), v(vv) {}
+	Vertex() : p(0.0f), n(0.0f), color(1.0f,1.0f,1.0f,1.0f) {}
+	Vertex(const v3& pv, const v3& nv, const ds::Color& c) : p(pv), n(nv), color(c) {}
 };
 
 const v3 CUBE_VERTICES[8] = {
@@ -33,14 +32,14 @@ const int CUBE_PLANES[6][4] = {
 	{ 7, 6, 5, 4 }, // back
 };
 
-void addPlane(int index, int side, Vertex* vertices, const matrix& w) {
+void addPlane(int index, int side, Vertex* vertices, const matrix& w, const ds::Color& color = ds::Color(0.7f, 0.0f, 0.0f, 1.0f)) {
 	int idx = index * 4;
 	float u[4] = { 0.0f,0.0f,1.0f,1.0f };
 	float v[4] = { 1.0f,0.0f,0.0f,1.0f };
 	for (int i = 0; i < 4; ++i) {
 		int p = idx + i;
 		v3 pos = w * CUBE_VERTICES[CUBE_PLANES[side][i]];
-		vertices[p] = Vertex(pos, v3(0.0f), u[i],v[i]);
+		vertices[p] = Vertex(pos, v3(0.0f), color);
 	}	
 	v3 d0 = vertices[idx + 1].p - vertices[idx].p;
 	v3 d1 = vertices[idx + 2].p - vertices[idx].p;
@@ -50,7 +49,7 @@ void addPlane(int index, int side, Vertex* vertices, const matrix& w) {
 	}
 }
 
-void addCube(Vertex* vertices, const v3& pos,const v3& scale) {
+void addCube(Vertex* vertices, const v3& pos,const v3& scale, const ds::Color& color = ds::Color(0.7f, 0.0f, 0.0f, 1.0f)) {
 	matrix world = mat_identity();
 	world = mat_Translate(pos);
 	matrix rotY = mat_RotationY(0.0f);
@@ -58,12 +57,12 @@ void addCube(Vertex* vertices, const v3& pos,const v3& scale) {
 	matrix rotZ = mat_RotationZ(0.0f);
 	matrix s = mat_Scale(scale);
 	matrix w = rotZ * rotY * rotX * s * world;
-	addPlane(0, 0, vertices, w);
-	addPlane(1, 1, vertices, w);
-	addPlane(2, 2, vertices, w);
-	addPlane(3, 3, vertices, w);
-	addPlane(4, 4, vertices, w);
-	addPlane(5, 5, vertices, w);
+	addPlane(0, 0, vertices, w, color);
+	addPlane(1, 1, vertices, w, color);
+	addPlane(2, 2, vertices, w, color);
+	addPlane(3, 3, vertices, w, color);
+	addPlane(4, 4, vertices, w, color);
+	addPlane(5, 5, vertices, w, color);
 }
 
 struct CubeConstantBuffer {
@@ -86,16 +85,16 @@ RID loadImage(const char* name) {
 	return textureID;
 }
 
-int main(const char** args) {
-
+//int main(const char** args) {
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
 	const int numCubes = 4;
 	const int numVertices = 24 * numCubes;
 	Vertex v[numVertices];
 	Vertex* current = v;
-	addCube(current, v3(0.0f, -0.2f, 0.0f), v3(5.0f, 0.2f, 5.0f));
+	addCube(current, v3(0.0f, -0.2f, 0.0f), v3(5.0f, 0.1f, 5.0f),ds::Color(0.0f,0.7f,0.0f,1.0f));
 	current += 24;
 	for (int i = 1; i < numCubes; ++i) {
-		addCube(current, v3(-2.0f + 2.0f* (i-1), 0.4f, 0.0f), v3(1.0f, 1.0f, 1.0f));
+		addCube(current, v3(-1.0f + 1.0f* (i-1), 0.2f, -1.0f), v3(0.4f, 0.4f, 0.4f));
 		current += 24;
 	}
 
@@ -104,7 +103,7 @@ int main(const char** args) {
 	lightBuffer.ambientColor = ds::Color(0.15f, 0.15f, 0.15f,1.0f);
 	lightBuffer.diffuseColor = ds::Color(1.0f, 1.0f, 1.0f, 1.0f);
 	lightBuffer.padding = 0.0f;
-	lightBuffer.lightDirection = v3(1.0f, -0.2f, 1.0f);
+	lightBuffer.lightDirection = v3(-0.5f, -0.5f, 1.0f);
 
 	float t = 0.0f;
 	ds::RenderSettings rs;
@@ -112,11 +111,11 @@ int main(const char** args) {
 	rs.height = 768;
 	rs.title = "Hello world";
 	rs.clearColor = ds::Color(0.2f, 0.2f, 0.2f, 1.0f);
-	rs.multisampling = 1;
+	rs.multisampling = 4;
 	if (ds::init(rs)) {
 
-		RID textureID = loadImage("directx-11-logo.png");
-		RID floorTexture = loadImage("Finishes.Flooring.Tile.Square.Grey.Dark.bump.jpg");
+		//RID textureID = loadImage("directx-11-logo.png");
+		//RID floorTexture = loadImage("Finishes.Flooring.Tile.Square.Grey.Dark.bump.jpg");
 
 
 		RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
@@ -128,9 +127,9 @@ int main(const char** args) {
 		ds::VertexDeclaration decl[] = {
 			{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 			{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,3 },
-			{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }		
+			{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }		
 		};
-
+		RID rasterizerStateID = ds::createRasterizerState(ds::CullMode::BACK, ds::FillMode::SOLID, true, false, 0.0f, 0.0f);
 		RID rid = ds::createVertexDeclaration(decl, 3, shaderID);
 		RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
 		RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer));
@@ -154,6 +153,7 @@ int main(const char** args) {
 			ds::setBlendState(bs_id);
 			ds::setShader(shaderID);
 			ds::setSamplerState(ssid);
+			ds::setRasterizerState(rasterizerStateID);
 			constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
 			
 			matrix world = mat_identity();
@@ -170,7 +170,7 @@ int main(const char** args) {
 			ds::updateConstantBuffer(lightBufferID, &lightBuffer, sizeof(LightBuffer));
 			ds::setVertexConstantBuffer(cbid);
 			ds::setPixelConstantBuffer(lightBufferID);
-			ds::setTexture(textureID, ds::ShaderType::PIXEL);
+			//ds::setTexture(textureID, ds::ShaderType::PIXEL);
 			ds::setVertexBuffer(cubeBuffer, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
 			ds::drawIndexed(36 * numCubes);
 			ds::end();
