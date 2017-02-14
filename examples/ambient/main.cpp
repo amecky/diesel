@@ -7,12 +7,13 @@ struct Vertex {
 	float x;
 	float y;
 	float z;
+	v3 n;
 	float u;
 	float v;
 
-	Vertex() : x(0.0f), y(0.0f), z(0.0f), u(0.0f) , v(0.0f) {}
-	Vertex(float xp, float yp, float zp, float uv,float vv) : x(xp), y(yp), z(zp), u(uv), v(vv) {}
-	Vertex(const v3& p, float uv, float vv) : x(p.x), y(p.y), z(p.z), u(uv), v(vv) {}
+	Vertex() : x(0.0f), y(0.0f), z(0.0f), n(0.0f), u(0.0f) , v(0.0f) {}
+	Vertex(float xp, float yp, float zp, float uv,float vv) : x(xp), y(yp), z(zp), n(0.0f), u(uv), v(vv) {}
+	Vertex(const v3& p, const v3& nv, float uv, float vv) : x(p.x), y(p.y), z(p.z), n(nv), u(uv), v(vv) {}
 };
 
 const v3 CUBE_VERTICES[8] = {
@@ -41,13 +42,26 @@ void addPlane(int index, int side, Vertex* vertices, const v3& offset = v3(0.0f)
 	float v[4] = { 1.0f,0.0f,0.0f,1.0f };
 	for (int i = 0; i < 4; ++i) {
 		int p = idx + i;
-		vertices[p] = Vertex(CUBE_VERTICES[CUBE_PLANES[side][i]] + offset, u[i],v[i]);
+		vertices[p] = Vertex(CUBE_VERTICES[CUBE_PLANES[side][i]] + offset, v3(0.0f), u[i],v[i]);
 	}	
+	v3 d0 = v3(vertices[idx + 1].x, vertices[idx + 1].y, vertices[idx + 1].z) - v3(vertices[idx].x, vertices[idx].y, vertices[idx].z);
+	v3 d1 = v3(vertices[idx + 2].x, vertices[idx + 2].y, vertices[idx + 2].z) - v3(vertices[idx].x, vertices[idx].y, vertices[idx].z);
+	v3 c = cross(d0, d1);
+	for (int i = 0; i < 4; ++i) {
+		vertices[idx + i].n = c;
+	}
 }
 
 struct CubeConstantBuffer {
 	matrix viewProjectionMatrix;
 	matrix worldMatrix;
+};
+
+struct LightBuffer {
+	ds::Color ambientColor;
+	ds::Color diffuseColor;
+	v3 lightDirection;
+	float padding;
 };
 
 RID loadImage(const char* name) {
@@ -82,6 +96,12 @@ int main(const char** args) {
 	}
 
 	CubeConstantBuffer constantBuffer;
+	LightBuffer lightBuffer;
+	lightBuffer.ambientColor = ds::Color(0.15f, 0.15f, 0.15f,1.0f);
+	lightBuffer.diffuseColor = ds::Color(1.0f, 1.0f, 1.0f, 1.0f);
+	lightBuffer.padding = 0.0f;
+	lightBuffer.lightDirection = v3(1.0f, -0.2f, 1.0f);
+
 	float t = 0.0f;
 	ds::RenderSettings rs;
 	rs.width = 1024;
@@ -92,22 +112,24 @@ int main(const char** args) {
 	if (ds::init(rs)) {
 
 		RID textureID = loadImage("directx-11-logo.png");
-		RID floorTexture = loadImage("Stonefloor7.png");
+		RID floorTexture = loadImage("Finishes.Flooring.Tile.Square.Grey.Dark.bump.jpg");
 
 
 		RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 
 		RID shaderID = ds::createShader();
-		ds::loadVertexShader(shaderID, "Coloured_vs.cso");
-		ds::loadPixelShader(shaderID, "Coloured_ps.cso");
+		ds::loadVertexShader(shaderID, "AmbientLightning_vs.cso");
+		ds::loadPixelShader(shaderID, "AmbientLightning_ps.cso");
 
 		ds::VertexDeclaration decl[] = {
 			{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
-			{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }
+			{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,3 },
+			{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }		
 		};
 
-		RID rid = ds::createVertexDeclaration(decl, 2, shaderID);
+		RID rid = ds::createVertexDeclaration(decl, 3, shaderID);
 		RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
+		RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer));
 		RID indexBuffer = ds::createQuadIndexBuffer(36);
 		RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, 0, v,sizeof(Vertex));
 		RID floorBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, numFloorVertices, 0, floorVertices, sizeof(Vertex));
@@ -150,7 +172,9 @@ int main(const char** args) {
 			matrix w = rotZ * rotY * rotX * s * world;
 			constantBuffer.worldMatrix = mat_Transpose(w);
 			ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
+			ds::updateConstantBuffer(lightBufferID, &lightBuffer, sizeof(LightBuffer));
 			ds::setVertexConstantBuffer(cbid);
+			ds::setPixelConstantBuffer(lightBufferID);
 			ds::setTexture(textureID, ds::ShaderType::PIXEL);
 			ds::setVertexBuffer(cubeBuffer, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
 			ds::drawIndexed(36);

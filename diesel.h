@@ -107,27 +107,43 @@ namespace ds {
 		INV_SRC1_ALPHA
 	};
 
+	// ---------------------------------------------------
+	// The depth buffer state
+	// ---------------------------------------------------
 	enum DepthBufferState {
 		ENABLED,
 		DISABLED
 	};
 
+	// ---------------------------------------------------
+	// Supported texture formats
+	// FIXME: add much more!
+	// ---------------------------------------------------
 	enum TextureFormat {
 		R8G8B8A8_UINT,
 		R8G8B8A8_UNORM
 	};
 
+	// ---------------------------------------------------
+	// The two valid formats of an index buffer
+	// ---------------------------------------------------
 	enum IndexType {
 		UINT_16,
 		UINT_32
 	};
 
+	// ---------------------------------------------------
+	// The shader type
+	// ---------------------------------------------------
 	enum ShaderType {
 		VERTEX,
 		PIXEL,
 		GEOMETRY
 	};
 
+	// ---------------------------------------------------
+	// Render settings 
+	// ---------------------------------------------------
 	typedef struct {
 		uint16_t width;
 		uint16_t height;
@@ -138,9 +154,13 @@ namespace ds {
 
 	bool init(const RenderSettings& settings);
 
+	// vertex declaration / buffer input layout
+
 	RID createVertexDeclaration(VertexDeclaration* decl, uint8_t num, RID shaderId);
 
 	void setVertexDeclaration(RID rid);
+
+	// constant buffer
 
 	RID createConstantBuffer(int byteWidth);
 
@@ -152,6 +172,8 @@ namespace ds {
 
 	void setGeometryConstantBuffer(RID rid);
 
+	// index buffer
+
 	RID createIndexBuffer(uint32_t numIndices, IndexType indexType, BufferType type);
 
 	RID createIndexBuffer(uint32_t numIndices, IndexType indexType, BufferType type, void* data);
@@ -159,6 +181,8 @@ namespace ds {
 	RID createQuadIndexBuffer(int numQuads);
 
 	void setIndexBuffer(RID rid);
+
+	// vertex buffer
 
 	RID createVertexBuffer(BufferType type, int numVertices, RID vertexDecl);
 
@@ -204,6 +228,8 @@ namespace ds {
 
 	void setTexture(RID rid, ShaderType type, uint8_t slot);
 
+	void setDepthBufferState(DepthBufferState state);
+
 	void drawIndexed(uint32_t num);
 
 	void draw(uint32_t num);
@@ -215,6 +241,8 @@ namespace ds {
 	bool isRunning();
 
 	void shutdown();
+
+	// view and projection matrix
 
 	const matrix& getViewMatrix();
 
@@ -230,13 +258,15 @@ namespace ds {
 
 	void setProjectionMatrix(float fieldOfView, float aspectRatio, float minDepth, float maxDepth);
 
+	// input
+
 	bool isKeyPressed(uint8_t key);
 
 	v2 getMousePosition();
 
-	bool isMouseButtonPressed(int button);
+	bool isMouseButtonPressed(int button);	
 
-	void setDepthBufferState(DepthBufferState state);
+	// timing
 
 	uint64_t getElapsedTicks();
 
@@ -249,6 +279,8 @@ namespace ds {
 	uint32_t getFrameCount();
 
 	uint32_t getFramesPerSecond();
+
+	// utils
 
 	float random(float min, float max);
 
