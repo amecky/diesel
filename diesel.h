@@ -158,6 +158,13 @@ namespace ds {
 
 	RID createVertexDeclaration(VertexDeclaration* decl, uint8_t num, RID shaderId);
 
+	//! Sets the current vertex declaration (input buffer layout).
+	/*!
+		The engine(??) will track the selected vertex declaration
+		and will prevent dupilcate settings
+
+		\param rid the resource of the vertex declaration
+	*/
 	void setVertexDeclaration(RID rid);
 
 	// constant buffer
