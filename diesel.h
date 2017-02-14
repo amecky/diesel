@@ -235,6 +235,10 @@ namespace ds {
 
 	void setTexture(RID rid, ShaderType type, uint8_t slot);
 
+	// render target
+
+	RID createRenderTarget(uint16_t width, uint16_t height);
+
 	void setDepthBufferState(DepthBufferState state);
 
 	void drawIndexed(uint32_t num);
@@ -465,6 +469,13 @@ namespace ds {
 		ID3D11Buffer* buffer;
 	};
 
+	struct RenderTarget {
+		ID3D11Texture2D* texture;
+		ID3D11RenderTargetView* view;
+		ID3D11ShaderResourceView* srv;
+		ID3D11Texture2D* depthTexture;
+		ID3D11DepthStencilView* depthStencilView;
+	};
 	// ------------------------------------------------------
 	// Internal context
 	// ------------------------------------------------------
@@ -1905,6 +1916,75 @@ namespace ds {
 			}
 		}
 		_ctx->depthBufferState = state;
+	}
+
+	// ------------------------------------------------------
+	// create render target
+	// ------------------------------------------------------
+	RID createRenderTarget(uint16_t width, uint16_t height) {
+		RenderTarget rt;
+		
+		// Initialize the render target texture description.
+		D3D11_TEXTURE2D_DESC textureDesc;
+		ZeroMemory(&textureDesc, sizeof(textureDesc));
+
+		// Setup the render target texture description.
+		textureDesc.Width = width;
+		textureDesc.Height = height;
+		textureDesc.MipLevels = 1;
+		textureDesc.ArraySize = 1;
+		textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+		textureDesc.SampleDesc.Count = 1;
+		textureDesc.SampleDesc.Quality = 0;
+		textureDesc.Usage = D3D11_USAGE_DEFAULT;
+		textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+		textureDesc.CPUAccessFlags = 0;
+		textureDesc.MiscFlags = 0;
+
+		// Create the render target texture.
+		assert_result(_ctx->d3dDevice->CreateTexture2D(&textureDesc, NULL, &rt.texture), "Failed to create texture for rendertarget");
+		// Setup the description of the render target view.
+		D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
+		renderTargetViewDesc.Format = textureDesc.Format;
+		renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+		renderTargetViewDesc.Texture2D.MipSlice = 0;
+		// Create the render target view.
+		assert_result(_ctx->d3dDevice->CreateRenderTargetView(rt.texture, &renderTargetViewDesc, &rt.view),"Failed to create render target view");
+		// Setup the description of the shader resource view.
+		D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
+		shaderResourceViewDesc.Format = textureDesc.Format;
+		shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
+		shaderResourceViewDesc.Texture2D.MipLevels = 1;
+
+		// Create the shader resource view.
+		assert_result(_ctx->d3dDevice->CreateShaderResourceView(rt.texture, &shaderResourceViewDesc, &rt.srv),"Failed to create shader resource view");
+
+		D3D11_TEXTURE2D_DESC depthTexDesc;
+		ZeroMemory(&depthTexDesc, sizeof(depthTexDesc));
+		depthTexDesc.Width = width;
+		depthTexDesc.Height = height;
+		depthTexDesc.MipLevels = 1;
+		depthTexDesc.ArraySize = 1;
+		depthTexDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		depthTexDesc.SampleDesc.Count = 1;
+		depthTexDesc.SampleDesc.Quality = 0;
+		depthTexDesc.Usage = D3D11_USAGE_DEFAULT;
+		depthTexDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+		depthTexDesc.CPUAccessFlags = 0;
+		depthTexDesc.MiscFlags = 0;
+
+		assert_result(_ctx->d3dDevice->CreateTexture2D(&depthTexDesc, 0, &rt.depthTexture),"Failed to create depth texture");
+		
+		D3D11_DEPTH_STENCIL_VIEW_DESC descDSV;
+		ZeroMemory(&descDSV, sizeof(descDSV));
+		descDSV.Format = depthTexDesc.Format;
+		descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
+		descDSV.Texture2D.MipSlice = 0;
+
+		assert_result(_ctx->d3dDevice->CreateDepthStencilView(rt.depthTexture, &descDSV, &rt.depthStencilView),"Failed to create depth stencil view");
+
+		return INVALID_RID;
 	}
 
 }
