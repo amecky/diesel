@@ -4,10 +4,10 @@
 #include "stb_image.h"
 
 struct Vertex {
-	v3 p;
+	v3 p;	
 	v3 n;
 	float u;
-	float v;
+	float v;	
 
 	Vertex() : p(0.0f), n(0.0f), u(0.0f) , v(0.0f) {}
 	Vertex(const v3& pv, const v3& nv, float uv, float vv) : p(pv), n(nv), u(uv), v(vv) {}
@@ -50,7 +50,14 @@ void addPlane(int index, int side, Vertex* vertices, const matrix& w) {
 	}
 }
 
-void addCube(Vertex* vertices, const matrix& w) {
+void addCube(Vertex* vertices, const v3& pos,const v3& scale) {
+	matrix world = mat_identity();
+	world = mat_Translate(pos);
+	matrix rotY = mat_RotationY(0.0f);
+	matrix rotX = mat_RotationX(0.0f);
+	matrix rotZ = mat_RotationZ(0.0f);
+	matrix s = mat_Scale(scale);
+	matrix w = rotZ * rotY * rotX * s * world;
 	addPlane(0, 0, vertices, w);
 	addPlane(1, 1, vertices, w);
 	addPlane(2, 2, vertices, w);
@@ -81,21 +88,14 @@ RID loadImage(const char* name) {
 
 int main(const char** args) {
 
-	const int numCubes = 2;
+	const int numCubes = 4;
 	const int numVertices = 24 * numCubes;
 	Vertex v[numVertices];
-
 	Vertex* current = v;
-	for (int i = 0; i < numCubes; ++i) {
-		matrix world = mat_identity();
-		world = mat_Translate(v3(-2.0f + 2.0f* i, i, 0.0f));
-		matrix rotY = mat_RotationY(0.0f);
-		matrix rotX = mat_RotationX(0.0f);
-		matrix rotZ = mat_RotationZ(0.0f);
-		matrix s = mat_Scale(v3(1.0f, 0.2f, 1.0f));
-		matrix w = rotZ * rotY * rotX * s * world;
-
-		addCube(v, w);
+	addCube(current, v3(0.0f, -0.2f, 0.0f), v3(5.0f, 0.2f, 5.0f));
+	current += 24;
+	for (int i = 1; i < numCubes; ++i) {
+		addCube(current, v3(-2.0f + 2.0f* (i-1), 0.4f, 0.0f), v3(1.0f, 1.0f, 1.0f));
 		current += 24;
 	}
 
