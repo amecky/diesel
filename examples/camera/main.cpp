@@ -1,7 +1,7 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
 #include "Camera.h"
-#include "FPSCamera.h"
+#include "Camera.h"
 
 struct Vertex {
 	float x;
@@ -89,12 +89,12 @@ int main(const char** args) {
 		RID iid = ds::createIndexBuffer(36, ds::IndexType::UINT_32, ds::BufferType::STATIC, p_indices);
 		RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, 24, 0, v,sizeof(Vertex));
 		RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
-		v3 vp = v3(2.0f, 2.0f, -6.0f);
-		ds::setViewPosition(vp);
+		//v3 vp = v3(2.0f, 2.0f, -6.0f);
+		//ds::setViewPosition(vp);
 		v3 scale(1.0f, 1.0f, 1.0f);
 		v3 rotation(0.0f, 0.0f, 0.0f);
 		v3 pos(0.0f, 0.0f, 0.0f);
-		FPSCamera camera(1024,768);
+		OldFPSCamera camera(1024,768);
 
 		while (ds::isRunning()) {
 			camera.update(0.0016f);

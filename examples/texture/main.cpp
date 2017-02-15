@@ -3,6 +3,17 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+struct Rect {
+	float top;
+	float left;
+	float width;
+	float height;
+
+	Rect() : top(0.0f), left(0.0f), width(0.0f), height(0.0f) {}
+	Rect(float t, float l, float w, float h) : top(t), left(l), width(w), height(h) {}
+
+};
+
 struct Vertex {
 	float x;
 	float y;
@@ -35,10 +46,10 @@ const int CUBE_PLANES[6][4] = {
 	{ 7, 6, 5, 4 }, // back
 };
 
-void addPlane(int index, int side, Vertex* vertices, const v3& offset = v3(0.0f)) {
+void addPlane(int index, int side, Vertex* vertices, const v3& offset = v3(0.0f), const v4& uvs = v4(0.0f,0.0f,1.0f,1.0f)) {
 	int idx = index * 4;
-	float u[4] = { 0.0f,0.0f,1.0f,1.0f };
-	float v[4] = { 1.0f,0.0f,0.0f,1.0f };
+	float u[4] = { uvs.x,uvs.x,uvs.z,uvs.z };
+	float v[4] = { uvs.w,uvs.y,uvs.y,uvs.w };
 	for (int i = 0; i < 4; ++i) {
 		int p = idx + i;
 		vertices[p] = Vertex(CUBE_VERTICES[CUBE_PLANES[side][i]] + offset, u[i],v[i]);
@@ -58,45 +69,43 @@ RID loadImage(const char* name) {
 	return textureID;
 }
 
-int main(const char** args) {
+v4 convertTextureRect(const Rect& r, float size) {
+	v4 ret;
+	ret.x = r.left / size; // u0
+	ret.y = r.top / size; // v0
+	ret.z = (r.left + r.width) / size; // u1
+	ret.w = (r.top + r.height) / size; // v1
+	return ret;
+}
+
+//int main(const char** args) {
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
 	Vertex v[24];
-	addPlane(0, 0, v);
-	addPlane(1, 1, v);
-	addPlane(2, 2, v);
-	addPlane(3, 3, v);
-	addPlane(4, 4, v);
-	addPlane(5, 5, v);
+	addPlane(0, 0, v, v3(0.0f), convertTextureRect(Rect(0, 0, 64, 64),512.0f));
+	addPlane(1, 1, v, v3(0.0f), convertTextureRect(Rect(64, 0, 64, 64), 512.0f));
+	addPlane(2, 2, v, v3(0.0f), convertTextureRect(Rect(128, 0, 64, 64), 512.0f));
+	addPlane(3, 3, v, v3(0.0f), convertTextureRect(Rect(192, 0, 64, 64), 512.0f));
+	addPlane(4, 4, v, v3(0.0f), convertTextureRect(Rect(0, 64, 64, 64), 512.0f));
+	addPlane(5, 5, v, v3(0.0f), convertTextureRect(Rect(64, 64, 64, 64), 512.0f));
 
-	const int numFloorCells = 96;
-	const int numFloorVertices = numFloorCells * 4;
-	int numFloorIndices = numFloorCells * 6;
-	Vertex floorVertices[numFloorVertices];
-
-	int idx = 0;
-	for (int y = 0; y < 4; ++y) {
-		for (int x = 0; x < 6; ++x) {
-			v3 p = v3(-2.5f + x, -1.5f, -2.0f + y);
-			addPlane(idx, 2, floorVertices, p);
-			++idx;
-		}
-	}
-
+	Vertex floorVertices[4];
+	floorVertices[0] = Vertex(v3(-3.0f, -1.0f, -3.0f), 0.0f, 1.0f);
+	floorVertices[1] = Vertex(v3(-3.0f, -1.0f,  3.0f), 0.0f, 0.0f);
+	floorVertices[2] = Vertex(v3( 3.0f, -1.0f,  3.0f), 1.0f, 0.0f);
+	floorVertices[3] = Vertex(v3( 3.0f, -1.0f, -3.0f), 1.0f, 1.0f);
+	
 	CubeConstantBuffer constantBuffer;
 	float t = 0.0f;
 	ds::RenderSettings rs;
 	rs.width = 1024;
 	rs.height = 768;
 	rs.title = "Hello world";
-	rs.clearColor = ds::Color(0.2f, 0.2f, 0.2f, 1.0f);
+	rs.clearColor = ds::Color(0.0f, 0.0f, 0.0f, 1.0f);
 	rs.multisampling = 1;
 	if (ds::init(rs)) {
 
-		RID textureID = loadImage("directx-11-logo.png");
-		RID floorTexture = loadImage("Stonefloor7.png");
-
-
+		RID textureID = loadImage("cube_map.png");
 		RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
-
 		RID shaderID = ds::createShader();
 		ds::loadVertexShader(shaderID, "Coloured_vs.cso");
 		ds::loadPixelShader(shaderID, "Coloured_ps.cso");
@@ -110,7 +119,7 @@ int main(const char** args) {
 		RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
 		RID indexBuffer = ds::createQuadIndexBuffer(36);
 		RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, 0, v,sizeof(Vertex));
-		RID floorBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, numFloorVertices, 0, floorVertices, sizeof(Vertex));
+		RID floorBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 4, 0, floorVertices, sizeof(Vertex));
 		RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 		v3 vp = v3(0.0f, 2.0f, -6.0f);
 		ds::setViewPosition(vp);
@@ -135,14 +144,14 @@ int main(const char** args) {
 			matrix world = mat_identity();
 			constantBuffer.worldMatrix = mat_Transpose(world);
 			ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
-			ds::setTexture(floorTexture, ds::ShaderType::PIXEL);
+			ds::setTexture(textureID, ds::ShaderType::PIXEL);
 			ds::setVertexBuffer(floorBuffer, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
-			ds::drawIndexed(numFloorIndices);
+			ds::drawIndexed(6);
 
 			world = mat_identity();
 			//t += 0.001f;
-			rotation.y += 0.0001f;
-			rotation.x += 0.0001f;
+			rotation.y += 0.001f;
+			rotation.x += 0.001f;
 			matrix rotY = mat_RotationY(rotation.y);
 			matrix rotX = mat_RotationX(rotation.x);
 			matrix rotZ = mat_RotationZ(rotation.z);

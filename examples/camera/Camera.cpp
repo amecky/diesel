@@ -34,7 +34,7 @@
 		_projectionMatrix = mat_PerspectiveFovLH(ds::PI * 0.25f, screenWidth / screenHeight, 0.01f, 100.0f);
 		_position = v3(3, 3, -12);
 		_lastMousePos = ds::getMousePosition();
-		_target = v3(0, 0, 0);
+		_target = v3(0, 0, 1);
 		_up = v3(0, 1, 0);
 		_right = v3(1, 0, 0);
 		_speed = 10.0f;
@@ -52,22 +52,22 @@
 	void OldFPSCamera::setPosition(const v3& pos, const v3& target) {
 		_position = pos;
 		_target = target;
-		_viewMatrix =mat_LookAtLH(_position, _target, _up);
+		_viewMatrix = mat_LookAtLH(_position, _target, _up);
 		_viewProjectionMatrix = _viewMatrix * _projectionMatrix;
 		buildView();
 	}
 
 	void OldFPSCamera::move(float unit) {
-		v3 tmp = _target * unit;
-		matrix R = mat_RotationX(_pitch);
-		tmp = R * tmp;
-		_position = _position + tmp;
+		//v3 tmp = _target * unit;
+		//matrix R = mat_RotationX(_pitch);
+		//tmp = R * tmp;
+		_position += _target * unit;
 		buildView();
 	}
 
 	void OldFPSCamera::strafe(float unit) {
-		v3 tmp = _right * unit;
-		_position = _position + tmp;
+		//v3 tmp = _right * unit;
+		_position += _right * unit;
 		buildView();
 	}
 
@@ -79,9 +79,9 @@
 
 	void OldFPSCamera::setPitch(float angle) {
 		_pitch += angle;
-		matrix R = mat_RotationY(_pitch);
-		_right = R * v3(1,0,0);
-		_target = R * v3(0,0,1);
+		matrix R = mat_Rotation(_right,angle);
+		_up = mat_TransformNormal(_up, R);
+		_target = mat_TransformNormal(_target, R);
 		buildView();
 	}
 
@@ -95,9 +95,15 @@
 
 	void OldFPSCamera::setYaw(float angle) {
 		_yaw += angle;
-		matrix R = mat_RotationZ(_yaw);
-		_right = R * v3(1, 0, 0);
-		_target = R * v3(0, 0, 1);
+
+		matrix R = mat_RotationY(angle);
+		_right = mat_TransformNormal(_right, R);
+		_up = mat_TransformNormal(_up, R);
+		_target = mat_TransformNormal(_target, R);
+
+		//matrix R = mat_RotationZ(_yaw);
+		//_right = R * v3(1, 0, 0);
+		//_target = R * v3(0, 0, 1);
 		buildView();
 	}
 	/*
@@ -152,6 +158,7 @@
 	}
 
 	void OldFPSCamera::buildView() {
-		_viewMatrix = FPSViewRH(_position, _pitch, _yaw);
+		//_viewMatrix = FPSViewRH(_position, _pitch, _yaw);
+		_viewMatrix = mat_LookAtLH(_position, _target, _up);
 		_viewProjectionMatrix = _viewMatrix * _projectionMatrix;
 	}

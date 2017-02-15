@@ -2,13 +2,12 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Camera.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Coloured_ps.hlsl" />
-    <FxCompile Include="Coloured_vs.hlsl" />
+    <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Camera.h" />
+    <FxCompile Include="AmbientLightning_ps.hlsl" />
+    <FxCompile Include="AmbientLightning_vs.hlsl" />
   </ItemGroup>
 </Project>
