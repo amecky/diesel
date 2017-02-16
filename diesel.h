@@ -322,6 +322,7 @@ namespace ds {
 		uint16_t size;
 		RID vertexBufferID;
 		PrimitiveTypes primitiveType;		
+		RID vertexDeclarationID;
 		// FIXME: add index buffer
 	};
 	template<class T>
@@ -330,7 +331,7 @@ namespace ds {
 	public:
 		Batch(const BatchDescriptor& descriptor) : _data(0) , _descriptor(descriptor) {
 			_size = descriptor.size;
-			_data = new T[_size]
+			_data = new T[_size];
 		}
 		~Batch() {
 			if (_data != 0) {
@@ -347,17 +348,28 @@ namespace ds {
 
 		void begin() {
 			_size = 0;
+			_calls = 0;
 		}
 
 		void flush() {
-			ds::setVertexBuffer(_descriptor.vertexBufferID, &stride, &offset, _descriptor.primitiveType);
-			ds::setVertexDeclaration(vertexDeclId);			
-			ds::mapBufferData(vertexBufferID, buffer, numSprites * sizeof(T));			
-			ds::draw(numSprites);
+			if (_size > 0) {
+				++_calls;
+				unsigned int stride = sizeof(T);
+				unsigned int offset = 0;
+				ds::setVertexBuffer(_descriptor.vertexBufferID, &stride, &offset, _descriptor.primitiveType);
+				ds::setVertexDeclaration(_descriptor.vertexDeclarationID);
+				ds::mapBufferData(_descriptor.vertexBufferID, _data, _size * sizeof(T));
+				ds::draw(_size);
+				_size = 0;
+			}
+		}
+		uint16_t getCalls() const {
+			return _calls;
 		}
 	private:
 		uint16_t _index;
 		uint16_t _size;
+		uint16_t _calls;
 		T* _data;
 		BatchDescriptor _descriptor;
 	};
@@ -610,6 +622,7 @@ namespace ds {
 		RID selectedShaderId;
 		RID selectedVertexDeclaration;
 		RID selectedIndexBuffer;
+		RID selectedVertexBuffer;
 		RID selectedRasterizerState;
 
 		RID selectedPSTextures[16];
@@ -1274,6 +1287,7 @@ namespace ds {
 		_ctx->selectedVertexDeclaration = INVALID_RID;
 		_ctx->selectedIndexBuffer = INVALID_RID;
 		_ctx->selectedRasterizerState = INVALID_RID;
+		_ctx->selectedVertexBuffer = INVALID_RID;
 		for (int i = 0; i < 16; ++i) {
 			_ctx->selectedVSTextures[i] = NO_RID;
 			_ctx->selectedPSTextures[i] = NO_RID;
@@ -1596,11 +1610,20 @@ namespace ds {
 	// set vertex buffer
 	// ------------------------------------------------------
 	void setVertexBuffer(RID rid, uint32_t* stride, uint32_t* offset, PrimitiveTypes topology) {
-		XASSERT(rid != INVALID_RID, "Invalid vertex buffer selected");
-		XASSERT(rid < _ctx->buffers.size(), "Invalid vertex buffer selected");
-		ID3D11Buffer* buffer = _ctx->buffers[rid];
-		_ctx->d3dContext->IASetVertexBuffers(0, 1, &buffer, stride, offset);
-		_ctx->d3dContext->IASetPrimitiveTopology(PRIMITIVE_TOPOLOGIES[topology]);
+		if (_ctx->selectedVertexBuffer != rid) {
+			XASSERT(rid != INVALID_RID, "Invalid vertex buffer selected");
+			if (rid == NO_RID) {
+				_ctx->d3dContext->IASetVertexBuffers(0, 0, NULL, NULL, NULL);
+				_ctx->d3dContext->IASetPrimitiveTopology(PRIMITIVE_TOPOLOGIES[topology]);
+			}
+			else {
+				XASSERT(rid < _ctx->buffers.size(), "Invalid vertex buffer selected");
+				ID3D11Buffer* buffer = _ctx->buffers[rid];
+				_ctx->d3dContext->IASetVertexBuffers(0, 1, &buffer, stride, offset);
+				_ctx->d3dContext->IASetPrimitiveTopology(PRIMITIVE_TOPOLOGIES[topology]);
+			}
+			_ctx->selectedVertexBuffer = rid;
+		}
 	}
 
 	// ------------------------------------------------------

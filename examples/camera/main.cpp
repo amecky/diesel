@@ -100,8 +100,8 @@ int main(const char** args) {
 			camera.update(0.0016f);
 			ds::begin();
 			t += 0.001f;
-			vp.y = 2.0f * sin(t);
-			ds::setViewPosition(vp);
+			//vp.y = 2.0f * sin(t);
+			//ds::setViewPosition(vp);
 			pos.z = sin(t);
 			matrix world = mat_identity();
 			matrix w = mat_identity();

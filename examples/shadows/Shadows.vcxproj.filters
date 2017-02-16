@@ -7,7 +7,7 @@
     <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="AmbientLightning_ps.hlsl" />
-    <FxCompile Include="AmbientLightning_vs.hlsl" />
+    <FxCompile Include="Shadows_ps.hlsl" />
+    <FxCompile Include="Shadwows_vs.hlsl" />
   </ItemGroup>
 </Project>

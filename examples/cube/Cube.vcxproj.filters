@@ -4,7 +4,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Coloured_ps.hlsl" />
-    <FxCompile Include="Coloured_vs.hlsl" />
+    <FxCompile Include="Cube_ps.hlsl" />
+    <FxCompile Include="Cube_vs.hlsl" />
   </ItemGroup>
 </Project>
