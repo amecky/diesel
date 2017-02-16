@@ -316,6 +316,51 @@ namespace ds {
 	float random(float min, float max);
 
 	const char* getLastError();
+
+	// Batching class
+	struct BatchDescriptor {
+		uint16_t size;
+		RID vertexBufferID;
+		PrimitiveTypes primitiveType;		
+		// FIXME: add index buffer
+	};
+	template<class T>
+	class Batch {
+
+	public:
+		Batch(const BatchDescriptor& descriptor) : _data(0) , _descriptor(descriptor) {
+			_size = descriptor.size;
+			_data = new T[_size]
+		}
+		~Batch() {
+			if (_data != 0) {
+				delete[] _data;
+			}
+		}
+
+		void add(const T& t) {
+			if ((_size + 1) >= _size) {
+				flush();
+			}
+			_data[_size++] = t;
+		}
+
+		void begin() {
+			_size = 0;
+		}
+
+		void flush() {
+			ds::setVertexBuffer(_descriptor.vertexBufferID, &stride, &offset, _descriptor.primitiveType);
+			ds::setVertexDeclaration(vertexDeclId);			
+			ds::mapBufferData(vertexBufferID, buffer, numSprites * sizeof(T));			
+			ds::draw(numSprites);
+		}
+	private:
+		uint16_t _index;
+		uint16_t _size;
+		T* _data;
+		BatchDescriptor _descriptor;
+	};
 }
 
 #ifdef DS_IMPLEMENTATION
