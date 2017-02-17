@@ -5,8 +5,8 @@
     <ClCompile Include="WaveFrontReader.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Coloured_ps.hlsl" />
-    <FxCompile Include="Coloured_vs.hlsl" />
+    <FxCompile Include="Obj_vs.hlsl" />
+    <FxCompile Include="Obj_ps.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stb_image.h" />

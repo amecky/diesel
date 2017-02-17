@@ -21,12 +21,6 @@ int WaveFrontReader::load(const char * fileName, ObjVertex* objVertices, int max
 		if (*cmd == '#') {
 
 		}
-		/*
-		v 0.500000 -0.500000 -0.500000
-		vt 1 1
-		vn 0.000000 -1.000000 0.000000
-		f 1/1/1 2/2/1 3/3/1 4/4/1
-		*/
 		else if (strcmp(cmd, "v") == 0) {
 			float x, y, z;
 			file >> x >> y >> z;
@@ -47,28 +41,19 @@ int WaveFrontReader::load(const char * fileName, ObjVertex* objVertices, int max
 		}
 		else if (strcmp(cmd, "f") == 0) {
 			for (int i = 0; i < 4; ++i) {
-				int v, t, n;
+				int v, t;
 				file >> v;
 				file.ignore();
 				file >> t;
-				file.ignore();
-				file >> n;
-				printf("%d %d %d %d\n", i, v, t, n);
 				ObjVertex ov;
 				ov.position = vertices[v - 1];
 				ov.texture = textures[t - 1];
-				ov.normals = normals[n - 1];
 				if (cnt < max) {
 					objVertices[cnt++] = ov;
 				}
 			}
 		}
 
-	}
-	printf("vertices: %d\n", cnt);
-	for (int i = 0; i < cnt; ++i) {
-		const ObjVertex& ov = objVertices[i];
-		printf("%d : %g %g %g\n", i,ov.position.x, ov.position.y, ov.position.z);
-	}
+	}	
 	return cnt;
 }

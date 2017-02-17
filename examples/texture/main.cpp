@@ -21,15 +21,12 @@ struct Rect {
 // Vertex
 // ---------------------------------------------------------------
 struct Vertex {
-	float x;
-	float y;
-	float z;
-	float u;
-	float v;
 
-	Vertex() : x(0.0f), y(0.0f), z(0.0f), u(0.0f) , v(0.0f) {}
-	Vertex(float xp, float yp, float zp, float uv,float vv) : x(xp), y(yp), z(zp), u(uv), v(vv) {}
-	Vertex(const v3& p, float uv, float vv) : x(p.x), y(p.y), z(p.z), u(uv), v(vv) {}
+	v3 p;
+	v2 uv;
+
+	Vertex() : p(0.0f), uv(0.0f) {}
+	Vertex(const v3& pv, float u, float v) : p(pv) , uv(u,v) {}
 };
 
 const v3 CUBE_VERTICES[8] = {
@@ -97,6 +94,57 @@ RID loadImage(const char* name) {
 	return textureID;
 }
 
+void saveObj(Vertex* vertices, int num) {
+	std::vector<int> vertIndices;
+	std::vector<int> uvIndices;
+	std::vector<v3> vertCache;
+	for (int i = 0; i < num; ++i) {
+		bool found = false;
+		for (int j = 0; j < vertCache.size(); ++j) {
+			if (vertCache[j] == vertices[i].p) {
+				found = true;
+				vertIndices.push_back(j + 1);
+			}
+		}
+		if (!found) {
+			vertCache.push_back(vertices[i].p);
+			vertIndices.push_back(vertCache.size());
+		}
+	}
+	std::vector<v2> uvCache;
+	for (int i = 0; i < num; ++i) {
+		bool found = false;
+		for (int j = 0; j < uvCache.size(); ++j) {
+			if (uvCache[j] == vertices[i].uv) {
+				found = true;
+				uvIndices.push_back(j + 1);
+			}
+		}
+		if (!found) {
+			uvCache.push_back(vertices[i].uv);
+			uvIndices.push_back(uvCache.size());
+		}
+	}
+
+	FILE* fp = fopen("test.txt","w");
+	if (fp) {
+		for (int i = 0; i < vertCache.size(); ++i) {
+			const v3& p = vertCache[i];
+			fprintf(fp, "v %g %g %g\n", p.x, p.y, p.z);
+		}
+		for (int i = 0; i < uvCache.size(); ++i) {
+			const v2& p = uvCache[i];
+			fprintf(fp, "vt %g %g\n", p.x, p.y);
+		}
+		int faces = vertIndices.size() / 4;
+		for (int i = 0; i < faces; ++i) {
+			int idx = i * 4;
+			fprintf(fp, "f %d/%d %d/%d %d/%d %d/%d\n", vertIndices[idx], uvIndices[idx], vertIndices[idx + 1], uvIndices[idx + 1], vertIndices[idx + 2], uvIndices[idx + 2], vertIndices[idx + 3], uvIndices[idx + 3]);
+		}
+		fclose(fp);
+	}
+}
+
 // ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------
@@ -108,6 +156,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	addPlane(3, 3, v);
 	addPlane(4, 4, v);
 	addPlane(5, 5, v);
+
+	saveObj(v, 24);
 
 	Vertex floorVertices[4];
 	floorVertices[0] = Vertex(v3(-3.0f, -1.0f, -2.5f), 0.0f, 1.0f);

@@ -4,7 +4,6 @@
 struct ObjVertex {
 	v3 position;
 	v2 texture;
-	v3 normals;
 };
 
 class WaveFrontReader {
