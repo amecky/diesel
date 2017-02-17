@@ -13,11 +13,11 @@ float trace(float3 o, float3 r) {
 		float3 p = o + r * t;
 		float d = map(p);
 		if (d < 0.001) {
-			return 0.5f;
+			return d;
 		}
 		t += d * 0.5;
 	}
-	return 0.0;
+	return t;
 }
 
 float4 PS_Main( PS_Input frag ) : SV_TARGET {
