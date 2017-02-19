@@ -3,10 +3,15 @@
 #define MATH_IMPLEMENTATION
 #include "math.h"
 
+// ----------------------------------------------------
+// resource handle
+// first 16 bit is the index
+// second 16 bits define the reosurce type
+// ----------------------------------------------------
 typedef uint32_t RID;
 
-const RID INVALID_RID = UINT32_MAX;
-const RID NO_RID = UINT32_MAX - 1;
+const uint16_t INVALID_RID = UINT16_MAX;
+const uint16_t NO_RID = UINT16_MAX - 1;
 
 #ifndef DEGTORAD
 #define DEGTORAD( degree ) ((degree) * (3.141592654f / 180.0f))
@@ -210,7 +215,7 @@ namespace ds {
 
 	RID createVertexBuffer(BufferType type, int numVertices, RID vertexDecl);
 
-	RID createVertexBuffer(BufferType type, int numVertices, RID vertexDecl, void* data, int vertexSize);
+	RID createVertexBuffer(BufferType type, int numVertices, RID vertexDecl, void* data, unsigned long long vertexSize);
 
 	void setVertexBuffer(RID rid, uint32_t* stride, uint32_t* offset, PrimitiveTypes topology);
 
@@ -383,25 +388,56 @@ namespace ds {
 #include <vector>
 #include <random>
 
-static void assert_fmt(char* expr_str, bool expr, char* file, int line, char* format, ...);
+namespace ds {
 
-static void assert_fmt(char* file, int line, char* format, ...);
+	static void assert_fmt(char* expr_str, bool expr, char* file, int line, char* format, ...);
 
-static void reportLastError(const char* fileName, int line, const char* method, HRESULT hr);
+	static void assert_fmt(char* file, int line, char* format, ...);
 
-static void assert_result(const char* file, int line, HRESULT result, const char* msg);
+	static void reportLastError(const char* fileName, int line, const char* method, HRESULT hr);
 
+	static void assert_result(const char* file, int line, HRESULT result, const char* msg);
+
+}
 #ifndef XASSERT
-#define XASSERT(Expr, s, ...) do { assert_fmt(#Expr, Expr,__FILE__,__LINE__,s,__VA_ARGS__); } while(false);
+#define XASSERT(Expr, s, ...) do { ds::assert_fmt(#Expr, Expr,__FILE__,__LINE__,s,__VA_ARGS__); } while(false);
 #endif
 #ifndef ASSERT_RESULT
-#define ASSERT_RESULT(r,s) do { assert_result(__FILE__,__LINE__,r,s); } while(false);
+#define ASSERT_RESULT(r,s) do { ds::assert_result(__FILE__,__LINE__,r,s); } while(false);
 #endif
 #ifndef REPORT
-#define REPORT(s,d) do { reportLastError(__FILE__,__LINE__,s,d); } while(false);
+#define REPORT(s,d) do { ds::reportLastError(__FILE__,__LINE__,s,d); } while(false);
 #endif
 
 namespace ds {
+
+	enum ResourceType {
+		RT_NONE,
+		RT_TEXTURE,
+		RT_VERTEX_DECLARATION,
+		RT_CONSTANT_BUFFER,
+		RT_INDEX_BUFFER,
+		RT_VERTEX_BUFFER,
+		RT_SAMPLER_STATE,
+		RT_BLENDSTATE,
+		RT_SHADER,
+		RT_SRV,
+		RT_RASTERIZER_STATE
+	};
+
+	const char* RESOURCE_NAMES[] {
+		"NONE",
+		"TEXTURE",
+		"VERTEX_DECLARATION",
+		"CONSTANT_BUFFER",
+		"INDEX_BUFFER",
+		"VERTEX_BUFFER",
+		"SAMPLER_STATE",
+		"BLENDSTATE",
+		"SHADER",
+		"SRV",
+		"RASTERIZER_STATE"
+	};
 
 	// ------------------------------------------------------
 	// query refresh rate
@@ -519,14 +555,6 @@ namespace ds {
 	};
 
 	// ------------------------------------------------------
-	// internal input layout 
-	// ------------------------------------------------------
-	struct InternalVertexDeclaration {
-		ID3D11InputLayout* layout;
-		int size;
-	};
-
-	// ------------------------------------------------------
 	// internal texture 
 	// ------------------------------------------------------
 	struct InternalTexture {
@@ -536,16 +564,6 @@ namespace ds {
 		ID3D11ShaderResourceView* srv;
 	};
 
-	// ------------------------------------------------------
-	// internal index buffer 
-	// ------------------------------------------------------
-	struct InternalIndexBuffer {
-		DXGI_FORMAT format;
-		uint32_t numIndices;
-		BufferType type;
-		ID3D11Buffer* buffer;
-	};
-
 	struct RenderTarget {
 		ID3D11Texture2D* texture;
 		ID3D11RenderTargetView* view;
@@ -553,6 +571,229 @@ namespace ds {
 		ID3D11Texture2D* depthTexture;
 		ID3D11DepthStencilView* depthStencilView;
 	};
+
+	// ------------------------------------------------------
+	// Resource management
+	// ------------------------------------------------------	
+	class BaseResource {
+
+	public:
+		BaseResource() {}
+		virtual ~BaseResource() {}
+		virtual void release() = 0;
+		virtual const ResourceType getType() const = 0;
+	};
+
+	template<class T>
+	class AbstractResource : public BaseResource {
+
+	public:
+		AbstractResource(T t) : _data(t) {}
+		virtual ~AbstractResource() {}
+		virtual void release() = 0;
+		T get() {
+			return _data;
+		}
+		const T get() const {
+			return _data;
+		}
+		
+	protected:
+		T _data;
+	};
+
+	class ConstantBufferResource : public AbstractResource<ID3D11Buffer*> {
+
+	public:
+		ConstantBufferResource(ID3D11Buffer* t) : AbstractResource(t) {}
+		virtual ~ConstantBufferResource() {}
+		void release() {
+			if (_data != 0) {
+				_data->Release();
+				_data = 0;
+			}
+		}
+		const ResourceType getType() const {
+			return RT_CONSTANT_BUFFER;
+		}
+	};
+
+	class InputLayoutResource : public AbstractResource<ID3D11InputLayout*> {
+
+	public:
+		InputLayoutResource(ID3D11InputLayout* t, int size) : AbstractResource(t), _size(size) {}
+		virtual ~InputLayoutResource() {}
+		void release() {
+			if (_data != 0) {
+				_data->Release();
+				_data = 0;
+			}
+		}
+		int size() const {
+			return _size;
+		}
+		const ResourceType getType() const {
+			return RT_VERTEX_DECLARATION;
+		}
+	private:
+		int _size;
+	};
+
+	class VertexBufferResource : public AbstractResource<ID3D11Buffer*> {
+
+	public:
+		VertexBufferResource(ID3D11Buffer* t, int size, BufferType type, RID inputLayout) : AbstractResource(t), _size(size), _inputLayout(inputLayout) {}
+		virtual ~VertexBufferResource() {}
+
+		void release() {
+			if (_data != 0) {
+				_data->Release();
+				_data = 0;
+			}
+		}
+		int size() const {
+			return _size;
+		}
+		RID getInputLayout() const {
+			return _inputLayout;
+		}
+		const ResourceType getType() const {
+			return RT_VERTEX_BUFFER;
+		}
+		BufferType getBufferType() const {
+			return _type;
+		}
+	private:
+		RID _inputLayout;
+		int _size;
+		BufferType _type;
+	};
+
+	class IndexBufferResource : public AbstractResource<ID3D11Buffer*> {
+
+	public:
+		IndexBufferResource(ID3D11Buffer* t, DXGI_FORMAT format,uint32_t numIndices,BufferType type) 
+			: AbstractResource(t) , _format(format) , _numIndices(numIndices) , _type(type) {}
+		virtual ~IndexBufferResource() {}
+		void release() {
+			if (_data != 0) {
+				_data->Release();
+				_data = 0;
+			}
+		}
+		const ResourceType getType() const {
+			return RT_INDEX_BUFFER;
+		}
+		DXGI_FORMAT getFormat() const {
+			return _format;
+		}
+		uint32_t getNumIndices() const {
+			return _numIndices;
+		}
+		BufferType getBufferType() const {
+			return _type;
+		}
+	private:
+		DXGI_FORMAT _format;
+		uint32_t _numIndices;
+		BufferType _type;
+	};
+
+	class ShaderResourceViewResource : public AbstractResource<ID3D11ShaderResourceView*> {
+
+	public:
+		ShaderResourceViewResource(ID3D11ShaderResourceView* t) : AbstractResource(t) {}
+		virtual ~ShaderResourceViewResource() {}
+		void release() {
+			if (_data != 0) {
+				_data->Release();
+				_data = 0;
+			}
+		}
+		const ResourceType getType() const {
+			return RT_SRV;
+		}
+	};
+
+	class BlendStateResource : public AbstractResource<ID3D11BlendState*> {
+
+	public:
+		BlendStateResource(ID3D11BlendState* t) : AbstractResource(t) {}
+		virtual ~BlendStateResource() {}
+		void release() {
+			if (_data != 0) {
+				_data->Release();
+				_data = 0;
+			}
+		}
+		const ResourceType getType() const {
+			return RT_BLENDSTATE;
+		}
+	};
+
+	class SamplerStateResource : public AbstractResource<ID3D11SamplerState*> {
+
+	public:
+		SamplerStateResource(ID3D11SamplerState* t) : AbstractResource(t) {}
+		virtual ~SamplerStateResource() {}
+		void release() {
+			if (_data != 0) {
+				_data->Release();
+				_data = 0;
+			}
+		}
+		const ResourceType getType() const {
+			return RT_SAMPLER_STATE;
+		}
+	};
+
+	class RasterizerStateResource : public AbstractResource<ID3D11RasterizerState*> {
+
+	public:
+		RasterizerStateResource(ID3D11RasterizerState* t) : AbstractResource(t) {}
+		virtual ~RasterizerStateResource() {}
+		void release() {
+			if (_data != 0) {
+				_data->Release();
+				_data = 0;
+			}
+		}
+		const ResourceType getType() const {
+			return RT_RASTERIZER_STATE;
+		}
+	};
+
+	class ShaderResource : public AbstractResource<Shader*> {
+
+	public:
+		ShaderResource(Shader* t) : AbstractResource(t) {}
+		virtual ~ShaderResource() {}
+		void release() {
+			if (_data != 0) {
+				if (_data->vertexShader != 0) {
+					_data->vertexShader->Release();
+					_data->vertexShader = 0;
+				}
+				if (_data->pixelShader != 0) {
+					_data->pixelShader->Release();
+					_data->pixelShader = 0;
+				}
+				if (_data->geometryShader != 0) {
+					_data->geometryShader->Release();
+					_data->geometryShader = 0;
+				}
+				if (_data->vertexShaderBuffer != 0) {
+					delete[] _data->vertexShaderBuffer;
+					_data->vertexShaderBuffer = 0;
+				}
+				delete _data;
+			}
+		}
+		const ResourceType getType() const {
+			return RT_SHADER;
+		}
+	};
+
 	// ------------------------------------------------------
 	// Internal context
 	// ------------------------------------------------------
@@ -582,15 +823,7 @@ namespace ds {
 		matrix projectionMatrix;
 		matrix viewProjectionMatrix;
 
-		std::vector<ID3D11Buffer*> constantBuffers;
-		std::vector<InternalIndexBuffer> indexBuffers;
-		std::vector<ID3D11Buffer*> buffers;
-		std::vector<ID3D11SamplerState*> samplerStates;
-		std::vector<ID3D11BlendState*> blendStates;
-		std::vector<Shader*> shaders;
-		std::vector<InternalVertexDeclaration> layouts;
-		std::vector<ID3D11ShaderResourceView*> shaderResourceViews;
-		std::vector<ID3D11RasterizerState*> rasterizerStates;
+		std::vector<BaseResource*> _resources;
 
 		v3 viewPosition;
 		v3 lookAt;
@@ -619,20 +852,48 @@ namespace ds {
 		char errorBuffer[256];
 		bool broken;
 
-		RID selectedShaderId;
-		RID selectedVertexDeclaration;
-		RID selectedIndexBuffer;
-		RID selectedVertexBuffer;
-		RID selectedRasterizerState;
+		uint32_t selectedShaderId;
+		uint32_t selectedVertexDeclaration;
+		uint32_t selectedIndexBuffer;
+		uint32_t selectedVertexBuffer;
+		uint32_t selectedRasterizerState;
 
-		RID selectedPSTextures[16];
-		RID selectedVSTextures[16];
-		RID selectedGSTextures[16];
+		uint32_t selectedPSTextures[16];
+		uint32_t selectedVSTextures[16];
+		uint32_t selectedGSTextures[16];
 
 	} InternalContext;
 
 	static InternalContext* _ctx;
 
+	static uint16_t id_mask(RID rid) {
+		return rid & 0xffff;
+	}
+
+	static uint16_t type_mask(RID rid) {
+		return (rid << 16) & 0xffff;
+	}
+
+	static void assert_resource(RID rid, ResourceType type) {
+		XASSERT(type_mask(rid) == type,"The selected resource %d is not the required type %s", rid, RESOURCE_NAMES[type]);
+	}
+
+	static RID addResource(BaseResource* res, ResourceType type) {
+		XASSERT((_ctx->_resources.size() + 1) < NO_RID, "The maximum number of resources reached");
+		_ctx->_resources.push_back(res);
+		return static_cast<uint16_t>(_ctx->_resources.size() - 1) + (type >> 16);
+	}
+
+	uint16_t getResourceIndex(RID rid,ResourceType type) {
+		if (rid != NO_RID) {
+			uint16_t idx = id_mask(rid);
+			XASSERT(idx < _ctx->_resources.size(), "Invalid resource selected - Out of bounds");
+			BaseResource* cbr = _ctx->_resources[idx];
+			XASSERT(cbr->getType() == type, "The selected resource %d is not the required type: %s", idx, RESOURCE_NAMES[idx]);
+			return idx;
+		}
+		return NO_RID;
+	}
 	// -------------------------------------------------------
 	// random
 	// -------------------------------------------------------
@@ -744,6 +1005,7 @@ namespace ds {
 			reportLastError(file, line, msg, result);
 		}
 	}
+
 	// ------------------------------------------------------
 	// is running
 	// ------------------------------------------------------
@@ -1204,9 +1466,10 @@ namespace ds {
 	// ------------------------------------------------------
 	void shutdown() {
 		if (_ctx != 0) {
-			for (size_t i = 0; i < _ctx->constantBuffers.size(); ++i) {
-				_ctx->constantBuffers[i]->Release();
+			for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
+				_ctx->_resources[i]->release();
 			}
+			/*
 			for (size_t i = 0; i < _ctx->buffers.size(); ++i) {
 				_ctx->buffers[i]->Release();
 			}
@@ -1240,6 +1503,7 @@ namespace ds {
 					s->geometryShader->Release();
 				}
 			}
+			*/
 			// FIXME: release shaders
 			if (_ctx->backBufferTarget) _ctx->backBufferTarget->Release();
 			if (_ctx->swapChain) _ctx->swapChain->Release();
@@ -1356,30 +1620,30 @@ namespace ds {
 			desc.InstanceDataStepRate = 0;
 			index += formatType.bytes;
 			si[decl[i].attribute] += 1;
-		}
-		InternalVertexDeclaration id;
-		id.size = index;
-		Shader* s = _ctx->shaders[shaderId];
-		assert_result(_ctx->d3dDevice->CreateInputLayout(descriptors, num, s->vertexShaderBuffer, s->bufferSize, &id.layout), "Failed to create input layout");
-		_ctx->layouts.push_back(id);
-		return (RID)(_ctx->layouts.size() - 1);
+		}		
+		uint16_t sidx = getResourceIndex(shaderId, RT_SHADER);
+		ShaderResource* sres = (ShaderResource*)_ctx->_resources[sidx];
+		Shader* s = sres->get();
+		ID3D11InputLayout* layout = 0;
+		assert_result(_ctx->d3dDevice->CreateInputLayout(descriptors, num, s->vertexShaderBuffer, s->bufferSize, &layout), "Failed to create input layout");
+		InputLayoutResource* res = new InputLayoutResource(layout, index);
+		return addResource(res, RT_VERTEX_DECLARATION);
 	}
 
 	// ------------------------------------------------------
 	// set vertex declaration
 	// ------------------------------------------------------
 	void setVertexDeclaration(RID rid) {
+		uint16_t ridx = getResourceIndex(rid, RT_VERTEX_DECLARATION);		
 		if (_ctx->selectedVertexDeclaration != rid) {
-			XASSERT(rid != INVALID_RID, "Invalid input layout selected");
-			if (rid == NO_RID) {
+			if (ridx == NO_RID) {
 				_ctx->d3dContext->IASetInputLayout(NULL);
 			}
 			else {				
-				XASSERT(rid < _ctx->layouts.size(), "Invalid input layout selected");
-				ID3D11InputLayout* layout = _ctx->layouts[rid].layout;
-				_ctx->d3dContext->IASetInputLayout(layout);
+				InputLayoutResource* res = (InputLayoutResource*)_ctx->_resources[ridx];
+				_ctx->d3dContext->IASetInputLayout(res->get());
 			}
-			_ctx->selectedVertexDeclaration = rid;
+			_ctx->selectedVertexDeclaration = id_mask(rid);
 		}
 	}
 
@@ -1394,54 +1658,70 @@ namespace ds {
 		constDesc.Usage = D3D11_USAGE_DYNAMIC;
 		constDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		ID3D11Buffer* buffer = 0;
-		assert_result(_ctx->d3dDevice->CreateBuffer(&constDesc, 0, &buffer), "Failed to create constant buffer");		
-		_ctx->constantBuffers.push_back(buffer);
-		return (RID)(_ctx->constantBuffers.size() - 1);
+		assert_result(_ctx->d3dDevice->CreateBuffer(&constDesc, 0, &buffer), "Failed to create constant buffer");	
+		ConstantBufferResource* res = new ConstantBufferResource(buffer);
+		return addResource(res, RT_CONSTANT_BUFFER);
 	}
 
 	// ------------------------------------------------------
 	// update constant buffer
 	// ------------------------------------------------------
 	void updateConstantBuffer(RID rid, void* data, size_t size) {
-		XASSERT(rid != INVALID_RID, "Invalid constant buffer selected");
-		XASSERT(rid < _ctx->constantBuffers.size(), "Invalid constant buffer selected");
-		ID3D11Buffer* buffer = _ctx->constantBuffers[rid];
-		D3D11_MAPPED_SUBRESOURCE resource;
-		assert_result(_ctx->d3dContext->Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource), "Failed to update constant buffer");
-		void* ptr = resource.pData;
-		// Copy the data into the vertex buffer.
-		memcpy(ptr, data, size);
-		_ctx->d3dContext->Unmap(buffer, 0);
+		uint16_t ridx = getResourceIndex(rid, RT_CONSTANT_BUFFER);
+		if ( ridx != NO_RID) {
+			ConstantBufferResource* cbr = (ConstantBufferResource*)_ctx->_resources[ridx];
+			ID3D11Buffer* buffer = cbr->get();
+			D3D11_MAPPED_SUBRESOURCE resource;
+			assert_result(_ctx->d3dContext->Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource), "Failed to update constant buffer");
+			void* ptr = resource.pData;
+			memcpy(ptr, data, size);
+			_ctx->d3dContext->Unmap(buffer, 0);
+		}
 	}
 
 	// ------------------------------------------------------
 	// set vertex shader constant buffer
 	// ------------------------------------------------------
 	void setVertexConstantBuffer(RID rid) {
-		XASSERT(rid != INVALID_RID, "Invalid constant buffer selected");
-		XASSERT(rid < _ctx->constantBuffers.size(), "Invalid constant buffer selected");
-		ID3D11Buffer* buffer = _ctx->constantBuffers[rid];
-		_ctx->d3dContext->VSSetConstantBuffers(0, 1, &buffer);
+		uint16_t ridx = getResourceIndex(rid, RT_CONSTANT_BUFFER);
+		if (ridx != NO_RID) {
+			ConstantBufferResource* cbr = (ConstantBufferResource*)_ctx->_resources[ridx];
+			ID3D11Buffer* buffer = cbr->get();
+			_ctx->d3dContext->VSSetConstantBuffers(0, 1, &buffer);
+		}
+		else {
+			_ctx->d3dContext->VSSetConstantBuffers(0, 1, NULL);
+		}
 	}
 
 	// ------------------------------------------------------
 	// set pixel shader constant buffer
 	// ------------------------------------------------------
 	void setPixelConstantBuffer(RID rid) {
-		XASSERT(rid != INVALID_RID, "Invalid constant buffer selected");
-		XASSERT(rid < _ctx->constantBuffers.size(), "Invalid constant buffer selected");
-		ID3D11Buffer* buffer = _ctx->constantBuffers[rid];
-		_ctx->d3dContext->PSSetConstantBuffers(0, 1, &buffer);
+		uint16_t ridx = getResourceIndex(rid, RT_CONSTANT_BUFFER);
+		if (ridx != NO_RID) {
+			ConstantBufferResource* cbr = (ConstantBufferResource*)_ctx->_resources[ridx];
+			ID3D11Buffer* buffer = cbr->get();
+			_ctx->d3dContext->PSSetConstantBuffers(0, 1, &buffer);
+		}
+		else {
+			_ctx->d3dContext->PSSetConstantBuffers(0, 1, NULL);
+		}
 	}
 
 	// ------------------------------------------------------
 	// set geometry shader constant buffer
 	// ------------------------------------------------------
 	void setGeometryConstantBuffer(RID rid) {
-		XASSERT(rid != INVALID_RID, "Invalid constant buffer selected");
-		XASSERT(rid < _ctx->constantBuffers.size(), "Invalid constant buffer selected");
-		ID3D11Buffer* buffer = _ctx->constantBuffers[rid];
-		_ctx->d3dContext->GSSetConstantBuffers(0, 1, &buffer);
+		uint16_t ridx = getResourceIndex(rid, RT_CONSTANT_BUFFER);
+		if (ridx != NO_RID) {
+			ConstantBufferResource* cbr = (ConstantBufferResource*)_ctx->_resources[ridx];
+			ID3D11Buffer* buffer = cbr->get();
+			_ctx->d3dContext->GSSetConstantBuffers(0, 1, &buffer);
+		}
+		else {
+			_ctx->d3dContext->GSSetConstantBuffers(0, 1, NULL);
+		}
 	}
 
 	const static int INDEX_BUFFER_SIZE[] = {
@@ -1457,10 +1737,6 @@ namespace ds {
 	// index buffer with data
 	// ------------------------------------------------------
 	RID createIndexBuffer(uint32_t numIndices, IndexType indexType, BufferType type, void* data) {
-		InternalIndexBuffer ib;
-		ib.numIndices = numIndices;
-		ib.format = INDEX_BUFFER_FORMATS[indexType];
-		ib.type = type;
 		D3D11_BUFFER_DESC bufferDesc;
 		if (type == BufferType::DYNAMIC) {
 			bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
@@ -1478,10 +1754,10 @@ namespace ds {
 		InitData.pSysMem = data;
 		InitData.SysMemPitch = 0;
 		InitData.SysMemSlicePitch = 0;
-
-		assert_result(_ctx->d3dDevice->CreateBuffer(&bufferDesc, data ? &InitData : NULL, &ib.buffer), "Failed to create index buffer");
-		_ctx->indexBuffers.push_back(ib);
-		return (RID)(_ctx->indexBuffers.size() - 1);
+		ID3D11Buffer* buffer = 0;
+		assert_result(_ctx->d3dDevice->CreateBuffer(&bufferDesc, data ? &InitData : NULL, &buffer), "Failed to create index buffer");
+		IndexBufferResource* res = new IndexBufferResource(buffer, INDEX_BUFFER_FORMATS[indexType], numIndices, type);
+		return addResource(res, RT_INDEX_BUFFER);
 	}
 
 	// ------------------------------------------------------
@@ -1495,16 +1771,16 @@ namespace ds {
 	// set index buffer
 	// ------------------------------------------------------
 	void setIndexBuffer(RID rid) {
-		if (_ctx->selectedIndexBuffer != rid) {
-			XASSERT(rid != INVALID_RID, "Invalid index buffer selected");
-			if (rid == NO_RID) {
-				_ctx->d3dContext->IASetIndexBuffer(NULL, DXGI_FORMAT_UNKNOWN, 0);
+		uint16_t ridx = getResourceIndex(rid, RT_INDEX_BUFFER);
+		if (ridx != _ctx->selectedIndexBuffer) {
+			if (ridx != NO_RID) {
+				IndexBufferResource* res = (IndexBufferResource*)_ctx->_resources[ridx];
+				_ctx->d3dContext->IASetIndexBuffer(res->get(), res->getFormat(), 0);
 			}
 			else {
-				XASSERT(rid < _ctx->indexBuffers.size(), "Invalid index buffer selected");
-				_ctx->d3dContext->IASetIndexBuffer(_ctx->indexBuffers[rid].buffer, _ctx->indexBuffers[rid].format, 0);
+				_ctx->d3dContext->IASetIndexBuffer(NULL, DXGI_FORMAT_UNKNOWN, 0);
 			}
-			_ctx->selectedIndexBuffer = rid;
+			_ctx->selectedIndexBuffer = ridx;
 		}
 	}
 
@@ -1535,8 +1811,9 @@ namespace ds {
 	// vertex buffer with data
 	// ------------------------------------------------------
 	RID createVertexBuffer(BufferType type, int numVertices, RID vertexDecl) {
-		const InternalVertexDeclaration& id = _ctx->layouts[vertexDecl];
-		UINT size = numVertices * id.size;
+		uint16_t vdidx = getResourceIndex(vertexDecl, RT_VERTEX_DECLARATION);
+		InputLayoutResource* iRes = (InputLayoutResource*)_ctx->_resources[vdidx];
+		UINT size = numVertices * iRes->size();
 
 		D3D11_BUFFER_DESC bufferDesciption;
 		ZeroMemory(&bufferDesciption, sizeof(bufferDesciption));
@@ -1553,25 +1830,17 @@ namespace ds {
 
 		ID3D11Buffer* buffer = 0;
 		assert_result(_ctx->d3dDevice->CreateBuffer(&bufferDesciption, 0, &buffer),"Failed to create vertex buffer");
-		_ctx->buffers.push_back(buffer);
-		return (RID)(_ctx->buffers.size() - 1);
+		VertexBufferResource* res = new VertexBufferResource(buffer, size, type, vertexDecl);
+		return addResource(res, RT_VERTEX_BUFFER);
 	}
 
 	// ------------------------------------------------------
 	// vertex buffer with data
 	// ------------------------------------------------------
-	RID createVertexBuffer(BufferType type, int numVertices, RID vertexDecl, void* data,int vertexSize) {
-
-		struct VertexBuffer {
-			BufferType type;
-			RID vertexDeclaration;
-			int vertexSize;
-			int numVertices;
-			ID3D11Buffer* buffer;
-		};
-
-		const InternalVertexDeclaration& id = _ctx->layouts[vertexDecl];
-		UINT size = numVertices * id.size;
+	RID createVertexBuffer(BufferType type, int numVertices, RID vertexDecl, void* data, unsigned long long vertexSize) {
+		uint16_t vdidx = getResourceIndex(vertexDecl, RT_VERTEX_DECLARATION);
+		InputLayoutResource* iRes = (InputLayoutResource*)_ctx->_resources[vdidx];
+		UINT size = numVertices * iRes->size();
 
 		D3D11_BUFFER_DESC bufferDesciption;
 		ZeroMemory(&bufferDesciption, sizeof(bufferDesciption));
@@ -1592,8 +1861,8 @@ namespace ds {
 		resource.SysMemPitch = 0;
 		resource.SysMemSlicePitch = 0;
 		assert_result(_ctx->d3dDevice->CreateBuffer(&bufferDesciption, &resource, &buffer),"Failed to create vertex buffer");
-		_ctx->buffers.push_back(buffer);
-		return (RID)(_ctx->buffers.size() - 1);
+		VertexBufferResource* res = new VertexBufferResource(buffer, size, type, vertexDecl);
+		return addResource(res, RT_VERTEX_BUFFER);
 	}
 
 	// ------------------------------------------------------
@@ -1610,19 +1879,19 @@ namespace ds {
 	// set vertex buffer
 	// ------------------------------------------------------
 	void setVertexBuffer(RID rid, uint32_t* stride, uint32_t* offset, PrimitiveTypes topology) {
-		if (_ctx->selectedVertexBuffer != rid) {
-			XASSERT(rid != INVALID_RID, "Invalid vertex buffer selected");
-			if (rid == NO_RID) {
+		uint16_t ridx = getResourceIndex(rid, RT_VERTEX_BUFFER);		
+		if ( ridx != _ctx->selectedVertexBuffer) {
+			if (ridx == NO_RID) {
 				_ctx->d3dContext->IASetVertexBuffers(0, 0, NULL, NULL, NULL);
 				_ctx->d3dContext->IASetPrimitiveTopology(PRIMITIVE_TOPOLOGIES[topology]);
 			}
 			else {
-				XASSERT(rid < _ctx->buffers.size(), "Invalid vertex buffer selected");
-				ID3D11Buffer* buffer = _ctx->buffers[rid];
+				VertexBufferResource* res = (VertexBufferResource*)_ctx->_resources[ridx];
+				ID3D11Buffer* buffer = res->get();
 				_ctx->d3dContext->IASetVertexBuffers(0, 1, &buffer, stride, offset);
 				_ctx->d3dContext->IASetPrimitiveTopology(PRIMITIVE_TOPOLOGIES[topology]);
 			}
-			_ctx->selectedVertexBuffer = rid;
+			_ctx->selectedVertexBuffer = ridx;
 		}
 	}
 
@@ -1630,14 +1899,15 @@ namespace ds {
 	// map data to vertex buffer
 	// ------------------------------------------------------
 	void mapBufferData(RID rid, void* data, uint32_t size) {
-		XASSERT(rid != INVALID_RID, "Invalid buffer selected");
-		XASSERT(rid < _ctx->buffers.size(), "Invalid buffer selected");
-		ID3D11Buffer* buffer = _ctx->buffers[rid];
-		D3D11_MAPPED_SUBRESOURCE resource;
-		assert_result(_ctx->d3dContext->Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource),"Failed to map data");
-		void* ptr = resource.pData;
-		memcpy(ptr, data, size);
-		_ctx->d3dContext->Unmap(buffer, 0);		
+		uint16_t ridx = getResourceIndex(rid, RT_CONSTANT_BUFFER);
+		if (ridx != NO_RID) {
+			ConstantBufferResource* cbr = (ConstantBufferResource*)_ctx->_resources[ridx];
+			D3D11_MAPPED_SUBRESOURCE resource;
+			assert_result(_ctx->d3dContext->Map(cbr->get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &resource), "Failed to map data");
+			void* ptr = resource.pData;
+			memcpy(ptr, data, size);
+			_ctx->d3dContext->Unmap(cbr->get(), 0);
+		}
 	}
 
 	// ------------------------------------------------------
@@ -1673,18 +1943,21 @@ namespace ds {
 		colorMapDesc.MaxLOD = D3D11_FLOAT32_MAX;
 		ID3D11SamplerState* sampler;
 		assert_result(_ctx->d3dDevice->CreateSamplerState(&colorMapDesc, &sampler), "Failed to create SamplerState");
-		_ctx->samplerStates.push_back(sampler);
-		return (RID)(_ctx->samplerStates.size() - 1);
+		SamplerStateResource* res = new SamplerStateResource(sampler);
+		return addResource(res, RT_SAMPLER_STATE);
 	}
 
 	// ------------------------------------------------------
 	// set sampler state
 	// ------------------------------------------------------
+	// FIXME: set by shader type!!
 	void setSamplerState(RID rid) {
-		XASSERT(rid != INVALID_RID, "Invalid sampler state selected");
-		XASSERT(rid < _ctx->samplerStates.size(), "Invalid sampler state selected");
-		ID3D11SamplerState* sampler = _ctx->samplerStates[rid];
-		_ctx->d3dContext->PSSetSamplers(0, 1, &sampler);
+		uint16_t ridx = getResourceIndex(rid, RT_SAMPLER_STATE);
+		if (ridx != NO_RID) {
+			SamplerStateResource* res = (SamplerStateResource*)_ctx->_resources[ridx];
+			ID3D11SamplerState* state = res->get();
+			_ctx->d3dContext->PSSetSamplers(0, 1, &state);
+		}
 	}
 
 	// ------------------------------------------------------
@@ -1740,27 +2013,32 @@ namespace ds {
 
 		ID3D11BlendState* state;
 		assert_result(_ctx->d3dDevice->CreateBlendState(&blendDesc, &state), "Failed to create blendstate");
-		_ctx->blendStates.push_back(state);
-		return (RID)(_ctx->blendStates.size() - 1);
+		BlendStateResource* res = new BlendStateResource(state);
+		return addResource(res, RT_BLENDSTATE);
 	}
 
 	// ------------------------------------------------------
 	// set blend state
 	// ------------------------------------------------------
 	void setBlendState(RID rid) {
-		XASSERT(rid != INVALID_RID, "Invalid blendstate selected");
-		XASSERT(rid < _ctx->blendStates.size(), "Invalid blendstate selected");
-		float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		_ctx->d3dContext->OMSetBlendState(_ctx->blendStates[rid], blendFactor, 0xFFFFFFFF);
+		uint16_t ridx = getResourceIndex(rid, RT_BLENDSTATE);
+		if (ridx != NO_RID) {
+			BlendStateResource* res = (BlendStateResource*)_ctx->_resources[ridx];
+			float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+			_ctx->d3dContext->OMSetBlendState(res->get(), blendFactor, 0xFFFFFFFF);
+		}
 	}
 
 	// ------------------------------------------------------
 	// set blend state with factor and mask
 	// ------------------------------------------------------
 	void setBlendState(RID rid, float* blendFactor,uint32_t mask) {
-		XASSERT(rid != INVALID_RID, "Invalid blendstate selected");
-		XASSERT(rid < _ctx->blendStates.size(), "Invalid blendstate selected");
-		_ctx->d3dContext->OMSetBlendState(_ctx->blendStates[rid], blendFactor, mask);
+		uint16_t ridx = getResourceIndex(rid, RT_BLENDSTATE);
+		if (ridx != NO_RID) {
+			BlendStateResource* res = (BlendStateResource*)_ctx->_resources[ridx];
+			float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+			_ctx->d3dContext->OMSetBlendState(res->get(), blendFactor, mask);
+		}
 	}
 
 	// ------------------------------------------------------
@@ -1782,8 +2060,8 @@ namespace ds {
 	// ------------------------------------------------------
 	RID createShader() {
 		Shader* s = new Shader;
-		_ctx->shaders.push_back(s);
-		return (RID)(_ctx->shaders.size() - 1);
+		ShaderResource* res = new ShaderResource(s);
+		return addResource(res, RT_SHADER);
 	}
 
 	struct DataFile {
@@ -1814,65 +2092,72 @@ namespace ds {
 	// load vertex shader
 	// ------------------------------------------------------
 	void loadVertexShader(RID shader, const char* csoName) {
-		XASSERT(shader != INVALID_RID, "Invalid shader selected");
-		XASSERT(shader < _ctx->shaders.size(), "Invalid shader selected");
-		DataFile file = read_data(csoName);
-		XASSERT(file.size != -1, "Cannot load vertex shader file: '%s'", csoName);
-		Shader* s = _ctx->shaders[shader];
-		assert_result(_ctx->d3dDevice->CreateVertexShader(
-			file.data,
-			file.size,
-			nullptr,
-			&s->vertexShader),"Failed to create vertex shader");
-		s->vertexShaderBuffer = new char[file.size];
-		memcpy(s->vertexShaderBuffer, file.data, file.size);
-		s->bufferSize = file.size;
-		delete[] file.data;		
+		uint16_t ridx = getResourceIndex(shader, RT_SHADER);
+		if (ridx != NO_RID) {
+			DataFile file = read_data(csoName);
+			XASSERT(file.size != -1, "Cannot load vertex shader file: '%s'", csoName);
+			ShaderResource* res = (ShaderResource*)_ctx->_resources[ridx];
+			Shader* s = res->get();
+			assert_result(_ctx->d3dDevice->CreateVertexShader(
+				file.data,
+				file.size,
+				nullptr,
+				&s->vertexShader), "Failed to create vertex shader");
+			s->vertexShaderBuffer = new char[file.size];
+			memcpy(s->vertexShaderBuffer, file.data, file.size);
+			s->bufferSize = file.size;
+			delete[] file.data;
+		}
 	}
 
 	// ------------------------------------------------------
 	// load pixel shader
 	// ------------------------------------------------------
 	void loadPixelShader(RID shader, const char* csoName) {
-		XASSERT(shader != INVALID_RID, "Invalid shader selected");
-		XASSERT(shader < _ctx->shaders.size(), "Invalid shader selected");
-		DataFile file = read_data(csoName);
-		XASSERT(file.size != -1, "Cannot load pixel shader file: '%s'", csoName);
-		Shader* s = _ctx->shaders[shader];
-		assert_result(_ctx->d3dDevice->CreatePixelShader(
-			file.data,
-			file.size,
-			nullptr,
-			&s->pixelShader),"Failed to create pixel shader");		
-		delete[] file.data;
+		uint16_t ridx = getResourceIndex(shader, RT_SHADER);
+		if (ridx != NO_RID) {
+			DataFile file = read_data(csoName);
+			XASSERT(file.size != -1, "Cannot load pixel shader file: '%s'", csoName);
+			ShaderResource* res = (ShaderResource*)_ctx->_resources[ridx];
+			Shader* s = res->get();
+			assert_result(_ctx->d3dDevice->CreatePixelShader(
+				file.data,
+				file.size,
+				nullptr,
+				&s->pixelShader), "Failed to create pixel shader");
+			delete[] file.data;
+		}
 	}
 
 	// ------------------------------------------------------
 	// load pixel shader
 	// ------------------------------------------------------
 	void loadGeometryShader(RID shader, const char* csoName) {
-		XASSERT(shader != INVALID_RID, "Invalid shader selected");
-		XASSERT(shader < _ctx->shaders.size(), "Invalid shader selected");
-		DataFile file = read_data(csoName);
-		XASSERT(file.size != -1, "Cannot load geometry shader file: '%s'", csoName);
-		Shader* s = _ctx->shaders[shader];
-		assert_result(_ctx->d3dDevice->CreateGeometryShader(
-			file.data,
-			file.size,
-			nullptr,
-			&s->geometryShader
-			),"Failed to create geometry shader");
-		delete[] file.data;
+		uint16_t ridx = getResourceIndex(shader, RT_SHADER);
+		if (ridx != NO_RID) {
+			DataFile file = read_data(csoName);
+			XASSERT(file.size != -1, "Cannot load geometry shader file: '%s'", csoName);
+			ShaderResource* res = (ShaderResource*)_ctx->_resources[ridx];
+			Shader* s = res->get();
+			assert_result(_ctx->d3dDevice->CreateGeometryShader(
+				file.data,
+				file.size,
+				nullptr,
+				&s->geometryShader
+			), "Failed to create geometry shader");
+			delete[] file.data;
+		}
 	}
 
 	// ------------------------------------------------------
 	// set shader
 	// ------------------------------------------------------
 	void setShader(RID rid) {
-		XASSERT(rid != INVALID_RID, "Invalid shader selected");
-		XASSERT(rid < _ctx->shaders.size(), "Invalid shader selected");
-		if (rid != _ctx->selectedShaderId) {
-			ds::Shader* s = _ctx->shaders[rid];
+		uint16_t ridx = getResourceIndex(rid, RT_SHADER);
+		if (ridx != _ctx->selectedShaderId) {
+			ShaderResource* res = (ShaderResource*)_ctx->_resources[ridx];
+			Shader* s = res->get();
+			// FIXME: handle NO_RID
 			if (s->vertexShader != 0) {
 				_ctx->d3dContext->VSSetShader(s->vertexShader, 0, 0);
 			}
@@ -1891,7 +2176,7 @@ namespace ds {
 			else {
 				_ctx->d3dContext->GSSetShader(NULL, NULL, 0);
 			}
-			_ctx->selectedShaderId = rid;
+			_ctx->selectedShaderId = ridx;
 		}
 	}
 
@@ -1952,9 +2237,8 @@ namespace ds {
 		tex.width = width;
 		tex.height = height;
 		tex.srv = srv;
-
-		_ctx->shaderResourceViews.push_back(srv);
-		return (RID)(_ctx->shaderResourceViews.size() - 1);
+		ShaderResourceViewResource* res = new ShaderResourceViewResource(srv);
+		return addResource(res, RT_SRV);
 	}
 
 	// ------------------------------------------------------
@@ -1968,33 +2252,34 @@ namespace ds {
 	// set texture
 	// ------------------------------------------------------
 	void setTexture(RID rid, ShaderType type, uint8_t slot) {
-		XASSERT(rid != INVALID_RID, "Invalid texture selected");		
+		uint16_t ridx = getResourceIndex(rid, RT_SRV);
 		XASSERT(_ctx->selectedShaderId != INVALID_RID, "Invalid or no shader selected");
-		Shader* s = _ctx->shaders[_ctx->selectedShaderId];
+		ShaderResource* sRes = (ShaderResource*)_ctx->_resources[_ctx->selectedShaderId];
+		Shader* s = sRes->get();
 		ID3D11ShaderResourceView* srv = 0;
-		if (rid != NO_RID) {
-			XASSERT(rid < _ctx->shaderResourceViews.size(), "Invalid texture selected");
-			srv = _ctx->shaderResourceViews[rid];
+		if (ridx != NO_RID) {
+			ShaderResourceViewResource* res = (ShaderResourceViewResource*)_ctx->_resources[ridx];
+			srv = res->get();
 		}
 		if (type == ShaderType::PIXEL) {
 			XASSERT(s->pixelShader != 0, "No pixel shader selected");
-			if (_ctx->selectedPSTextures[slot] != rid) {
+			if (_ctx->selectedPSTextures[slot] != id_mask(rid)) {
 				_ctx->d3dContext->PSSetShaderResources(slot, 1, &srv);
-				_ctx->selectedPSTextures[slot] = rid;
+				_ctx->selectedPSTextures[slot] = id_mask(rid);
 			}
 		}
 		else if (type == ShaderType::VERTEX) {
 			XASSERT(s->vertexShader != 0, "No vertex shader selected");
-			if (_ctx->selectedVSTextures[slot] != rid) {
+			if (_ctx->selectedVSTextures[slot] != id_mask(rid)) {
 				_ctx->d3dContext->VSSetShaderResources(slot, 1, &srv);
-				_ctx->selectedVSTextures[slot] = rid;
+				_ctx->selectedVSTextures[slot] = id_mask(rid);
 			}
 		}
 		else if (type == ShaderType::GEOMETRY) {
 			XASSERT(s->geometryShader != 0, "No geometry shader selected");
-			if (_ctx->selectedGSTextures[slot] != rid) {
+			if (_ctx->selectedGSTextures[slot] != id_mask(rid)) {
 				_ctx->d3dContext->GSSetShaderResources(slot, 1, &srv);
-				_ctx->selectedGSTextures[slot] = rid;
+				_ctx->selectedGSTextures[slot] = id_mask(rid);
 			}
 		}
 	}
@@ -2031,22 +2316,18 @@ namespace ds {
 		desc.ScissorEnable = (BOOL)scissor;
 		ID3D11RasterizerState* state = 0;
 		assert_result(_ctx->d3dDevice->CreateRasterizerState(&desc, &state), "Failed to create rasterizer state");
-		_ctx->rasterizerStates.push_back(state);
-		return (RID)(_ctx->rasterizerStates.size() - 1);
+		RasterizerStateResource* res = new RasterizerStateResource(state);
+		return addResource(res, RT_RASTERIZER_STATE);
 	}
 
 	// ------------------------------------------------------
 	// set rasterizer state
 	// ------------------------------------------------------
 	void setRasterizerState(RID rid) {
-		XASSERT(rid != INVALID_RID, "Invalid rasterizer state selected");
-		if (rid == NO_RID) {
-
-		}
-		else {
-			XASSERT(rid < _ctx->rasterizerStates.size(), "Invalid rasterizer state selected");
-			ID3D11RasterizerState* state = _ctx->rasterizerStates[rid];
-			_ctx->d3dContext->RSSetState(state);
+		uint16_t ridx = getResourceIndex(rid, RT_RASTERIZER_STATE);
+		if ( ridx != NO_RID) {
+			RasterizerStateResource* res = (RasterizerStateResource*)_ctx->_resources[ridx];
+			_ctx->d3dContext->RSSetState(res->get());
 		}
 	}
 
