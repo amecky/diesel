@@ -1098,7 +1098,7 @@ namespace ds {
 
 		unsigned int creationFlags = 0;
 
-#ifdef _DEBUG
+#ifdef DEBUG
 		creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
@@ -1374,13 +1374,13 @@ namespace ds {
 	// init
 	// ------------------------------------------------------
 	bool init(const RenderSettings& settings) {
-
+#ifdef DEBUG
 		int flag = _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG); // Get current flag
 		flag |= _CRTDBG_LEAK_CHECK_DF; // Turn on leak-checking bit
 		flag |= _CRTDBG_CHECK_ALWAYS_DF; // Turn on CrtCheckMemory
 										 //flag |= _CRTDBG_DELAY_FREEMEM_DF;
 		_CrtSetDbgFlag(flag); // Set flag to the new value
-
+#endif
 		SetThreadAffinityMask(GetCurrentThread(), 1);
 
 		_ctx = new InternalContext;
@@ -1468,43 +1468,8 @@ namespace ds {
 		if (_ctx != 0) {
 			for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
 				_ctx->_resources[i]->release();
-			}
-			/*
-			for (size_t i = 0; i < _ctx->buffers.size(); ++i) {
-				_ctx->buffers[i]->Release();
-			}
-			for (size_t i = 0; i < _ctx->samplerStates.size(); ++i) {
-				_ctx->samplerStates[i]->Release();
-			}
-			for (size_t i = 0; i < _ctx->blendStates.size(); ++i) {
-				_ctx->blendStates[i]->Release();
-			}
-			for (size_t i = 0; i < _ctx->layouts.size(); ++i) {
-				_ctx->layouts[i].layout->Release();
-			}
-			for (size_t i = 0; i < _ctx->shaderResourceViews.size(); ++i) {
-				_ctx->shaderResourceViews[i]->Release();
-			}
-			for (size_t i = 0; i < _ctx->indexBuffers.size(); ++i) {
-				_ctx->indexBuffers[i].buffer->Release();
-			}
-			for (size_t i = 0; i < _ctx->rasterizerStates.size(); ++i) {
-				_ctx->rasterizerStates[i]->Release();
-			}
-			for (size_t i = 0; i < _ctx->shaders.size(); ++i) {
-				Shader* s = _ctx->shaders[i];
-				if (s->vertexShader != 0) {
-					s->vertexShader->Release();
-				}
-				if (s->pixelShader != 0) {
-					s->pixelShader->Release();
-				}
-				if (s->geometryShader != 0) {
-					s->geometryShader->Release();
-				}
-			}
-			*/
-			// FIXME: release shaders
+				delete _ctx->_resources[i];
+			}			
 			if (_ctx->backBufferTarget) _ctx->backBufferTarget->Release();
 			if (_ctx->swapChain) _ctx->swapChain->Release();
 			if (_ctx->d3dContext) _ctx->d3dContext->Release();

@@ -60,7 +60,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	v3 pos(0.0f, 0.0f, 0.0f);
 
 	int q = num / 4 * 6;
-		
+
 	while (ds::isRunning()) {
 		ds::begin();
 		rotation.y += 2.0f  * static_cast<float>(ds::getElapsedSeconds());
@@ -85,8 +85,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		constantBuffer.worldMatrix = mat_Transpose(w);
 		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
 		ds::setVertexConstantBuffer(cbid);
-		ds::drawIndexed(q*6);
+		ds::drawIndexed(q);
 		ds::end();
+
+		_CrtSetBreakAlloc(433);
 	}
 	ds::shutdown();
 }
