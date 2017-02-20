@@ -257,9 +257,15 @@ namespace ds {
 
 	void setTexture(RID rid, ShaderType type, uint8_t slot);
 
+	void setTextureFromRenderTarget(RID rtID, ShaderType type, uint8_t slot);
+
 	// render target
 
 	RID createRenderTarget(uint16_t width, uint16_t height);
+
+	void setRenderTarget(RID rtID);
+
+	void restoreBackBuffer();
 
 	// rasterizer state
 	RID createRasterizerState(CullMode cullMode, FillMode fillMode, bool multiSample, bool scissor, float depthBias, float slopeDepthBias);
@@ -422,7 +428,8 @@ namespace ds {
 		RT_BLENDSTATE,
 		RT_SHADER,
 		RT_SRV,
-		RT_RASTERIZER_STATE
+		RT_RASTERIZER_STATE,
+		RT_RENDER_TARGET
 	};
 
 	const char* RESOURCE_NAMES[] {
@@ -436,7 +443,8 @@ namespace ds {
 		"BLENDSTATE",
 		"SHADER",
 		"SRV",
-		"RASTERIZER_STATE"
+		"RASTERIZER_STATE",
+		"RENDER_TARGET"
 	};
 
 	// ------------------------------------------------------
@@ -791,6 +799,36 @@ namespace ds {
 		}
 		const ResourceType getType() const {
 			return RT_SHADER;
+		}
+	};
+
+	class RenderTargetResource : public AbstractResource<RenderTarget*> {
+
+	public:
+		RenderTargetResource(RenderTarget* t) : AbstractResource(t) {}
+		virtual ~RenderTargetResource() {}
+		void release() {
+			if (_data != 0) {
+				if (_data->texture != 0) {
+					_data->texture->Release();
+				}
+				if (_data->view != 0) {
+					_data->view->Release();
+				}
+				if (_data->srv != 0) {
+					_data->srv->Release();
+				}
+				if (_data->depthTexture != 0) {
+					_data->depthTexture->Release();
+				}
+				if (_data->depthStencilView != 0) {
+					_data->depthStencilView->Release();
+				}
+				delete _data;
+			}
+		}
+		const ResourceType getType() const {
+			return RT_RENDER_TARGET;
 		}
 	};
 
@@ -2249,6 +2287,34 @@ namespace ds {
 		}
 	}
 
+	void setTextureFromRenderTarget(RID rtID, ShaderType type, uint8_t slot) {
+		uint16_t ridx = getResourceIndex(rtID, RT_RENDER_TARGET);
+		RenderTargetResource* res = (RenderTargetResource*)_ctx->_resources[ridx];
+		ShaderResource* sRes = (ShaderResource*)_ctx->_resources[_ctx->selectedShaderId];
+		Shader* s = sRes->get();
+		if (type == ShaderType::PIXEL) {
+			XASSERT(s->pixelShader != 0, "No pixel shader selected");
+			if (_ctx->selectedPSTextures[slot] != ridx) {
+				_ctx->d3dContext->PSSetShaderResources(slot, 1, &res->get()->srv);
+				_ctx->selectedPSTextures[slot] = ridx;
+			}
+		}
+		else if (type == ShaderType::VERTEX) {
+			XASSERT(s->vertexShader != 0, "No vertex shader selected");
+			if (_ctx->selectedVSTextures[slot] != ridx) {
+				_ctx->d3dContext->VSSetShaderResources(slot, 1, &res->get()->srv);
+				_ctx->selectedVSTextures[slot] = ridx;
+			}
+		}
+		else if (type == ShaderType::GEOMETRY) {
+			XASSERT(s->geometryShader != 0, "No geometry shader selected");
+			if (_ctx->selectedGSTextures[slot] != ridx) {
+				_ctx->d3dContext->GSSetShaderResources(slot, 1, &res->get()->srv);
+				_ctx->selectedGSTextures[slot] = ridx;
+			}
+		}
+	}
+
 	// ------------------------------------------------------
 	// set depth buffer state
 	// ------------------------------------------------------
@@ -2300,7 +2366,7 @@ namespace ds {
 	// create render target
 	// ------------------------------------------------------
 	RID createRenderTarget(uint16_t width, uint16_t height) {
-		RenderTarget rt;
+		RenderTarget* rt = new RenderTarget;
 		
 		// Initialize the render target texture description.
 		D3D11_TEXTURE2D_DESC textureDesc;
@@ -2320,14 +2386,14 @@ namespace ds {
 		textureDesc.MiscFlags = 0;
 
 		// Create the render target texture.
-		assert_result(_ctx->d3dDevice->CreateTexture2D(&textureDesc, NULL, &rt.texture), "Failed to create texture for rendertarget");
+		assert_result(_ctx->d3dDevice->CreateTexture2D(&textureDesc, NULL, &rt->texture), "Failed to create texture for rendertarget");
 		// Setup the description of the render target view.
 		D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
 		renderTargetViewDesc.Format = textureDesc.Format;
 		renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 		renderTargetViewDesc.Texture2D.MipSlice = 0;
 		// Create the render target view.
-		assert_result(_ctx->d3dDevice->CreateRenderTargetView(rt.texture, &renderTargetViewDesc, &rt.view),"Failed to create render target view");
+		assert_result(_ctx->d3dDevice->CreateRenderTargetView(rt->texture, &renderTargetViewDesc, &rt->view),"Failed to create render target view");
 		// Setup the description of the shader resource view.
 		D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
 		shaderResourceViewDesc.Format = textureDesc.Format;
@@ -2336,7 +2402,7 @@ namespace ds {
 		shaderResourceViewDesc.Texture2D.MipLevels = 1;
 
 		// Create the shader resource view.
-		assert_result(_ctx->d3dDevice->CreateShaderResourceView(rt.texture, &shaderResourceViewDesc, &rt.srv),"Failed to create shader resource view");
+		assert_result(_ctx->d3dDevice->CreateShaderResourceView(rt->texture, &shaderResourceViewDesc, &rt->srv),"Failed to create shader resource view");
 
 		D3D11_TEXTURE2D_DESC depthTexDesc;
 		ZeroMemory(&depthTexDesc, sizeof(depthTexDesc));
@@ -2352,7 +2418,7 @@ namespace ds {
 		depthTexDesc.CPUAccessFlags = 0;
 		depthTexDesc.MiscFlags = 0;
 
-		assert_result(_ctx->d3dDevice->CreateTexture2D(&depthTexDesc, 0, &rt.depthTexture),"Failed to create depth texture");
+		assert_result(_ctx->d3dDevice->CreateTexture2D(&depthTexDesc, 0, &rt->depthTexture),"Failed to create depth texture");
 		
 		D3D11_DEPTH_STENCIL_VIEW_DESC descDSV;
 		ZeroMemory(&descDSV, sizeof(descDSV));
@@ -2360,10 +2426,29 @@ namespace ds {
 		descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
 		descDSV.Texture2D.MipSlice = 0;
 
-		assert_result(_ctx->d3dDevice->CreateDepthStencilView(rt.depthTexture, &descDSV, &rt.depthStencilView),"Failed to create depth stencil view");
-
-		return INVALID_RID;
+		assert_result(_ctx->d3dDevice->CreateDepthStencilView(rt->depthTexture, &descDSV, &rt->depthStencilView),"Failed to create depth stencil view");
+		RenderTargetResource* res = new RenderTargetResource(rt);
+		return addResource(res,RT_RENDER_TARGET);
 	}
 
+	void setRenderTarget(RID rtID) {
+		uint16_t ridx = getResourceIndex(rtID, RT_RENDER_TARGET);
+		if (ridx == NO_RID) {
+			_ctx->d3dContext->OMSetRenderTargets(1, &_ctx->backBufferTarget, _ctx->depthStencilView);
+		}
+		else {
+			RenderTargetResource* res = (RenderTargetResource*)_ctx->_resources[ridx];
+			RenderTarget* rt = res->get();
+			_ctx->d3dContext->OMSetRenderTargets(1, &rt->view, rt->depthStencilView);
+			// Clear the back buffer.
+			//_ctx->d3dContext->ClearRenderTargetView(rt->view, _descriptor.clearColor);
+			// Clear the depth buffer.
+			_ctx->d3dContext->ClearDepthStencilView(rt->depthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+		}
+	}
+
+	void restoreBackBuffer() {
+		_ctx->d3dContext->OMSetRenderTargets(1, &_ctx->backBufferTarget, _ctx->depthStencilView);
+	}
 }
 #endif
