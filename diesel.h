@@ -668,6 +668,7 @@ namespace ds {
 	// FIXME: add much more!
 	// ---------------------------------------------------
 	enum TextureFormat {
+		R8_UINT,
 		R8G8B8A8_UINT,
 		R8G8B8A8_UNORM
 	};
@@ -904,27 +905,27 @@ namespace ds {
 		}
 
 		void add(const T& t) {
-			if ((_size + 1) >= _size) {
+			if ((_index + 1) >= _size) {
 				flush();
 			}
-			_data[_size++] = t;
+			_data[_index++] = t;
 		}
 
 		void begin() {
-			_size = 0;
+			_index = 0;
 			_calls = 0;
 		}
 
 		void flush() {
-			if (_size > 0) {
+			if (_index > 0) {
 				++_calls;
 				unsigned int stride = sizeof(T);
 				unsigned int offset = 0;
 				ds::setVertexBuffer(_descriptor.vertexBufferID, &stride, &offset, _descriptor.primitiveType);
 				ds::setVertexDeclaration(_descriptor.vertexDeclarationID);
 				ds::mapBufferData(_descriptor.vertexBufferID, _data, _size * sizeof(T));
-				ds::draw(_size);
-				_size = 0;
+				ds::draw(_index);
+				_index = 0;
 			}
 		}
 		uint16_t getCalls() const {
@@ -2744,6 +2745,7 @@ namespace ds {
 	}
 
 	const static DXGI_FORMAT TEXTURE_FOMATS[] = {
+		DXGI_FORMAT_R8_UINT,
 		DXGI_FORMAT_R8G8B8A8_UINT,
 		DXGI_FORMAT_R8G8B8A8_UNORM
 	};
