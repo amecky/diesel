@@ -1,5 +1,5 @@
 #pragma once
-#include "..\..\math.h"
+#include "..\..\diesel.h"
 
 struct ObjVertex {
 	v3 position;

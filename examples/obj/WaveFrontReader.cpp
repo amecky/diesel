@@ -1,6 +1,5 @@
 #include "WaveFrontReader.h"
 #include <fstream>
-#include "..\..\math.h"
 #include <vector>
 
 int WaveFrontReader::load(const char * fileName, ObjVertex* objVertices, int max) {

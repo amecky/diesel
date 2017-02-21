@@ -12,3 +12,4 @@ examples/ambient/Debug/
 html/
 examples/shadows/Debug/
 examples/effects/Debug/
+*.db

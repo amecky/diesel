@@ -1,7 +1,7 @@
 #include "Camera.h"
-#define MATH_IMPLEMENTATION
 #include "..\..\diesel.h"
 #include <stdio.h>	
+#include <cmath>
 	// Pitch should be in the range of [-90 ... 90] degrees and yaw
 	// should be in the range of [0 ... 360] degrees.
 	matrix FPSViewRH(const v3& eye, float pitch, float yaw)

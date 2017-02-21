@@ -19,6 +19,10 @@ struct CubeConstantBuffer {
 	matrix worldMatrix;
 };
 
+struct PostProcessBuffer {
+	v4 data;
+};
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
 	
 	Vertex vertices[4] = {
@@ -32,7 +36,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.width = 1024;
 	rs.height = 768;
 	rs.title = "Hello world";
-	rs.clearColor = ds::Color(0.2f, 0.2f, 0.2f, 1.0f);
+	rs.clearColor = ds::Color(0.1f, 0.1f, 0.1f, 1.0f);
 	rs.multisampling = 4;
 	ds::init(rs);
 
@@ -64,6 +68,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID shaderID = ds::createShader();
 	ds::loadVertexShader(shaderID, "Fullscreen_vs.cso");
 	ds::loadPixelShader(shaderID, "Fullscreen_ps.cso");
+	RID ppCBID = ds::createConstantBuffer(sizeof(PostProcessBuffer));
+	PostProcessBuffer ppBuffer;
+	float t = 0.0f;
 
 	RID rtID = ds::createRenderTarget(1024, 768);
 
@@ -76,6 +83,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	while (ds::isRunning()) {
 		ds::begin();
 			
+		t += static_cast<float>(ds::getElapsedSeconds());
+
 		unsigned int stride = sizeof(Vertex);
 		unsigned int offset = 0;
 
@@ -108,6 +117,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::setShader(shaderID);
 		ds::setSamplerState(ssid);
 		ds::setRasterizerState(rasterizerStateID);
+		ppBuffer.data = v4(abs(sin(t*0.5f)), 0.0f, 0.0f, 0.0f);
+		ds::updateConstantBuffer(ppCBID,&ppBuffer,sizeof(PostProcessBuffer));
+		ds::setPixelConstantBuffer(ppCBID);
 		ds::draw(3);
 		
 		ds::end();
