@@ -13,3 +13,4 @@ html/
 examples/shadows/Debug/
 examples/effects/Debug/
 *.db
+TEMP/math.h
