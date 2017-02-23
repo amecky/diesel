@@ -199,6 +199,10 @@ struct matrix {
 	matrix(float m11, float m12, float m13, float m14, float m21, float m22, float m23, float m24, float m31, float m32, float m33, float m34, float m41, float m42, float m43, float m44);
 
 	operator float *() const { return (float *)&_11; }
+
+	float& operator () (int a, int b) {
+		return m[a][b];
+	}
 };
 
 matrix mat_identity();
@@ -1585,6 +1589,7 @@ namespace ds {
 		char buffer[1024];
 		memset(buffer, 0, sizeof(buffer));
 		int written = vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, format, args);
+		// FIXME: add file and line to message
 		MessageBox(_ctx->hwnd, buffer, "ERROR", NULL);
 		va_end(args);
 		exit(-1);

@@ -29,7 +29,7 @@ void Grid::create(v3* positions, int numCells, RID shaderID, RID textureID) {
 	
 }
 
-void Grid::render() {
+void Grid::render(matrix* viewProjectionMatrix) {
 	unsigned int stride = sizeof(GridVertex);
 	unsigned int offset = 0;
 	ds::setVertexDeclaration(_vertexDeclaration);
@@ -37,7 +37,12 @@ void Grid::render() {
 	ds::setBlendState(_blendState);
 	ds::setShader(_shader);
 	ds::setSamplerState(_samplerState);
-	_constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
+	if (viewProjectionMatrix != 0) {
+		_constantBuffer.viewProjectionMatrix = mat_Transpose(*viewProjectionMatrix);
+	}
+	else {
+		_constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
+	}
 	matrix world = mat_identity();
 	_constantBuffer.worldMatrix = mat_Transpose(world);
 	ds::updateConstantBuffer(_bufferID, &_constantBuffer, sizeof(GridConstantBuffer));

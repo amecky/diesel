@@ -23,7 +23,7 @@ public:
 	Grid() {}
 	~Grid() {}
 	void create(v3* positions, int numCells, RID shaderID, RID textureID);
-	void render();
+	void render(matrix* viewProjectionMatrix = 0);
 private:
 	GridVertex _vertices[4];
 	GridConstantBuffer _constantBuffer;

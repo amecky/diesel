@@ -1,59 +1,137 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
 #include "Camera.h"
-#include "Camera.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "..\common\stb_image.h"
+#include "..\common\Grid.h"
+#include "..\common\Geometry.h"
 
+// ---------------------------------------------------------------
+// Vertex
+// ---------------------------------------------------------------
 struct Vertex {
-	float x;
-	float y;
-	float z;
-	ds::Color color;
 
-	Vertex() : x(0.0f), y(0.0f), z(0.0f), color(1.0f, 1.0f, 1.0f, 1.0f) {}
-	Vertex(float xp, float yp, float zp, const ds::Color& c) : x(xp), y(yp), z(zp), color(c) {}
-	Vertex(const v3& p, const ds::Color& c) : x(p.x), y(p.y), z(p.z), color(c) {}
+	v3 p;
+	v2 uv;
+
+	Vertex() : p(0.0f), uv(0.0f) {}
+	Vertex(const v3& pv, float u, float v) : p(pv), uv(u, v) {}
+	Vertex(const v3& pv, const v2& uvv) : p(pv), uv(uvv) {}
 };
-
-const v3 CUBE_VERTICES[8] = {
-	v3(-0.5f,-0.5f,-0.5f),
-	v3(-0.5f, 0.5f,-0.5f),
-	v3( 0.5f, 0.5f,-0.5f),
-	v3( 0.5f,-0.5f,-0.5f),
-	v3(-0.5f,-0.5f, 0.5f),
-	v3(-0.5f, 0.5f, 0.5f),
-	v3( 0.5f, 0.5f, 0.5f),
-	v3( 0.5f,-0.5f, 0.5f)
-};
-
-const int CUBE_PLANES[6][4] = {
-	{ 0, 1, 2, 3 }, // front
-	{ 3, 2, 6, 7 }, // left
-	{ 1, 5, 6, 2 }, // top
-	{ 4, 5, 1, 0 }, // right
-	{ 4, 0, 3, 7 }, // bottom
-	{ 7, 6, 5, 4 }, // back
-};
-
-void addPlane(int side, const ds::Color& color, Vertex* vertices, uint32_t* indices) {
-	int idx = side * 4;
-	for (int i = 0; i < 4; ++i) {
-		int p = idx + i;
-		vertices[p] = Vertex(CUBE_VERTICES[CUBE_PLANES[side][i]], color);
-	}
-	int offset = side * 4;
-	int ar[6] = { 0, 1, 2, 2, 3, 0 };
-	for (int i = 0; i < 6; ++i) {
-		indices[side * 6 + i] = offset + ar[i];
-	}
-}
 
 struct CubeConstantBuffer {
 	matrix viewProjectionMatrix;
 	matrix worldMatrix;
 };
 
-int main(const char** args) {
+// ---------------------------------------------------------------
+// load image using stb_image
+// ---------------------------------------------------------------
+RID loadImage(const char* name) {
+	int x, y, n;
+	unsigned char *data = stbi_load(name, &x, &y, &n, 4);
+	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
+	stbi_image_free(data);
+	return textureID;
+}
 
+// ---------------------------------------------------------------
+// main method
+// ---------------------------------------------------------------
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
+
+
+	v3 positions[24];
+	v2 uvs[24];
+	matrix m = mat_identity();
+	geometry::buildCube(m, positions, uvs);
+
+	Vertex v[24];
+	for (int i = 0; i < 24; ++i) {
+		v[i] = Vertex(positions[i], uvs[i]);
+	}
+
+	CubeConstantBuffer constantBuffer;
+	float t = 0.0f;
+	ds::RenderSettings rs;
+	rs.width = 1024;
+	rs.height = 768;
+	rs.title = "Camera Demo";
+	rs.clearColor = ds::Color(0.1f, 0.1f, 0.1f, 1.0f);
+	rs.multisampling = 1;
+	ds::init(rs);
+
+	RID textureID = loadImage("..\\common\\cube_map.png");
+	RID cubeTextureID = loadImage("..\\common\\grid.png");
+	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
+
+	RID gridShader = ds::createShader();
+	ds::loadVertexShader(gridShader, "..\\common\\Textured_vs.cso");
+	ds::loadPixelShader(gridShader, "..\\common\\Textured_ps.cso");
+	Grid grid;
+	v3 gridPositions[] = {
+		v3(-4.0f, -1.0f, -3.5f),
+		v3(-4.0f, -1.0f,  4.5f),
+		v3(4.0f, -1.0f,  4.5f),
+		v3(4.0f, -1.0f, -3.5f)
+	};
+	grid.create(gridPositions, 2, gridShader, textureID);
+
+	ds::VertexDeclaration decl[] = {
+		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
+		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }
+	};
+
+	RID rid = ds::createVertexDeclaration(decl, 2, gridShader);
+	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
+	RID indexBuffer = ds::createQuadIndexBuffer(256);
+	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, rid, v, sizeof(Vertex));
+	RID ssid = ds::createSamplerState(ds::TextureAddressModes::WRAP, ds::TextureFilters::LINEAR);
+	v3 vp = v3(0.0f, 2.0f, -6.0f);
+	ds::setViewPosition(vp);
+	v3 scale(1.0f, 1.0f, 1.0f);
+	v3 rotation(0.0f, 0.0f, 0.0f);
+	v3 pos(0.0f, 0.0f, 0.0f);
+	OldFPSCamera camera(1024, 768);
+	camera.setPosition(v3(0, 2, -12));
+	while (ds::isRunning()) {
+		ds::begin();
+
+		camera.update(static_cast<float>(ds::getElapsedSeconds()));
+		matrix vpm = camera.getViewProjectionMatrix();
+		grid.render(&vpm);
+
+		unsigned int stride = sizeof(Vertex);
+		unsigned int offset = 0;
+
+		ds::setVertexDeclaration(rid);
+		ds::setIndexBuffer(indexBuffer);
+		ds::setBlendState(bs_id);
+		ds::setShader(gridShader);
+		ds::setSamplerState(ssid);
+		constantBuffer.viewProjectionMatrix = mat_Transpose(camera.getViewProjectionMatrix());
+
+		// spinning cube
+		matrix world = mat_identity();
+		rotation.y += 2.0f  * static_cast<float>(ds::getElapsedSeconds());
+		rotation.x += 1.0f  * static_cast<float>(ds::getElapsedSeconds());
+		matrix rotY = mat_RotationY(rotation.y);
+		matrix rotX = mat_RotationX(rotation.x);
+		matrix rotZ = mat_RotationZ(rotation.z);
+		matrix s = mat_Scale(scale);
+		matrix w = rotZ * rotY * rotX * s * world;
+		constantBuffer.worldMatrix = mat_Transpose(w);
+		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
+		ds::setVertexConstantBuffer(cbid);
+		ds::setTexture(cubeTextureID, ds::ShaderType::PIXEL);
+		ds::setVertexBuffer(cubeBuffer, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
+		ds::drawIndexed(36);
+		
+		ds::end();
+	}
+	ds::shutdown();
+
+	/*
 	uint32_t p_indices[36];
 	Vertex v[24];
 	addPlane(0, ds::Color(1.0f, 0.0f, 0.0f, 1.0f), v, p_indices);
@@ -87,7 +165,7 @@ int main(const char** args) {
 		RID rid = ds::createVertexDeclaration(decl, 2, shaderID);
 		RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
 		RID iid = ds::createIndexBuffer(36, ds::IndexType::UINT_32, ds::BufferType::STATIC, p_indices);
-		RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, 24, 0, v,sizeof(Vertex));
+		RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, 24, rid, v,sizeof(Vertex));
 		RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 		//v3 vp = v3(2.0f, 2.0f, -6.0f);
 		//ds::setViewPosition(vp);
@@ -127,4 +205,5 @@ int main(const char** args) {
 		}
 		ds::shutdown();
 	}
+	*/
 }

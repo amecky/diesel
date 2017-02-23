@@ -7,6 +7,7 @@ class OldFPSCamera {
 public:
 	OldFPSCamera(float screenWidth, float screenHeight);
 	virtual ~OldFPSCamera();
+	void setPosition(const v3& pos);
 	void setPosition(const v3& pos, const v3& lookAt);
 	void setSpeed(float spd) {
 		_speed = spd;

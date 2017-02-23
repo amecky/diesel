@@ -127,6 +127,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\common\Geometry.cpp" />
+    <ClCompile Include="..\common\Grid.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
@@ -153,6 +155,8 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\common\Geometry.h" />
+    <ClInclude Include="..\common\Grid.h" />
     <ClInclude Include="Camera.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

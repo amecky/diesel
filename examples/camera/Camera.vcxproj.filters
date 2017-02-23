@@ -3,6 +3,8 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="..\common\Grid.cpp" />
+    <ClCompile Include="..\common\Geometry.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Coloured_ps.hlsl" />
@@ -10,5 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="..\common\Grid.h" />
+    <ClInclude Include="..\common\Geometry.h" />
   </ItemGroup>
 </Project>
