@@ -846,6 +846,8 @@ namespace ds {
 
 	void setViewPosition(const v3& viewPos);
 
+	v3 getViewPosition();
+
 	void lookAt(const v3& pos);
 
 	void setProjectionMatrix(float fieldOfView, float aspectRatio);
@@ -1838,6 +1840,10 @@ namespace ds {
 		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
 	}
 
+	v3 getViewPosition() {
+		return _ctx->viewPosition;
+	}
+
 	// ------------------------------------------------------
 	// look at
 	// ------------------------------------------------------
@@ -2504,6 +2510,7 @@ namespace ds {
 		colorMapDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 		colorMapDesc.Filter = TEXTURE_FILTERMODES[filter];
 		colorMapDesc.MaxLOD = D3D11_FLOAT32_MAX;
+		
 		ID3D11SamplerState* sampler;
 		assert_result(_ctx->d3dDevice->CreateSamplerState(&colorMapDesc, &sampler), "Failed to create SamplerState");
 		SamplerStateResource* res = new SamplerStateResource(sampler);

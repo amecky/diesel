@@ -2,12 +2,17 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Particlesystem.cpp" />
     <ClCompile Include="..\common\Grid.cpp" />
-    <ClCompile Include="..\common\Geometry.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stb_image.h" />
+    <ClInclude Include="Particlesystem.h" />
     <ClInclude Include="..\common\Grid.h" />
-    <ClInclude Include="..\common\Geometry.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="GPUParticles_gs.hlsl" />
+    <FxCompile Include="GPUParticles_ps.hlsl" />
+    <FxCompile Include="GPUParticles_vs.hlsl" />
   </ItemGroup>
 </Project>

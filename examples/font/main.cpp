@@ -3,9 +3,24 @@
 #include "HieroFont.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+
 /*
 	Bitmap font demo. The font is generated using Hiero: https://github.com/libgdx/libgdx/wiki/Hiero
 */
+
+const float TTL[] = { 0.5f,2.0f,0.5f };
+
+enum MessageState {
+	MS_FADE_IN,
+	MS_SHOW,
+	MS_FADE_OUT
+};
+
+struct Message {
+	const char* text;
+	MessageState state;
+	float timer;
+};
 // ---------------------------------------------------------------
 // Rect
 // ---------------------------------------------------------------
@@ -108,9 +123,23 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	HieroFont font;
 	font.load("times_new_roman_32.fnt");
 
-	addText(font, v2(100.0f, 300.0f), "Hello world");
-	addText(font, v2(300.0f, 500.0f), "More text is here");
-	addText(font, v2(600.0f, 100.0f), "Here is also some text");
+	
+	std::vector<Message> messages;
+	Message msg1;
+	msg1.state = MS_FADE_IN;
+	msg1.text = "Bitmap Font Demo";
+	msg1.timer = 0.0f;
+	messages.push_back(msg1);
+	Message msg2;
+	msg2.state = MS_FADE_IN;
+	msg2.text = "Simple text fading demo";
+	msg2.timer = 0.0f;
+	messages.push_back(msg2);
+	size_t currentMessage = 0;
+
+	//addText(font, v2(100.0f, 300.0f), "Hello world");
+	//addText(font, v2(300.0f, 500.0f), "More text is here");
+	//addText(font, v2(600.0f, 100.0f), "Here is also some text");
 
 	SpriteConstantBuffer constantBuffer;
 	constantBuffer.screenDimension = v4(1024.0f, 768.0f, 512.0f, 512.0f);
@@ -171,6 +200,36 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	while (ds::isRunning()) {
 		ds::begin();
+
+		Message& m = messages[currentMessage];
+		m.timer += static_cast<float>(ds::getElapsedSeconds());
+		if (m.timer >= TTL[m.state]) {
+			m.timer = 0;
+			switch (m.state) {
+			case MS_FADE_IN: m.state = MS_SHOW; break;
+			case MS_SHOW: m.state = MS_FADE_OUT; break;
+			case MS_FADE_OUT:
+				++currentMessage;
+				if (currentMessage >= messages.size()) {
+					currentMessage = 0;
+				}
+				messages[currentMessage].state = MS_FADE_IN;
+				messages[currentMessage].timer = 0.0f;
+				numSprites = 0;
+				// FIXME: center text
+				addText(font, v2(512.0f,384.0f),messages[currentMessage].text);
+			}
+		}
+		ds::Color textColor = ds::Color(192, 0, 0, 255);
+		if (m.state == MS_FADE_IN) {
+			textColor.a = m.timer / TTL[0];
+		}
+		else if (m.state == MS_FADE_OUT) {
+			textColor.a = 1.0f - m.timer / TTL[0];
+		}
+		else {
+			textColor.a = 1.0f;
+		}
 		// disbale depth buffer
 		ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
 		ds::setBlendState(bs_id);
@@ -192,7 +251,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			t.y = sprite.texture.top;
 			t.z = sprite.texture.width;
 			t.w = sprite.texture.height;
-			batch.add(SpriteVertex(sprite.position, t, v3(sprite.scale.x, sprite.scale.y, sprite.rotation), sprite.color));
+			batch.add(SpriteVertex(sprite.position, t, v3(sprite.scale.x, sprite.scale.y, sprite.rotation), textColor));
 		}
 		batch.flush();
 		// enable depth buffer
