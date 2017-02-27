@@ -2,17 +2,17 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="..\common\Grid.cpp" />
     <ClCompile Include="..\common\Geometry.cpp" />
+    <ClCompile Include="..\common\Camera.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Coloured_ps.hlsl" />
     <FxCompile Include="Coloured_vs.hlsl" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Camera.h" />
     <ClInclude Include="..\common\Grid.h" />
     <ClInclude Include="..\common\Geometry.h" />
+    <ClInclude Include="..\common\Camera.h" />
   </ItemGroup>
 </Project>

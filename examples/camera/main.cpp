@@ -1,6 +1,6 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
-#include "Camera.h"
+#include "..\common\Camera.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "..\common\stb_image.h"
 #include "..\common\Grid.h"
@@ -92,7 +92,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	v3 scale(1.0f, 1.0f, 1.0f);
 	v3 rotation(0.0f, 0.0f, 0.0f);
 	v3 pos(0.0f, 0.0f, 0.0f);
-	OldFPSCamera camera(1024, 768);
+	FPSCamera camera(1024, 768);
 	camera.setPosition(v3(0, 2, -12));
 	while (ds::isRunning()) {
 		ds::begin();

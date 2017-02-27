@@ -33,12 +33,16 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="Grid.cpp" />
+    <ClCompile Include="WorldMatrix.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Camera.h" />
     <ClInclude Include="Geometry.h" />
     <ClInclude Include="Grid.h" />
+    <ClInclude Include="WorldMatrix.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{BE7450E3-C0D5-49D6-AE88-01526066A831}</ProjectGuid>

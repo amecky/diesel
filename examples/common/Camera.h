@@ -1,12 +1,12 @@
 #pragma once
 #include "..\..\diesel.h"
+#include <cmath>
 
-
-class OldFPSCamera {
+class FPSCamera {
 
 public:
-	OldFPSCamera(float screenWidth, float screenHeight);
-	virtual ~OldFPSCamera();
+	FPSCamera(float screenWidth, float screenHeight);
+	virtual ~FPSCamera();
 	void setPosition(const v3& pos);
 	void setPosition(const v3& pos, const v3& lookAt);
 	void setSpeed(float spd) {

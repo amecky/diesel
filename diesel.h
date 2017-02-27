@@ -751,11 +751,7 @@ namespace ds {
 
 	void updateConstantBuffer(RID rid, void* data, size_t size);
 
-	void setVertexConstantBuffer(RID rid);
-
-	void setPixelConstantBuffer(RID rid);
-
-	void setGeometryConstantBuffer(RID rid);
+	void setConstantBuffer(RID rid, ShaderType type);
 
 	// index buffer
 
@@ -2217,7 +2213,7 @@ namespace ds {
 				InputLayoutResource* res = (InputLayoutResource*)_ctx->_resources[ridx];
 				_ctx->d3dContext->IASetInputLayout(res->get());
 			}
-			_ctx->selectedVertexDeclaration = id_mask(rid);
+			_ctx->selectedVertexDeclaration = ridx;
 		}
 	}
 
@@ -2256,45 +2252,23 @@ namespace ds {
 	// ------------------------------------------------------
 	// set vertex shader constant buffer
 	// ------------------------------------------------------
-	void setVertexConstantBuffer(RID rid) {
+	void setConstantBuffer(RID rid,ShaderType type) {
 		uint16_t ridx = getResourceIndex(rid, RT_CONSTANT_BUFFER);
 		if (ridx != NO_RID) {
 			ConstantBufferResource* cbr = (ConstantBufferResource*)_ctx->_resources[ridx];
 			ID3D11Buffer* buffer = cbr->get();
-			_ctx->d3dContext->VSSetConstantBuffers(0, 1, &buffer);
+			switch (type) {
+				case ShaderType::VERTEX: _ctx->d3dContext->VSSetConstantBuffers(0, 1, &buffer); break;
+				case ShaderType::PIXEL: _ctx->d3dContext->PSSetConstantBuffers(0, 1, &buffer); break;
+				case ShaderType::GEOMETRY: _ctx->d3dContext->GSSetConstantBuffers(0, 1, &buffer); break;
+			}
 		}
 		else {
-			_ctx->d3dContext->VSSetConstantBuffers(0, 1, NULL);
-		}
-	}
-
-	// ------------------------------------------------------
-	// set pixel shader constant buffer
-	// ------------------------------------------------------
-	void setPixelConstantBuffer(RID rid) {
-		uint16_t ridx = getResourceIndex(rid, RT_CONSTANT_BUFFER);
-		if (ridx != NO_RID) {
-			ConstantBufferResource* cbr = (ConstantBufferResource*)_ctx->_resources[ridx];
-			ID3D11Buffer* buffer = cbr->get();
-			_ctx->d3dContext->PSSetConstantBuffers(0, 1, &buffer);
-		}
-		else {
-			_ctx->d3dContext->PSSetConstantBuffers(0, 1, NULL);
-		}
-	}
-
-	// ------------------------------------------------------
-	// set geometry shader constant buffer
-	// ------------------------------------------------------
-	void setGeometryConstantBuffer(RID rid) {
-		uint16_t ridx = getResourceIndex(rid, RT_CONSTANT_BUFFER);
-		if (ridx != NO_RID) {
-			ConstantBufferResource* cbr = (ConstantBufferResource*)_ctx->_resources[ridx];
-			ID3D11Buffer* buffer = cbr->get();
-			_ctx->d3dContext->GSSetConstantBuffers(0, 1, &buffer);
-		}
-		else {
-			_ctx->d3dContext->GSSetConstantBuffers(0, 1, NULL);
+			switch (type) {
+				case ShaderType::VERTEX: _ctx->d3dContext->VSSetConstantBuffers(0, 1, NULL); break;
+				case ShaderType::PIXEL: _ctx->d3dContext->PSSetConstantBuffers(0, 1, NULL); break;
+				case ShaderType::GEOMETRY: _ctx->d3dContext->GSSetConstantBuffers(0, 1, NULL); break;
+			}
 		}
 	}
 

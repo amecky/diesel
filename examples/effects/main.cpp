@@ -102,7 +102,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
 		constantBuffer.worldMatrix = mat_Transpose(mat_identity());
 		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
-		ds::setVertexConstantBuffer(cbid);
+		ds::setConstantBuffer(cbid,ds::ShaderType::VERTEX);
 		// draw floor
 		ds::drawIndexed(6);
 
@@ -119,7 +119,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::setRasterizerState(rasterizerStateID);
 		ppBuffer.data = v4(abs(sin(t*0.5f)), 0.0f, 0.0f, 0.0f);
 		ds::updateConstantBuffer(ppCBID,&ppBuffer,sizeof(PostProcessBuffer));
-		ds::setPixelConstantBuffer(ppCBID);
+		ds::setConstantBuffer(ppCBID,ds::ShaderType::PIXEL);
 		ds::draw(3);
 		
 		ds::end();

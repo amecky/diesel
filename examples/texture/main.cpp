@@ -4,6 +4,7 @@
 #include "stb_image.h"
 #include "..\common\Grid.h"
 #include "..\common\Geometry.h"
+#include "..\common\WorldMatrix.h"
 
 // ---------------------------------------------------------------
 // Vertex
@@ -103,23 +104,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		v[i] = Vertex(positions[i], uvs[i]);
 	}
 
-
-	const int segments = 8;	
-	const int total = segments * 4;
-	v3 cp[total];
-	v2 cpuvs[total];
-	m = mat_Translate(v3(-2.0f, 0.0f, 2.0f));
-	geometry::buildCylinder(m, segments, cp, cpuvs);
-	Vertex c[total];
-	for (int i = 0; i < total; ++i) {
-		c[i] = Vertex(cp[i], cpuvs[i]);
+	v3 CP[] = { v3(-2,0,-1),v3(-2,0,3),v3(2,0,-1),v3(2,0,3) };
+	const int numCubes = 4;
+	const int totalCubeVertices = numCubes * 24;
+	Vertex sv[totalCubeVertices];
+	int cnt = 0;
+	for(int j = 0; j < numCubes; ++j) {
+		matrix m = mat_Translate(CP[j]);
+		matrix s = mat_Scale(v3(1,2,1));
+		matrix w = s * m;
+		geometry::buildCube(w, positions, uvs);
+		for (int i = 0; i < 24; ++i) {
+			sv[cnt++] = Vertex(positions[i], uvs[i]);
+		}
 	}
-
-	Vertex floorVertices[4];
-	floorVertices[0] = Vertex(v3(-3.0f, -1.0f, -2.5f), 0.0f, 1.0f);
-	floorVertices[1] = Vertex(v3(-3.0f, -1.0f,  3.5f), 0.0f, 0.0f);
-	floorVertices[2] = Vertex(v3( 3.0f, -1.0f,  3.5f), 1.0f, 0.0f);
-	floorVertices[3] = Vertex(v3( 3.0f, -1.0f, -2.5f), 1.0f, 1.0f);
 	
 	CubeConstantBuffer constantBuffer;
 	float t = 0.0f;
@@ -156,14 +154,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
 	RID indexBuffer = ds::createQuadIndexBuffer(256);
 	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, rid, v,sizeof(Vertex));
-	RID floorBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 4, rid, floorVertices, sizeof(Vertex));
-	RID cylinderBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, total, rid, c, sizeof(Vertex));
+	RID staticCubes = ds::createVertexBuffer(ds::BufferType::STATIC, totalCubeVertices, rid, sv, sizeof(Vertex));
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 	v3 vp = v3(0.0f, 2.0f, -6.0f);
 	ds::setViewPosition(vp);
-	v3 scale(1.0f, 1.0f, 1.0f);
-	v3 rotation(0.0f, 0.0f, 0.0f);
-	v3 pos(0.0f, 0.0f, 0.0f);
+
+	WorldMatrix wm;
 		
 	while (ds::isRunning()) {
 		ds::begin();
@@ -179,39 +175,24 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::setShader(gridShader);
 		ds::setSamplerState(ssid);
 		constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
-			
-		// floor
+
+		// spinning cube
 		matrix world = mat_identity();
 		constantBuffer.worldMatrix = mat_Transpose(world);
 		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
-		ds::setTexture(textureID, ds::ShaderType::PIXEL);
-		ds::setVertexBuffer(floorBuffer, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
-		//ds::drawIndexed(6);
+		ds::setConstantBuffer(cbid,ds::ShaderType::VERTEX);
+		ds::setVertexBuffer(staticCubes, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
+		ds::setTexture(cubeTextureID, ds::ShaderType::PIXEL);
+		ds::drawIndexed(totalCubeVertices/4*6);
 
-		// spinning cube
-		world = mat_identity();
-		rotation.y += 2.0f  * static_cast<float>(ds::getElapsedSeconds());
-		rotation.x += 1.0f  * static_cast<float>(ds::getElapsedSeconds());
-		matrix rotY = mat_RotationY(rotation.y);
-		matrix rotX = mat_RotationX(rotation.x);
-		matrix rotZ = mat_RotationZ(rotation.z);
-		matrix s = mat_Scale(scale);
-		matrix w = rotZ * rotY * rotX * s * world;
-		constantBuffer.worldMatrix = mat_Transpose(w);
+		wm.rotateBy(v3(static_cast<float>(ds::getElapsedSeconds()), 2.0f  * static_cast<float>(ds::getElapsedSeconds()), 0.0f));
+		constantBuffer.worldMatrix = wm.getTransposedMatrix();
 		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
-		ds::setVertexConstantBuffer(cbid);
+		ds::setConstantBuffer(cbid, ds::ShaderType::VERTEX);
 		ds::setTexture(cubeTextureID, ds::ShaderType::PIXEL);
 		ds::setVertexBuffer(cubeBuffer, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
 		ds::drawIndexed(36);
-
-		// cylinder
-		world = mat_identity();		
-		constantBuffer.worldMatrix = mat_Transpose(world);
-		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
-		ds::setVertexConstantBuffer(cbid);
-		ds::setTexture(cubeTextureID, ds::ShaderType::PIXEL);
-		ds::setVertexBuffer(cylinderBuffer, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
-		ds::drawIndexed(total/4*6);
+		
 		ds::end();
 	}
 	ds::shutdown();
