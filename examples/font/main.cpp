@@ -240,8 +240,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		matrix w = mat_identity();
 		constantBuffer.wvp = mat_Transpose(viewProjectionMatrix);
 		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(SpriteConstantBuffer));
-		ds::setGeometryConstantBuffer(cbid);
-		ds::setVertexConstantBuffer(cbid);
+		ds::setConstantBuffer(cbid,ds::ShaderType::GEOMETRY);
+		ds::setConstantBuffer(cbid, ds::ShaderType::VERTEX);
 		// use batch to draw sprites
 		batch.begin();
 		for (int i = 0; i < numSprites; ++i) {

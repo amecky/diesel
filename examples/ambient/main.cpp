@@ -190,8 +190,8 @@ int main(const char** args) {
 		constantBuffer.worldMatrix = mat_Transpose(w);
 		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
 		ds::updateConstantBuffer(lightBufferID, &lightBuffer, sizeof(LightBuffer));
-		ds::setVertexConstantBuffer(cbid);
-		ds::setPixelConstantBuffer(lightBufferID);
+		ds::setConstantBuffer(cbid, ds::ShaderType::VERTEX);
+		ds::setConstantBuffer(lightBufferID,ds::ShaderType::PIXEL);
 		ds::setTexture(textureID, ds::ShaderType::PIXEL);
 		ds::setVertexBuffer(cubeBuffer, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
 		ds::drawIndexed(36);

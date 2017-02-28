@@ -46,7 +46,7 @@ void Grid::render(matrix* viewProjectionMatrix) {
 	matrix world = mat_identity();
 	_constantBuffer.worldMatrix = mat_Transpose(world);
 	ds::updateConstantBuffer(_bufferID, &_constantBuffer, sizeof(GridConstantBuffer));
-	ds::setVertexConstantBuffer(_bufferID);
+	ds::setConstantBuffer(_bufferID, ds::ShaderType::VERTEX);
 	ds::setTexture(_texture, ds::ShaderType::PIXEL);
 	ds::setVertexBuffer(_gridBuffer, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
 	ds::drawIndexed(6);

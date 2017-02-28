@@ -599,7 +599,9 @@ namespace ds {
 		POSITION,
 		COLOR,
 		TEXCOORD,
-		NORMAL
+		NORMAL,
+		TANGENT,
+		BINORMAL
 	};
 
 	enum BufferAttributeType {
@@ -2140,7 +2142,9 @@ namespace ds {
 		"POSITION",
 		"COLOR",
 		"TEXCOORD",
-		"NORMAL"
+		"NORMAL",
+		"TANGENT",
+		"BINORMAL"
 	};
 
 	struct DXBufferAttributeType {

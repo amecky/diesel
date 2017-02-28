@@ -14,3 +14,8 @@ examples/shadows/Debug/
 examples/effects/Debug/
 *.db
 TEMP/math.h
+examples/common/Debug/
+examples/font/Debug/
+examples/bump/Debug/
+examples/particles2D/Debug/
+examples/GPUParticles/Debug/

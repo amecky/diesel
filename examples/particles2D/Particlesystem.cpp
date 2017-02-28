@@ -83,8 +83,8 @@ void Particlesystem::render() {
 	matrix w = mat_identity();
 	_constantBuffer.wvp = mat_Transpose(_viewProjectionMatrix);
 	ds::updateConstantBuffer(_descriptor.constantBuffer, &_constantBuffer, sizeof(ParticleConstantBuffer));
-	ds::setGeometryConstantBuffer(_descriptor.constantBuffer);
-	ds::setVertexConstantBuffer(_descriptor.constantBuffer);
+	ds::setConstantBuffer(_descriptor.constantBuffer,ds::ShaderType::GEOMETRY);
+	ds::setConstantBuffer(_descriptor.constantBuffer,ds::ShaderType::VERTEX);
 	for (int i = 0; i < _array.countAlive; ++i) {		
 		v4 t = v4(0.0f,0.0f,1.0f,1.0f);
 		_vertices[i] = ParticleVertex(_array.positions[i], _descriptor.particleDimension, v3(_array.scales[i].x, _array.scales[i].y, _array.rotations[i]), _array.colors[i]);

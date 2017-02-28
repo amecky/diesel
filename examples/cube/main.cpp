@@ -126,7 +126,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
 		constantBuffer.worldMatrix = mat_Transpose(w);
 		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
-		ds::setVertexConstantBuffer(cbid);
+		ds::setConstantBuffer(cbid, ds::ShaderType::VERTEX);
 		ds::drawIndexed(36);
 		ds::end();
 	}

@@ -122,7 +122,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		matrix w = rotZ * rotY * rotX * s * world;
 		constantBuffer.worldMatrix = mat_Transpose(w);
 		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
-		ds::setVertexConstantBuffer(cbid);
+		ds::setConstantBuffer(cbid, ds::ShaderType::VERTEX);
 		ds::setTexture(cubeTextureID, ds::ShaderType::PIXEL);
 		ds::setVertexBuffer(cubeBuffer, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
 		ds::drawIndexed(36);
@@ -131,79 +131,4 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	}
 	ds::shutdown();
 
-	/*
-	uint32_t p_indices[36];
-	Vertex v[24];
-	addPlane(0, ds::Color(1.0f, 0.0f, 0.0f, 1.0f), v, p_indices);
-	addPlane(1, ds::Color(0.0f, 1.0f, 0.0f, 1.0f), v, p_indices);
-	addPlane(2, ds::Color(0.0f, 0.0f, 1.0f, 1.0f), v, p_indices);
-	addPlane(3, ds::Color(1.0f, 0.0f, 1.0f, 1.0f), v, p_indices);
-	addPlane(4, ds::Color(1.0f, 1.0f, 0.0f, 1.0f), v, p_indices);
-	addPlane(5, ds::Color(0.0f, 1.0f, 1.0f, 1.0f), v, p_indices);
-
-	CubeConstantBuffer constantBuffer;
-	float t = 0.0f;
-	ds::RenderSettings rs;
-	rs.width = 1024;
-	rs.height = 768;
-	rs.multisampling = 4;
-	rs.title = "Hello world";
-	rs.clearColor = ds::Color(0.2f, 0.2f, 0.2f, 1.0f);
-	if (ds::init(rs)) {
-
-		RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
-
-		RID shaderID = ds::createShader();
-		ds::loadVertexShader(shaderID, "Coloured_vs.cso");
-		ds::loadPixelShader(shaderID, "Coloured_ps.cso");
-
-		ds::VertexDeclaration decl[] = {
-			{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
-			{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
-		};
-
-		RID rid = ds::createVertexDeclaration(decl, 2, shaderID);
-		RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
-		RID iid = ds::createIndexBuffer(36, ds::IndexType::UINT_32, ds::BufferType::STATIC, p_indices);
-		RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, 24, rid, v,sizeof(Vertex));
-		RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
-		//v3 vp = v3(2.0f, 2.0f, -6.0f);
-		//ds::setViewPosition(vp);
-		v3 scale(1.0f, 1.0f, 1.0f);
-		v3 rotation(0.0f, 0.0f, 0.0f);
-		v3 pos(0.0f, 0.0f, 0.0f);
-		OldFPSCamera camera(1024,768);
-
-		while (ds::isRunning()) {
-			camera.update(0.0016f);
-			ds::begin();
-			t += 0.001f;
-			//vp.y = 2.0f * sin(t);
-			//ds::setViewPosition(vp);
-			pos.z = sin(t);
-			matrix world = mat_identity();
-			matrix w = mat_identity();
-			matrix rotY = mat_RotationY(rotation.y);
-			matrix rotX = mat_RotationX(rotation.x);
-			matrix rotZ = mat_RotationZ(rotation.z);
-			matrix s = mat_Scale(scale);
-			w = rotZ * rotY * rotX * s * world;
-			unsigned int stride = sizeof(Vertex);
-			unsigned int offset = 0;
-
-			ds::setVertexBuffer(vbid, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
-			ds::setVertexDeclaration(rid);
-			ds::setIndexBuffer(iid);
-			ds::setBlendState(bs_id);
-			ds::setShader(shaderID);
-			constantBuffer.viewProjectionMatrix = mat_Transpose(camera.getViewProjectionMatrix());
-			constantBuffer.worldMatrix = mat_Transpose(w);
-			ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
-			ds::setVertexConstantBuffer(cbid);
-			ds::drawIndexed(36);
-			ds::end();
-		}
-		ds::shutdown();
-	}
-	*/
 }

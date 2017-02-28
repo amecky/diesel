@@ -87,7 +87,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
 		constantBuffer.worldMatrix = mat_Transpose(mat_identity());
 		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
-		ds::setVertexConstantBuffer(cbid);
+		ds::setConstantBuffer(cbid, ds::ShaderType::VERTEX);
 		// draw floor
 		ds::drawIndexed(6);
 
@@ -110,7 +110,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
 		constantBuffer.worldMatrix = mat_Transpose(w);
 		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
-		ds::setVertexConstantBuffer(cbid);
+		ds::setConstantBuffer(cbid, ds::ShaderType::VERTEX);
 		// draw cube
 		ds::drawIndexed(q);
 		ds::end();
