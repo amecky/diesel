@@ -27,6 +27,8 @@ struct Vertex {
 struct CubeConstantBuffer {
 	matrix viewProjectionMatrix;
 	matrix worldMatrix;
+	v3 eyePos;
+	float padding;
 };
 
 // ---------------------------------------------------------------
@@ -112,7 +114,7 @@ void calculateTangents(v3* positions, v2* uvs, v3* tangents, int num) {
 		v2 deltaUV1 = uv1 - uv0;
 		v2 deltaUV2 = uv2 - uv0;
 		float r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
-		v3 tangent = (deltaPos1 * deltaUV2.y - deltaPos2 * deltaUV1.y)*r;
+		v3 tangent = normalize((deltaPos1 * deltaUV2.y - deltaPos2 * deltaUV1.y)*r);
 		tangents[i * 4] = tangent;
 		tangents[i * 4 + 1] = tangent;
 		tangents[i * 4 + 2] = tangent;
@@ -147,8 +149,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::init(rs);
 
 	RID textureID = loadImage("..\\common\\cube_map.png", ds::TextureFormat::R8G8B8A8_UNORM);
-	RID cubeTextureID = loadImage("fieldstone-rgba.tga", ds::TextureFormat::R8G8B8A8_UNORM);
-	RID cubeNormalID = loadImage("fieldstone-n.tga", ds::TextureFormat::R8G8B8A8_UNORM);
+	RID cubeTextureID = loadImage("Hex.png", ds::TextureFormat::R8G8B8A8_UNORM_SRGB);
+	RID cubeNormalID = loadImage("Hex_Normal.png", ds::TextureFormat::R8G8B8A8_UNORM_SRGB);
 
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 	
@@ -207,9 +209,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		constantBuffer.viewProjectionMatrix = mat_Transpose(vpm);
 
 		//wm.rotateBy(v3(static_cast<float>(ds::getElapsedSeconds()), 2.0f  * static_cast<float>(ds::getElapsedSeconds()), 0.0f));
+		wm.rotateBy(v3(0.0f, 1.0f  * static_cast<float>(ds::getElapsedSeconds()), 0.0f));
 		constantBuffer.worldMatrix = wm.getTransposedMatrix();
+		constantBuffer.eyePos = camera.getPosition();
+		constantBuffer.padding = 0.0f;
 		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
 		ds::setConstantBuffer(cbid, ds::ShaderType::VERTEX);
+		ds::setConstantBuffer(cbid, ds::ShaderType::PIXEL);
 		ds::setTexture(cubeTextureID, ds::ShaderType::PIXEL, 0);
 		ds::setTexture(cubeNormalID, ds::ShaderType::PIXEL, 1);
 		ds::setVertexBuffer(cubeBuffer, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);

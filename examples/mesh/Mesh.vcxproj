@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{56D4DDBD-B9E7-4DE5-AEB8-4C1D034FF0C6}</ProjectGuid>
+    <ProjectGuid>{5FC71D43-6368-4D15-B9BD-1BBA3958672C}</ProjectGuid>
     <RootNamespace>Cube</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -74,10 +74,9 @@
     <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x86</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(IncludePath);$(DXSDK_DIR)Include;..\common</IncludePath>
+    <IncludePath>$(IncludePath);$(DXSDK_DIR)Include</IncludePath>
     <ReferencePath>$(DXSDK_DIR)Lib\x86;$(ReferencePath)</ReferencePath>
     <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x86</LibraryPath>
-    <SourcePath>$(VC_SourcePath);..\common</SourcePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -95,7 +94,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>d3d11.lib;dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -129,38 +128,28 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\common\Camera.cpp" />
-    <ClCompile Include="..\common\Geometry.cpp" />
-    <ClCompile Include="..\common\Grid.cpp" />
-    <ClCompile Include="..\common\WorldMatrix.cpp" />
+    <ClCompile Include="hex.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="WaveFrontReader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\common\Camera.h" />
-    <ClInclude Include="..\common\Geometry.h" />
-    <ClInclude Include="..\common\Grid.h" />
-    <ClInclude Include="..\common\WorldMatrix.h" />
-    <ClInclude Include="stb_image.h" />
+    <ClInclude Include="hex.h" />
+    <ClInclude Include="HexGrid.h" />
+    <ClInclude Include="WaveFrontReader.h" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Bump_ps.hlsl">
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">PS_Main</EntryPointName>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.0</ShaderModel>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\examples\bump\%(Filename).cso</ObjectFileOutput>
+    <FxCompile Include="Mesh_ps.hlsl">
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS_Main</EntryPointName>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.0</ShaderModel>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\examples\bump\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\examples\mesh\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
-    <FxCompile Include="Bump_vs.hlsl">
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">VS_Main</EntryPointName>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.0</ShaderModel>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\examples\bump\%(Filename).cso</ObjectFileOutput>
+    <FxCompile Include="Mesh_vs.hlsl">
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">VS_Main</EntryPointName>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.0</ShaderModel>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\examples\bump\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\examples\mesh\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

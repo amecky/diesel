@@ -676,7 +676,8 @@ namespace ds {
 	enum TextureFormat {
 		R8_UINT,
 		R8G8B8A8_UINT,
-		R8G8B8A8_UNORM
+		R8G8B8A8_UNORM,
+		R8G8B8A8_UNORM_SRGB
 	};
 
 	// ---------------------------------------------------
@@ -2737,7 +2738,8 @@ namespace ds {
 	const static DXGI_FORMAT TEXTURE_FOMATS[] = {
 		DXGI_FORMAT_R8_UINT,
 		DXGI_FORMAT_R8G8B8A8_UINT,
-		DXGI_FORMAT_R8G8B8A8_UNORM
+		DXGI_FORMAT_R8G8B8A8_UNORM,
+		DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
 	};
 	// ------------------------------------------------------
 	// create texture
@@ -2820,21 +2822,21 @@ namespace ds {
 			XASSERT(s->pixelShader != 0, "No pixel shader selected");
 			if (_ctx->selectedPSTextures[slot] != id_mask(rid)) {
 				_ctx->d3dContext->PSSetShaderResources(slot, 1, &srv);
-				_ctx->selectedPSTextures[slot] = id_mask(rid);
+				_ctx->selectedPSTextures[slot] = ridx;
 			}
 		}
 		else if (type == ShaderType::VERTEX) {
 			XASSERT(s->vertexShader != 0, "No vertex shader selected");
 			if (_ctx->selectedVSTextures[slot] != id_mask(rid)) {
 				_ctx->d3dContext->VSSetShaderResources(slot, 1, &srv);
-				_ctx->selectedVSTextures[slot] = id_mask(rid);
+				_ctx->selectedVSTextures[slot] = ridx;
 			}
 		}
 		else if (type == ShaderType::GEOMETRY) {
 			XASSERT(s->geometryShader != 0, "No geometry shader selected");
 			if (_ctx->selectedGSTextures[slot] != id_mask(rid)) {
 				_ctx->d3dContext->GSSetShaderResources(slot, 1, &srv);
-				_ctx->selectedGSTextures[slot] = id_mask(rid);
+				_ctx->selectedGSTextures[slot] = ridx;
 			}
 		}
 	}

@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="WaveFrontReader.cpp" />
+    <ClCompile Include="..\common\Camera.cpp" />
+    <ClCompile Include="hex.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="WaveFrontReader.h" />
+    <ClInclude Include="..\common\Camera.h" />
+    <ClInclude Include="HexGrid.h" />
+    <ClInclude Include="hex.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Mesh_vs.hlsl" />
+    <FxCompile Include="Mesh_ps.hlsl" />
+  </ItemGroup>
+</Project>
