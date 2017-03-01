@@ -11,6 +11,7 @@ FPSCamera::FPSCamera(float screenWidth, float screenHeight)  {
 	_yaw = 0.0f;
 	_pitch = 0.0f;
 	_viewMatrix = mat_LookAtLH(_position, _target, _up);
+	ds::setProjectionMatrix(_projectionMatrix);
 	_viewProjectionMatrix = _viewMatrix * _projectionMatrix;
 	buildView();
 }
@@ -148,4 +149,6 @@ void FPSCamera::buildView() {
 	_viewMatrix(3, 3) = 1.0f;
 
 	_viewProjectionMatrix = _viewMatrix * _projectionMatrix;
+
+	ds::setViewMatrix(_viewMatrix);
 }

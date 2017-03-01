@@ -51,9 +51,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 
-	RID shaderID = ds::createShader();
-	ds::loadVertexShader(shaderID, "Mesh_vs.cso");
-	ds::loadPixelShader(shaderID, "Mesh_ps.cso");
+	ds::ShaderDescriptor desc[] = {
+		{ ds::ShaderType::VERTEX, "Mesh_vs.cso" },
+		{ ds::ShaderType::PIXEL, "Mesh_ps.cso" }
+	};
+
+	RID shaderID = ds::createShader(desc,2);
+	//ds::loadShader(shaderID, ds::ShaderType::VERTEX, "Mesh_vs.cso");
+	//ds::loadShader(shaderID, ds::ShaderType::PIXEL, "Mesh_ps.cso");
 
 	ds::VertexDeclaration decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
@@ -106,51 +111,34 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		}
 	}
 
+	ds::StateGroup* sg = ds::createStateGroup();
+	sg->bindLayout(rid);
+	sg->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, &constantBuffer);
+	sg->bindConstantBuffer(lightBufferID, ds::ShaderType::PIXEL, &lightBuffer);
+	sg->bindBlendState(bs_id);
+	sg->bindSamplerState(ssid,ds::ShaderType::PIXEL);
+	sg->bindVertexBuffer(vbid);
+	sg->bindShader(shaderID);
+
+	ds::StateGroup* stack[] = { sg,sg };
+
+	ds::DrawCommand drawCmd = { num, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::TRIANGLE_LIST };
 
 	while (ds::isRunning()) {
 		ds::begin();
 
 		camera.update(static_cast<float>(ds::getElapsedSeconds()));
 		matrix vpm = camera.getViewProjectionMatrix();
-
-		unsigned int stride = sizeof(ObjVertex);
-		unsigned int offset = 0;
-
-		// move cube
-		//rotation.y += 2.0f  * static_cast<float>(ds::getElapsedSeconds());
-		//rotation.x += 1.0f  * static_cast<float>(ds::getElapsedSeconds());
-		//t += static_cast<float>(ds::getElapsedSeconds());
-		//v3 scale = v3(0.9f + sin(t * 4.0f) * 0.2f);
-		matrix world = mat_identity();
-		matrix rotY = mat_RotationY(rotation.y);
 		matrix rotX = mat_RotationX(rotation.x);
-		matrix rotZ = mat_RotationZ(rotation.z);
-		matrix s = mat_Scale(scale);
-		matrix w = rotZ * rotY * rotX * s * world;
-
-		ds::setVertexDeclaration(rid);
-		ds::setBlendState(bs_id);
-		ds::setShader(shaderID);
-		ds::setSamplerState(ssid);
-		
-		// switch vertex buffer
-		ds::setVertexBuffer(vbid, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
-		// update constant buffer
 		constantBuffer.viewProjectionMatrix = mat_Transpose(vpm);
-		constantBuffer.worldMatrix = mat_Transpose(w);
-		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
-		ds::updateConstantBuffer(lightBufferID, &lightBuffer, sizeof(LightBuffer));
-		ds::setConstantBuffer(cbid, ds::ShaderType::VERTEX);
-		ds::setConstantBuffer(lightBufferID, ds::ShaderType::PIXEL);
 		// draw cube
 		for (int y = 0; y < TOTAL; ++y) {
 			GridItem& item = items[y];
 			item.timer += ds::getElapsedSeconds();
-			w = mat_Translate(v3(item.pos.x, item.pos.y, sin(item.timer) * 0.4f));
+			matrix w = mat_Translate(v3(item.pos.x, item.pos.y, sin(item.timer) * 0.4f));
 			w = rotX * w;
 			constantBuffer.worldMatrix = mat_Transpose(w);
-			ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
-			ds::draw(num);
+			ds::submit(drawCmd, sg);
 		}
 		
 		ds::end();

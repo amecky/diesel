@@ -153,14 +153,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID cubeNormalID = loadImage("Hex_Normal.png", ds::TextureFormat::R8G8B8A8_UNORM_SRGB);
 
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
-	
-	RID textureShader = ds::createShader();
-	ds::loadVertexShader(textureShader, "..\\common\\Textured_vs.cso");
-	ds::loadPixelShader(textureShader, "..\\common\\Textured_ps.cso");
 
-	RID gridShader = ds::createShader();
-	ds::loadVertexShader(gridShader, "Bump_vs.cso");
-	ds::loadPixelShader(gridShader, "Bump_ps.cso");
+	ds::ShaderDescriptor texDesc[] = {
+		{ ds::ShaderType::VERTEX, "..\\common\\Textured_vs.cso" },
+		{ ds::ShaderType::PIXEL, "..\\common\\Textured_ps.cso" }
+	};
+
+	RID textureShader = ds::createShader(texDesc, 2);
+
+	ds::ShaderDescriptor gridDesc[] = {
+		{ ds::ShaderType::VERTEX, "Bump_vs.cso" },
+		{ ds::ShaderType::PIXEL, "Bump_ps.cso" }
+	};
+
+	RID gridShader = ds::createShader(gridDesc, 2);
+
 	Grid grid;
 	v3 gridPositions[] = {
 		v3(-4.0f, -1.0f, -3.5f),
@@ -189,6 +196,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	FPSCamera camera(1024, 768);
 	camera.setPosition(v3(0, 2, -12));
+
+	ds::StateGroup* sg = ds::createStateGroup();
+	sg->bindLayout(rid);
+	sg->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, &constantBuffer);
+	sg->bindConstantBuffer(cbid, ds::ShaderType::PIXEL, &constantBuffer);
+	sg->bindBlendState(bs_id);
+	sg->bindSamplerState(ssid, ds::ShaderType::PIXEL);
+	sg->bindVertexBuffer(cubeBuffer);
+	sg->bindShader(gridShader);
+	sg->bindIndexBuffer(indexBuffer);
+	sg->bindTexture(cubeTextureID, ds::ShaderType::PIXEL, 0);
+	sg->bindTexture(cubeNormalID, ds::ShaderType::PIXEL, 1);
+	ds::DrawCommand drawCmd = { 36, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
 		
 	while (ds::isRunning()) {
 		ds::begin();
@@ -196,16 +216,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		camera.update(static_cast<float>(ds::getElapsedSeconds()));
 		matrix vpm = camera.getViewProjectionMatrix();
 
-		grid.render(&vpm);
+		grid.render();
 			
-		unsigned int stride = sizeof(Vertex);
-		unsigned int offset = 0;
-
-		ds::setVertexDeclaration(rid);
-		ds::setIndexBuffer(indexBuffer);
-		ds::setBlendState(bs_id);
-		ds::setShader(gridShader);
-		ds::setSamplerState(ssid);
 		constantBuffer.viewProjectionMatrix = mat_Transpose(vpm);
 
 		//wm.rotateBy(v3(static_cast<float>(ds::getElapsedSeconds()), 2.0f  * static_cast<float>(ds::getElapsedSeconds()), 0.0f));
@@ -213,14 +225,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		constantBuffer.worldMatrix = wm.getTransposedMatrix();
 		constantBuffer.eyePos = camera.getPosition();
 		constantBuffer.padding = 0.0f;
-		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
-		ds::setConstantBuffer(cbid, ds::ShaderType::VERTEX);
-		ds::setConstantBuffer(cbid, ds::ShaderType::PIXEL);
-		ds::setTexture(cubeTextureID, ds::ShaderType::PIXEL, 0);
-		ds::setTexture(cubeNormalID, ds::ShaderType::PIXEL, 1);
-		ds::setVertexBuffer(cubeBuffer, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
-		ds::drawIndexed(36);
 		
+		ds::submit(drawCmd, sg);
+
 		ds::end();
 	}
 	ds::shutdown();

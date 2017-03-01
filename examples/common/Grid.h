@@ -23,16 +23,18 @@ public:
 	Grid() {}
 	~Grid() {}
 	void create(v3* positions, int numCells, RID shaderID, RID textureID);
-	void render(matrix* viewProjectionMatrix = 0);
+	void render();
 private:
 	GridVertex _vertices[4];
 	GridConstantBuffer _constantBuffer;
-	RID _blendState;
-	RID _shader;
-	RID _vertexDeclaration;
-	RID _bufferID;
-	RID _indexBuffer;
-	RID _gridBuffer;
-	RID _samplerState;
-	RID _texture;
+	ds::StateGroup* _gridStates;
+	ds::DrawCommand drawCmd;
+	//RID _blendState;
+	//RID _shader;
+	//RID _vertexDeclaration;
+	//RID _bufferID;
+	//RID _indexBuffer;
+	//RID _gridBuffer;
+	//RID _samplerState;
+	//RID _texture;
 };

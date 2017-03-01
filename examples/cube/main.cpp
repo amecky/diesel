@@ -87,10 +87,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 
-	// create shaders
-	RID shaderID = ds::createShader();
-	ds::loadVertexShader(shaderID, "Cube_vs.cso");
-	ds::loadPixelShader(shaderID, "Cube_ps.cso");
+	ds::ShaderDescriptor desc[] = {
+		{ ds::ShaderType::VERTEX, "Cube_vs.cso" },
+		{ ds::ShaderType::PIXEL, "Cube_ps.cso" }
+	};
+
+	RID shaderID = ds::createShader(desc, 2);
 
 	// create buffer input layout
 	ds::VertexDeclaration decl[] = {
@@ -100,11 +102,22 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID rid = ds::createVertexDeclaration(decl, 2, shaderID);
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
 	RID iid = ds::createIndexBuffer(36, ds::IndexType::UINT_32, ds::BufferType::STATIC, p_indices);
-	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, 24, 0, v,sizeof(Vertex));
+	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, 24, rid, v,sizeof(Vertex));
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 
 	v3 vp = v3(0.0f, 2.0f, -6.0f);
 	ds::setViewPosition(vp);
+
+
+	ds::StateGroup* sg = ds::createStateGroup();
+	sg->bindLayout(rid);
+	sg->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, &constantBuffer);
+	sg->bindBlendState(bs_id);
+	sg->bindSamplerState(ssid, ds::ShaderType::PIXEL);
+	sg->bindVertexBuffer(vbid);
+	sg->bindShader(shaderID);
+	sg->bindIndexBuffer(iid);
+	ds::DrawCommand drawCmd = { 36, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
 		
 	while (ds::isRunning()) {
 		ds::begin();
@@ -116,18 +129,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		matrix s = mat_Scale(v3(scale));
 		matrix w = bY * s * mat_Translate(cp);
 		
-		unsigned int stride = sizeof(Vertex);
-		unsigned int offset = 0;
-		ds::setVertexBuffer(vbid, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
-		ds::setVertexDeclaration(rid);
-		ds::setIndexBuffer(iid);
-		ds::setBlendState(bs_id);
-		ds::setShader(shaderID);
 		constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
 		constantBuffer.worldMatrix = mat_Transpose(w);
-		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
-		ds::setConstantBuffer(cbid, ds::ShaderType::VERTEX);
-		ds::drawIndexed(36);
+
+		ds::submit(drawCmd, sg);
+
 		ds::end();
 	}
 	ds::shutdown();

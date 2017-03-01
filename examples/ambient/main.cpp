@@ -118,9 +118,12 @@ int main(const char** args) {
 
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 
-	RID shaderID = ds::createShader();
-	ds::loadVertexShader(shaderID, "AmbientLightning_vs.cso");
-	ds::loadPixelShader(shaderID, "AmbientLightning_ps.cso");
+	ds::ShaderDescriptor desc[] = {
+		{ ds::ShaderType::VERTEX, "AmbientLightning_vs.cso" },
+		{ ds::ShaderType::PIXEL, "AmbientLightning_ps.cso" }
+	};
+
+	RID shaderID = ds::createShader(desc, 2);
 
 	ds::VertexDeclaration decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
@@ -132,39 +135,61 @@ int main(const char** args) {
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
 	RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer));
 	RID indexBuffer = ds::createQuadIndexBuffer(36);
-	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, 0, v,sizeof(Vertex));
-	RID floorBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 4, 0, floorVertices, sizeof(Vertex));
-	RID bulbID = ds::createVertexBuffer(ds::BufferType::STATIC, 24, 0, lv, sizeof(Vertex));
+	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, rid, v,sizeof(Vertex));
+	RID floorBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 4, rid, floorVertices, sizeof(Vertex));
+	RID bulbID = ds::createVertexBuffer(ds::BufferType::STATIC, 24, rid, lv, sizeof(Vertex));
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 	v3 vp = v3(0.0f, 2.0f, -6.0f);
 	ds::setViewPosition(vp);
 	v3 scale(1.0f, 1.0f, 1.0f);
 	v3 rotation(0.0f, 0.0f, 0.0f);
 	v3 pos(0.0f, 0.0f, 0.0f);
+
+	ds::StateGroup* basicGroup = ds::createStateGroup();
+	basicGroup->bindLayout(rid);
+	basicGroup->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, &constantBuffer);
+	basicGroup->bindConstantBuffer(lightBufferID, ds::ShaderType::PIXEL, &lightBuffer);
+	basicGroup->bindBlendState(bs_id);
+	basicGroup->bindSamplerState(ssid, ds::ShaderType::PIXEL);
+	basicGroup->bindShader(shaderID);
+	basicGroup->bindIndexBuffer(indexBuffer);
+
+	ds::StateGroup* floorGroup = ds::createStateGroup();
+	floorGroup->bindTexture(floorTexture, ds::ShaderType::PIXEL, 0);
+	floorGroup->bindVertexBuffer(floorBuffer);
+
+	ds::StateGroup* ambientGroup = ds::createStateGroup();	
+	ambientGroup->bindTexture(textureID, ds::ShaderType::PIXEL, 0);
+	ambientGroup->bindVertexBuffer(cubeBuffer);
+
+	ds::StateGroup* bulbGroup = ds::createStateGroup();
+	bulbGroup->bindTexture(floorTexture, ds::ShaderType::PIXEL, 0);
+	bulbGroup->bindVertexBuffer(bulbID);
+
+	ds::DrawCommand floorCmd = { 6, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
+	ds::DrawCommand drawCmd = { 36, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
 		
+	ds::StateGroup* floorStack[] = { basicGroup, floorGroup };
+	ds::DrawItem* floorItem = ds::compile(floorCmd, floorStack , 2);
+
+	ds::StateGroup* cubeStack[] = { basicGroup, ambientGroup };
+	ds::DrawItem* cubeItem = ds::compile(drawCmd, cubeStack, 2);
+
+	ds::StateGroup* bulbStack[] = { basicGroup, bulbGroup };
+	ds::DrawItem* bulbItem = ds::compile(drawCmd, bulbStack, 2);
+
 	while (ds::isRunning()) {
 		ds::begin();
 
 		t += static_cast<float>(ds::getElapsedSeconds());
-			
-		unsigned int stride = sizeof(Vertex);
-		unsigned int offset = 0;
 
-		ds::setVertexDeclaration(rid);
-		ds::setIndexBuffer(indexBuffer);
-		ds::setBlendState(bs_id);
-		ds::setShader(shaderID);
-		ds::setSamplerState(ssid);
 		constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
 			
 		// floor
 		matrix world = mat_identity();
 		constantBuffer.worldMatrix = mat_Transpose(world);
-		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
-		ds::setTexture(floorTexture, ds::ShaderType::PIXEL);
-		ds::setVertexBuffer(floorBuffer, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
-		ds::drawIndexed(6);
-
+		ds::submit(floorItem);
+		
 		// draw the light as small cube
 		lightPos.x = cos(t);
 		lightPos.z = sin(t);
@@ -173,11 +198,8 @@ int main(const char** args) {
 		matrix bY = mat_RotationY(t);
 		w = bY * mat_Translate(lp);		
 		constantBuffer.worldMatrix = mat_Transpose(w);
-		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
-		ds::setTexture(floorTexture, ds::ShaderType::PIXEL);
-		ds::setVertexBuffer(bulbID, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
-		ds::drawIndexed(36);
-
+		ds::submit(bulbItem);
+		
 		// spinning cube
 		world = mat_identity();
 		rotation.y += 2.0f  * static_cast<float>(ds::getElapsedSeconds());
@@ -188,13 +210,8 @@ int main(const char** args) {
 		matrix s = mat_Scale(scale);
 		matrix w = rotZ * rotY * rotX * s * world;
 		constantBuffer.worldMatrix = mat_Transpose(w);
-		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
-		ds::updateConstantBuffer(lightBufferID, &lightBuffer, sizeof(LightBuffer));
-		ds::setConstantBuffer(cbid, ds::ShaderType::VERTEX);
-		ds::setConstantBuffer(lightBufferID,ds::ShaderType::PIXEL);
-		ds::setTexture(textureID, ds::ShaderType::PIXEL);
-		ds::setVertexBuffer(cubeBuffer, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
-		ds::drawIndexed(36);
+		ds::submit(cubeItem);
+
 		ds::end();
 	}
 	ds::shutdown();
