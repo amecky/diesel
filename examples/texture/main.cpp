@@ -111,7 +111,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	int cnt = 0;
 	for(int j = 0; j < numCubes; ++j) {
 		matrix m = mat_Translate(CP[j]);
-		matrix s = mat_Scale(v3(1,2,1));
+		matrix s = mat_Scale(v3(0.5f,2.0f,0.5f));
 		matrix w = s * m;
 		geometry::buildCube(w, positions, uvs);
 		for (int i = 0; i < 24; ++i) {
@@ -133,9 +133,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID cubeTextureID = loadImage("..\\common\\grid.png");
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 	
-	RID gridShader = ds::createShader();
-	ds::loadVertexShader(gridShader, "..\\common\\Textured_vs.cso");
-	ds::loadPixelShader(gridShader, "..\\common\\Textured_ps.cso");
+	ds::ShaderDescriptor desc[] = {
+		{ ds::ShaderType::VERTEX, "..\\common\\Textured_vs.cso" },
+		{ ds::ShaderType::PIXEL, "..\\common\\Textured_ps.cso" }
+	};
+
+	RID gridShader = ds::createShader(desc, 2);
+
 	Grid grid;
 	v3 gridPositions[] = {
 		v3(-4.0f, -1.0f, -3.5f),
@@ -160,38 +164,46 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::setViewPosition(vp);
 
 	WorldMatrix wm;
-		
+
+	ds::StateGroup* basicGroup = ds::createStateGroup();
+	basicGroup->bindLayout(rid);
+	basicGroup->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, &constantBuffer);
+	basicGroup->bindBlendState(bs_id);
+	basicGroup->bindSamplerState(ssid, ds::ShaderType::PIXEL);
+	basicGroup->bindTexture(cubeTextureID, ds::ShaderType::PIXEL, 0);
+	basicGroup->bindShader(gridShader);
+	basicGroup->bindIndexBuffer(indexBuffer);
+
+	ds::StateGroup* staticGroup = ds::createStateGroup();
+	staticGroup->bindVertexBuffer(staticCubes);
+
+	ds::StateGroup* cubeGroup = ds::createStateGroup();
+	cubeGroup->bindVertexBuffer(cubeBuffer);
+
+	ds::DrawCommand staticCmd = { totalCubeVertices / 4 * 6, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
+	ds::DrawCommand drawCmd = { 36, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
+
+	ds::StateGroup* staticStack[] = { basicGroup, staticGroup };
+	ds::DrawItem* staticItem = ds::compile(staticCmd, staticStack, 2);
+
+	ds::StateGroup* cubeStack[] = { basicGroup, cubeGroup };
+	ds::DrawItem* cubeItem = ds::compile(drawCmd, cubeStack, 2);
+	
 	while (ds::isRunning()) {
 		ds::begin();
 
 		grid.render();
-			
-		unsigned int stride = sizeof(Vertex);
-		unsigned int offset = 0;
-
-		ds::setVertexDeclaration(rid);
-		ds::setIndexBuffer(indexBuffer);
-		ds::setBlendState(bs_id);
-		ds::setShader(gridShader);
-		ds::setSamplerState(ssid);
+		
 		constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
 
 		// spinning cube
 		matrix world = mat_identity();
 		constantBuffer.worldMatrix = mat_Transpose(world);
-		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
-		ds::setConstantBuffer(cbid,ds::ShaderType::VERTEX);
-		ds::setVertexBuffer(staticCubes, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
-		ds::setTexture(cubeTextureID, ds::ShaderType::PIXEL);
-		ds::drawIndexed(totalCubeVertices/4*6);
+		ds::submit(staticItem);
 
 		wm.rotateBy(v3(static_cast<float>(ds::getElapsedSeconds()), 2.0f  * static_cast<float>(ds::getElapsedSeconds()), 0.0f));
 		constantBuffer.worldMatrix = wm.getTransposedMatrix();
-		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
-		ds::setConstantBuffer(cbid, ds::ShaderType::VERTEX);
-		ds::setTexture(cubeTextureID, ds::ShaderType::PIXEL);
-		ds::setVertexBuffer(cubeBuffer, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
-		ds::drawIndexed(36);
+		ds::submit(cubeItem);
 		
 		ds::end();
 	}

@@ -57,8 +57,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	};
 
 	RID shaderID = ds::createShader(desc,2);
-	//ds::loadShader(shaderID, ds::ShaderType::VERTEX, "Mesh_vs.cso");
-	//ds::loadShader(shaderID, ds::ShaderType::PIXEL, "Mesh_ps.cso");
 
 	ds::VertexDeclaration decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
@@ -119,8 +117,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	sg->bindSamplerState(ssid,ds::ShaderType::PIXEL);
 	sg->bindVertexBuffer(vbid);
 	sg->bindShader(shaderID);
-
-	ds::StateGroup* stack[] = { sg,sg };
 
 	ds::DrawCommand drawCmd = { num, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::TRIANGLE_LIST };
 

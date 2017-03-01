@@ -931,63 +931,7 @@ namespace ds {
 	float random(float min, float max);
 
 	const char* getLastError();
-
-	// Batching class
-	struct BatchDescriptor {
-		uint16_t size; // FIXME: use better name
-		RID vertexBufferID;
-		PrimitiveTypes primitiveType;		
-		RID vertexDeclarationID;
-		// FIXME: add index buffer
-	};
-	template<class T>
-	class Batch {
-
-	public:
-		Batch(const BatchDescriptor& descriptor) : _data(0) , _descriptor(descriptor) {
-			_size = descriptor.size;
-			_data = new T[_size];
-		}
-		~Batch() {
-			if (_data != 0) {
-				delete[] _data;
-			}
-		}
-
-		void add(const T& t) {
-			if ((_index + 1) >= _size) {
-				flush();
-			}
-			_data[_index++] = t;
-		}
-
-		void begin() {
-			_index = 0;
-			_calls = 0;
-		}
-
-		void flush() {
-			if (_index > 0) {
-				++_calls;
-				unsigned int stride = sizeof(T);
-				unsigned int offset = 0;
-				ds::setVertexBuffer(_descriptor.vertexBufferID, &stride, &offset, _descriptor.primitiveType);
-				ds::setVertexDeclaration(_descriptor.vertexDeclarationID);
-				ds::mapBufferData(_descriptor.vertexBufferID, _data, _size * sizeof(T));
-				ds::draw(_index);
-				_index = 0;
-			}
-		}
-		uint16_t getCalls() const {
-			return _calls;
-		}
-	private:
-		uint16_t _index;
-		uint16_t _size;
-		uint16_t _calls;
-		T* _data;
-		BatchDescriptor _descriptor;
-	};
+	
 }
 
 #ifdef DS_IMPLEMENTATION

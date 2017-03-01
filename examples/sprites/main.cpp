@@ -97,7 +97,7 @@ int add(const v2& p, const Rect& r, Sprite* sprites, int index) {
 		s.scale = v2(1.0f, 1.0f);
 		s.rotation = angle;
 		s.texture = r;
-		float vel = ds::random(100.0f,150.0f);
+		float vel = ds::random(100.0f,250.0f);
 		float vx = cos(angle) * vel;
 		float vy = sin(angle) * vel;
 		s.velocity = v2(vx,vy);
@@ -113,6 +113,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	
 	Sprite sprites[64];
 	int numSprites = 0;
+
+	SpriteVertex vertices[64];
 
 	// create some sprites
 	for (int i = 0; i < 48; ++i) {
@@ -146,11 +148,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 
-	// create shader and load compiled shaders
-	RID shaderID = ds::createShader();
-	ds::loadVertexShader(shaderID, "Sprites_vs.cso");
-	ds::loadPixelShader(shaderID, "Sprites_ps.cso");
-	ds::loadGeometryShader(shaderID, "Sprites_gs.cso");
+	ds::ShaderDescriptor desc[] = {
+		{ ds::ShaderType::VERTEX, "Sprites_vs.cso" },
+		{ ds::ShaderType::PIXEL, "Sprites_ps.cso" },
+		{ ds::ShaderType::GEOMETRY, "Sprites_gs.cso" }
+	};
+
+	RID shaderID = ds::createShader(desc, 3);
 
 	// very special buffer layout 
 	ds::VertexDeclaration decl[] = {
@@ -171,14 +175,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	matrix projectionMatrix = mat_OrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
 	matrix viewProjectionMatrix = viewMatrix * projectionMatrix;
 
-	// batch descriptor used to initialize batch
-	ds::BatchDescriptor desc;
-	desc.size = 32;
-	desc.vertexBufferID = vertexBufferID;
-	desc.primitiveType = ds::PrimitiveTypes::POINT_LIST;
-	desc.vertexDeclarationID = vertexDeclId;
-	// use batch
-	ds::Batch<SpriteVertex> batch(desc);
+	ds::setViewMatrix(viewMatrix);
+	ds::setProjectionMatrix(projectionMatrix);
+
+	ds::StateGroup* sg = ds::createStateGroup();
+	sg->bindLayout(vertexDeclId);
+	sg->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, &constantBuffer);
+	sg->bindConstantBuffer(cbid, ds::ShaderType::GEOMETRY, &constantBuffer);
+	sg->bindBlendState(bs_id);
+	sg->bindSamplerState(ssid, ds::ShaderType::PIXEL);
+	sg->bindVertexBuffer(vertexBufferID);
+	sg->bindShader(shaderID);
+	sg->bindTexture(textureID, ds::ShaderType::PIXEL, 0);
+
+	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::POINT_LIST };
 
 	while (ds::isRunning()) {
 		// move sprites
@@ -200,18 +210,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::begin();
 		// disbale depth buffer
 		ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
-		ds::setBlendState(bs_id);
-		ds::setShader(shaderID);
-		ds::setSamplerState(ssid);
-		ds::setTexture(textureID, ds::ShaderType::PIXEL);
-		// prepare constant buffers
 		matrix w = mat_identity();
 		constantBuffer.wvp = mat_Transpose(viewProjectionMatrix);
-		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(SpriteConstantBuffer));
-		ds::setConstantBuffer(cbid, ds::ShaderType::GEOMETRY);
-		ds::setConstantBuffer(cbid, ds::ShaderType::VERTEX);
-		// use batch to draw sprites
-		batch.begin();
 		for (int i = 0; i < numSprites; ++i) {
 			const Sprite& sprite = sprites[i];
 			v4 t;
@@ -219,10 +219,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			t.y = sprite.texture.top;
 			t.z = sprite.texture.width;
 			t.w = sprite.texture.height;
-			batch.add(SpriteVertex(sprite.position, t, v3(sprite.scale.x, sprite.scale.y, sprite.rotation), sprite.color));
+			vertices[i] = SpriteVertex(sprite.position, t, v3(sprite.scale.x, sprite.scale.y, sprite.rotation), sprite.color);
 		}
-		batch.flush();
-		// enable depth buffer
+		ds::mapBufferData(vertexBufferID, vertices, 64 * sizeof(SpriteVertex));
+		drawCmd.size = numSprites;
+		ds::submit(drawCmd, sg);
 		ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
 		ds::end();
 	}
