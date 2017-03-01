@@ -37,27 +37,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	// load image using stb_image
 	descriptor.texture = loadImage("particles.png");
 	
-	descriptor.blendState = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::ONE, ds::BlendStates::ONE, true);
-
-	// create shader and load compiled shaders
-	descriptor.shader = ds::createShader();
-	ds::loadVertexShader(descriptor.shader, "GPUParticles_vs.cso");
-	ds::loadPixelShader(descriptor.shader, "GPUParticles_ps.cso");
-	ds::loadGeometryShader(descriptor.shader, "GPUParticles_gs.cso");
-
-	// very special buffer layout 
-	ds::VertexDeclaration decl[] = {
-		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
-		{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,3 },
-		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 },
-		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
-	};
-
-	descriptor.vertexDeclaration = ds::createVertexDeclaration(decl, 4, descriptor.shader);
-		
-	descriptor.constantBuffer = ds::createConstantBuffer(sizeof(ParticleConstantBuffer));
-	descriptor.vertexBuffer = ds::createVertexBuffer(ds::BufferType::DYNAMIC, descriptor.maxParticles, descriptor.vertexDeclaration);
-	descriptor.samplerState = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
+	
 	descriptor.startColor = ds::Color(192, 192, 0, 255);
 	descriptor.endColor = ds::Color(16, 16, 0, 255);
 
@@ -75,9 +55,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	float t = 1.1f;
 
 	RID textureID = loadImage("..\\common\\cube_map.png");
-	RID gridShader = ds::createShader();
-	ds::loadVertexShader(gridShader, "..\\common\\Textured_vs.cso");
-	ds::loadPixelShader(gridShader, "..\\common\\Textured_ps.cso");
+
+	ds::ShaderDescriptor desc[] = {
+		{ ds::ShaderType::VERTEX, "..\\common\\Textured_vs.cso" },
+		{ ds::ShaderType::PIXEL, "..\\common\\Textured_ps.cso" }
+	};
+
+	RID gridShader = ds::createShader(desc, 2);
+
 	Grid grid;
 	v3 gridPositions[] = {
 		v3(-4.0f, -1.0f, -3.5f),

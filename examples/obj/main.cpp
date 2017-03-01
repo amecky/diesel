@@ -39,26 +39,22 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 
-	RID shaderID = ds::createShader();
-	ds::loadVertexShader(shaderID, "Obj_vs.cso");
-	ds::loadPixelShader(shaderID, "Obj_ps.cso");
+	ds::ShaderDescriptor desc[] = {
+		{ ds::ShaderType::VERTEX, "Obj_vs.cso" },
+		{ ds::ShaderType::PIXEL, "Obj_ps.cso" }
+	};
+
+	RID shaderID = ds::createShader(desc, 2);
 
 	ds::VertexDeclaration decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }
 	};
 
-	ObjVertex floorVertices[4];
-	floorVertices[0] = ObjVertex(v3(-3.0f, -1.0f, -2.5f), v2(0.0f, 1.0f));
-	floorVertices[1] = ObjVertex(v3(-3.0f, -1.0f, 3.5f), v2(0.0f, 0.0f));
-	floorVertices[2] = ObjVertex(v3(3.0f, -1.0f, 3.5f), v2(1.0f, 0.0f));
-	floorVertices[3] = ObjVertex(v3(3.0f, -1.0f, -2.5f), v2(1.0f, 1.0f));
-
 	RID rid = ds::createVertexDeclaration(decl, 2, shaderID);
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
 	RID indexBufferID = ds::createQuadIndexBuffer(num / 4);
 	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, num, rid, vertices,sizeof(ObjVertex));
-	RID floorBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 4, rid, floorVertices, sizeof(ObjVertex));
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 	v3 vp = v3(0.0f, 3.0f, -6.0f);
 	ds::setViewPosition(vp);
@@ -69,29 +65,22 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	int q = num / 4 * 6;
 	float t = 0.0f;
+
+	ds::StateGroup* sg = ds::createStateGroup();
+	sg->bindLayout(rid);
+	sg->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, &constantBuffer);
+	sg->bindBlendState(bs_id);
+	sg->bindShader(shaderID);
+	sg->bindSamplerState(ssid, ds::ShaderType::PIXEL);
+	sg->bindVertexBuffer(vbid);
+	sg->bindIndexBuffer(indexBufferID);
+	sg->bindTexture(textureID, ds::ShaderType::PIXEL, 0);
+
+	ds::DrawCommand drawCmd = { q, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
+
 	while (ds::isRunning()) {
 		ds::begin();
-		unsigned int stride = sizeof(ObjVertex);
-		unsigned int offset = 0;
-
-		// set floor buffer
-		ds::setVertexBuffer(floorBuffer, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
-		// this is common to both objects
-		ds::setVertexDeclaration(rid);
-		ds::setIndexBuffer(indexBufferID);
-		ds::setBlendState(bs_id);
-		ds::setShader(shaderID);
-		ds::setSamplerState(ssid);
-		ds::setTexture(textureID, ds::ShaderType::PIXEL);
-		// update constant buffer use v3(0,0,0) as world position
-		constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
-		constantBuffer.worldMatrix = mat_Transpose(mat_identity());
-		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
-		ds::setConstantBuffer(cbid, ds::ShaderType::VERTEX);
-		// draw floor
-		ds::drawIndexed(6);
-
-
+		
 		// move cube
 		rotation.y += 2.0f  * static_cast<float>(ds::getElapsedSeconds());
 		rotation.x += 1.0f  * static_cast<float>(ds::getElapsedSeconds());
@@ -104,15 +93,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		matrix s = mat_Scale(scale);
 		matrix w = rotZ * rotY * rotX * s * world;
 		
-		// switch vertex buffer
-		ds::setVertexBuffer(vbid, &stride, &offset, ds::PrimitiveTypes::TRIANGLE_LIST);
-		// update constant buffer
 		constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
 		constantBuffer.worldMatrix = mat_Transpose(w);
-		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(CubeConstantBuffer));
-		ds::setConstantBuffer(cbid, ds::ShaderType::VERTEX);
-		// draw cube
-		ds::drawIndexed(q);
+		ds::submit(drawCmd, sg);
+
 		ds::end();
 	}
 	ds::shutdown();

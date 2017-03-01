@@ -17,8 +17,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sprites", "..\examples\spri
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AmbientLightning", "..\examples\ambient\AmbientLightning.vcxproj", "{F623C691-ED53-429D-89FB-3F01D54A470F}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Shadows", "..\examples\shadows\Shadows.vcxproj", "{E82AF1AF-F554-4A7E-B8BA-B10521D2863F}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PostProcess", "..\examples\effects\PostProcess.vcxproj", "{CD86FA68-B0BC-4689-B4B4-4814EC2688A6}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Particles_2D", "..\examples\particles2D\Particles_2D.vcxproj", "{1056C86F-6512-4C01-ADA2-1D07AFDD2EF0}"
@@ -97,14 +95,6 @@ Global
 		{F623C691-ED53-429D-89FB-3F01D54A470F}.Release|x64.Build.0 = Release|x64
 		{F623C691-ED53-429D-89FB-3F01D54A470F}.Release|x86.ActiveCfg = Release|Win32
 		{F623C691-ED53-429D-89FB-3F01D54A470F}.Release|x86.Build.0 = Release|Win32
-		{E82AF1AF-F554-4A7E-B8BA-B10521D2863F}.Debug|x64.ActiveCfg = Debug|x64
-		{E82AF1AF-F554-4A7E-B8BA-B10521D2863F}.Debug|x64.Build.0 = Debug|x64
-		{E82AF1AF-F554-4A7E-B8BA-B10521D2863F}.Debug|x86.ActiveCfg = Debug|Win32
-		{E82AF1AF-F554-4A7E-B8BA-B10521D2863F}.Debug|x86.Build.0 = Debug|Win32
-		{E82AF1AF-F554-4A7E-B8BA-B10521D2863F}.Release|x64.ActiveCfg = Release|x64
-		{E82AF1AF-F554-4A7E-B8BA-B10521D2863F}.Release|x64.Build.0 = Release|x64
-		{E82AF1AF-F554-4A7E-B8BA-B10521D2863F}.Release|x86.ActiveCfg = Release|Win32
-		{E82AF1AF-F554-4A7E-B8BA-B10521D2863F}.Release|x86.Build.0 = Release|Win32
 		{CD86FA68-B0BC-4689-B4B4-4814EC2688A6}.Debug|x64.ActiveCfg = Debug|x64
 		{CD86FA68-B0BC-4689-B4B4-4814EC2688A6}.Debug|x64.Build.0 = Debug|x64
 		{CD86FA68-B0BC-4689-B4B4-4814EC2688A6}.Debug|x86.ActiveCfg = Debug|Win32

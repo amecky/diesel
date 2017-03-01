@@ -75,10 +75,10 @@ bool HieroFont::load(const char* fileName) {
 		}
 	}
 	// nasty workaround for space (char 32). Since Hiero exports it with 0 dimension
-	HieroFontItem& item = _items[32];
-	item.x = 0;
-	item.y = 96;
-	item.width = 12;
-	item.height = 32;
+	//HieroFontItem& item = _items[32];
+	//item.x = 0;
+	//item.y = 96;
+	//item.width = 12;
+	//item.height = 32;
 	return true;
 }

@@ -110,8 +110,10 @@ void addText(const HieroFont& font, const v2& pos, const char* text) {
 		const HieroFontItem& item = font.get(*current);
 		float dimX = item.width;
 		float dimY = item.height;
+		float x = xpos + item.xoffset;
+		float y = ypos - (item.height - item.yoffset);
 		add(v2(xpos + dimX * 0.5f, ypos + dimY * 0.5f), Rect(item.y, item.x, item.width, item.height));
-		xpos += dimX + 4;
+		xpos += item.xadvance + 4;
 		++current;
 	}
 }
@@ -121,7 +123,7 @@ void addText(const HieroFont& font, const v2& pos, const char* text) {
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
 	
 	HieroFont font;
-	font.load("times_new_roman_32.fnt");
+	font.load("nulshock_32.fnt");
 
 	
 	std::vector<Message> messages;
@@ -137,12 +139,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	messages.push_back(msg2);
 	size_t currentMessage = 0;
 
-	//addText(font, v2(100.0f, 300.0f), "Hello world");
+	SpriteVertex vertices[256];
+	int numVertices = 0;
+
+	//addText(font, v2(100.0f, 300.0f), "Hello world. This good year");
 	//addText(font, v2(300.0f, 500.0f), "More text is here");
 	//addText(font, v2(600.0f, 100.0f), "Here is also some text");
 
 	SpriteConstantBuffer constantBuffer;
-	constantBuffer.screenDimension = v4(1024.0f, 768.0f, 512.0f, 512.0f);
+	constantBuffer.screenDimension = v4(1024.0f, 768.0f, 256.0f, 256.0f);
 	constantBuffer.screenCenter = v4(512.0f, 384.0f, 0.0f, 0.0f);
 	float t = 0.0f;
 
@@ -157,18 +162,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	// load image using stb_image
 	int x, y, n;
-	unsigned char *data = stbi_load("times_new_roman_32.png", &x, &y, &n, 4);
+	unsigned char *data = stbi_load("nulshock_32.png", &x, &y, &n, 4);
 	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
 	stbi_image_free(data);
 
 
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 
-	// create shader and load compiled shaders
-	RID shaderID = ds::createShader();
-	ds::loadVertexShader(shaderID, "Font_vs.cso");
-	ds::loadPixelShader(shaderID, "Font_ps.cso");
-	ds::loadGeometryShader(shaderID, "Font_gs.cso");
+	ds::ShaderDescriptor desc[] = {
+		{ ds::ShaderType::VERTEX, "Font_vs.cso" },
+		{ ds::ShaderType::PIXEL, "Font_ps.cso" },
+		{ ds::ShaderType::GEOMETRY, "Font_gs.cso" }
+	};
+
+	RID shaderID = ds::createShader(desc, 3);
 
 	// very special buffer layout 
 	ds::VertexDeclaration decl[] = {
@@ -189,18 +196,24 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	matrix projectionMatrix = mat_OrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
 	matrix viewProjectionMatrix = viewMatrix * projectionMatrix;
 
-	// batch descriptor used to initialize batch
-	ds::BatchDescriptor desc;
-	desc.size = MAX_SPRITES;
-	desc.vertexBufferID = vertexBufferID;
-	desc.primitiveType = ds::PrimitiveTypes::POINT_LIST;
-	desc.vertexDeclarationID = vertexDeclId;
-	// use batch
-	ds::Batch<SpriteVertex> batch(desc);
+	ds::setViewMatrix(viewMatrix);
+	ds::setProjectionMatrix(projectionMatrix);
+
+	ds::StateGroup* sg = ds::createStateGroup();
+	sg->bindLayout(vertexDeclId);
+	sg->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, &constantBuffer);
+	sg->bindConstantBuffer(cbid, ds::ShaderType::GEOMETRY, &constantBuffer);
+	sg->bindBlendState(bs_id);
+	sg->bindSamplerState(ssid, ds::ShaderType::PIXEL);
+	sg->bindVertexBuffer(vertexBufferID);
+	sg->bindShader(shaderID);
+	sg->bindTexture(textureID, ds::ShaderType::PIXEL, 0);
+
+	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::POINT_LIST };
 
 	while (ds::isRunning()) {
 		ds::begin();
-
+		//ds::Color textColor(255, 255, 255, 255);
 		Message& m = messages[currentMessage];
 		m.timer += static_cast<float>(ds::getElapsedSeconds());
 		if (m.timer >= TTL[m.state]) {
@@ -217,7 +230,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				messages[currentMessage].timer = 0.0f;
 				numSprites = 0;
 				// FIXME: center text
-				addText(font, v2(512.0f,384.0f),messages[currentMessage].text);
+				addText(font, v2(100.0f,384.0f),messages[currentMessage].text);
 			}
 		}
 		ds::Color textColor = ds::Color(192, 0, 0, 255);
@@ -232,18 +245,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		}
 		// disbale depth buffer
 		ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
-		ds::setBlendState(bs_id);
-		ds::setShader(shaderID);
-		ds::setSamplerState(ssid);
-		ds::setTexture(textureID, ds::ShaderType::PIXEL);
-		// prepare constant buffers
 		matrix w = mat_identity();
 		constantBuffer.wvp = mat_Transpose(viewProjectionMatrix);
-		ds::updateConstantBuffer(cbid, &constantBuffer, sizeof(SpriteConstantBuffer));
-		ds::setConstantBuffer(cbid,ds::ShaderType::GEOMETRY);
-		ds::setConstantBuffer(cbid, ds::ShaderType::VERTEX);
-		// use batch to draw sprites
-		batch.begin();
+		numVertices = 0;
 		for (int i = 0; i < numSprites; ++i) {
 			const Sprite& sprite = sprites[i];
 			v4 t;
@@ -251,9 +255,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			t.y = sprite.texture.top;
 			t.z = sprite.texture.width;
 			t.w = sprite.texture.height;
-			batch.add(SpriteVertex(sprite.position, t, v3(sprite.scale.x, sprite.scale.y, sprite.rotation), textColor));
+			vertices[numVertices++] = SpriteVertex(sprite.position, t, v3(sprite.scale.x, sprite.scale.y, sprite.rotation), textColor);
 		}
-		batch.flush();
+		ds::mapBufferData(vertexBufferID, vertices, 64 * sizeof(SpriteVertex));
+		drawCmd.size = numSprites;
+		ds::submit(drawCmd, sg);
 		// enable depth buffer
 		ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
 		ds::end();

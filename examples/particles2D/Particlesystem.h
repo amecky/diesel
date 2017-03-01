@@ -105,14 +105,8 @@ struct ParticleArray {
 // -------------------------------------------------------
 struct ParticlesystemDescriptor {
 	uint16_t maxParticles;
-	RID blendState;
-	RID shader;
-	RID samplerState;
-	RID texture;
-	RID constantBuffer;
-	RID vertexBuffer;
-	RID vertexDeclaration;
 	v2 particleDimension;
+	RID textureID;
 };
 
 // -------------------------------------------------------
@@ -146,4 +140,6 @@ private:
 	ParticleArray _array;
 	ParticleVertex* _vertices;
 	matrix _viewProjectionMatrix;
+	ds::DrawItem* _drawItem;
+	RID _vertexBuffer;
 };

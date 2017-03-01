@@ -779,6 +779,7 @@ namespace ds {
 		void bindShader(RID rid);
 		void bindIndexBuffer(RID rid);
 		void bindTexture(RID rid, ShaderType type, int slot);
+		void bindTextureFromRenderTarget(RID rtID, ShaderType type, int slot);
 	private:
 		void* allocate(uint16_t type, uint16_t size);
 		int* _types;
@@ -796,6 +797,8 @@ namespace ds {
 	};
 
 	DrawItem* compile(const DrawCommand cmd, StateGroup* groups[], int num);
+
+	DrawItem* compile(const DrawCommand cmd, StateGroup* group);
 
 	StateGroup* createStateGroup();
 
@@ -3038,6 +3041,9 @@ namespace ds {
 		return sg;
 	}
 
+	// -----------------------------------------------------------------
+	// compile with array of StateGroups
+	// -----------------------------------------------------------------
 	DrawItem* compile(const DrawCommand cmd, StateGroup* groups[], int num) {
 		DrawItem* item = new DrawItem;
 		item->command = cmd;
@@ -3049,6 +3055,18 @@ namespace ds {
 		return item;
 	}
 
+	// -----------------------------------------------------------------
+	// compile with only one StateGroup
+	// -----------------------------------------------------------------
+	DrawItem* compile(const DrawCommand cmd, StateGroup* group) {
+		DrawItem* item = new DrawItem;
+		item->command = cmd;
+		item->groups = new StateGroup*[1];
+		item->groups[0] = group;
+		item->num = 1;
+		return item;
+	}
+
 	enum StateGroupItemType {
 		SGI_SET_LAYOUT,
 		SGI_SET_CONSTANTBUFFER,
@@ -3057,7 +3075,8 @@ namespace ds {
 		SGI_SET_VERTEX_BUFFER,
 		SGI_SET_SHADER,
 		SGI_SET_INDEX_BUFFER,
-		SGI_SET_TEXTURE
+		SGI_SET_TEXTURE,
+		SGI_SET_RT
 	};
 
 	struct ConstantBufferBindData {
@@ -3135,6 +3154,13 @@ namespace ds {
 		*d = rid;
 	}
 
+	void StateGroup::bindTextureFromRenderTarget(RID rtID, ShaderType type, int slot) {
+		TextureBindData* d = (TextureBindData*)allocate(SGI_SET_RT, sizeof(TextureBindData));
+		d->rid = rtID;
+		d->type = type;
+		d->slot = slot;
+	}
+
 	void StateGroup::bindTexture(RID rid, ShaderType type, int slot) {
 		TextureBindData* d = (TextureBindData*)allocate(SGI_SET_TEXTURE, sizeof(TextureBindData));
 		d->rid = rid;
@@ -3201,6 +3227,10 @@ namespace ds {
 			else if (_types[i] == SGI_SET_TEXTURE) {
 				TextureBindData* d = (TextureBindData*)(_data + _indices[i]);
 				setTexture(d->rid, d->type, d->slot);
+			}
+			else if (_types[i] == SGI_SET_RT) {
+				TextureBindData* d = (TextureBindData*)(_data + _indices[i]);
+				setTextureFromRenderTarget(d->rid, d->type, d->slot);
 			}
 			else if (_types[i] == SGI_SET_CONSTANTBUFFER) {
 				ConstantBufferBindData* d = (ConstantBufferBindData*)(_data + _indices[i]);

@@ -25,32 +25,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	// load image using stb_image
 	int x, y, n;
 	unsigned char *data = stbi_load("particles.png", &x, &y, &n, 4);
-	descriptor.texture = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
+	descriptor.textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
 	stbi_image_free(data);
-
 	
-	descriptor.blendState = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
-
-	// create shader and load compiled shaders
-	descriptor.shader = ds::createShader();
-	ds::loadVertexShader(descriptor.shader, "Particles_2D_vs.cso");
-	ds::loadPixelShader(descriptor.shader, "Particles_2D_ps.cso");
-	ds::loadGeometryShader(descriptor.shader, "Particles_2D_gs.cso");
-
-	// very special buffer layout 
-	ds::VertexDeclaration decl[] = {
-		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
-		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 },
-		{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,3 },
-		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
-	};
-
-	descriptor.vertexDeclaration = ds::createVertexDeclaration(decl, 4, descriptor.shader);
-		
-	descriptor.constantBuffer = ds::createConstantBuffer(sizeof(ParticleConstantBuffer));
-	descriptor.vertexBuffer = ds::createVertexBuffer(ds::BufferType::DYNAMIC, descriptor.maxParticles, descriptor.vertexDeclaration);
-	descriptor.samplerState = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
-
 	Particlesystem system(descriptor);
 
 	ParticleDescriptor particleDescriptor;
@@ -88,11 +65,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		}
 			
 		ds::begin();
-		// disbale depth buffer
-		ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
 		system.tick(static_cast<float>(ds::getElapsedSeconds()));
 		system.render();
-		ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
 		ds::end();
 	}
 	ds::shutdown();
