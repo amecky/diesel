@@ -27,21 +27,21 @@ Particlesystem::Particlesystem(ParticlesystemDescriptor descriptor) : _descripto
 	RID vertexDeclaration = ds::createVertexDeclaration(decl, 4, shader);
 
 	RID constantBuffer = ds::createConstantBuffer(sizeof(ParticleConstantBuffer));
-	_vertexBuffer = ds::createVertexBuffer(ds::BufferType::DYNAMIC, descriptor.maxParticles, vertexDeclaration);
+	_vertexBuffer = ds::createVertexBuffer(ds::BufferType::DYNAMIC, descriptor.maxParticles, sizeof(ParticleVertex));
 	RID samplerState = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 
 	ds::StateGroup* basicGroup = ds::createStateGroup();
-	basicGroup->bindLayout(vertexDeclaration);
-	basicGroup->bindShader(shader);
+	basicGroup->bindLayout(vertexDeclaration);	
 	basicGroup->bindConstantBuffer(constantBuffer, ds::ShaderType::VERTEX, &_constantBuffer);
 	basicGroup->bindConstantBuffer(constantBuffer, ds::ShaderType::GEOMETRY, &_constantBuffer);
 	basicGroup->bindBlendState(blendState);
+	basicGroup->bindShader(shader);
 	//basicGroup->bindSamplerState(ssid, ds::ShaderType::PIXEL);
 	basicGroup->bindTexture(descriptor.texture, ds::ShaderType::PIXEL, 0);
 
 	basicGroup->bindVertexBuffer(_vertexBuffer);
 
-	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::POINT_LIST };
+	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::POINT_LIST, 0 };
 
 	_drawItem = ds::compile(drawCmd, basicGroup);
 }

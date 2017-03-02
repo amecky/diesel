@@ -878,8 +878,6 @@ namespace ds {
 
 	// drawing
 	
-	void draw(uint32_t num, DrawType type, PrimitiveTypes topology);
-
 	void submit(const DrawCommand& cmd, StateGroup* group);
 
 	void submit(DrawItem* item);
@@ -2249,6 +2247,7 @@ namespace ds {
 			index += formatType.bytes;
 			si[decl[i].attribute] += 1;
 		}
+		index = 0;
 		for (int i = 0; i < instNum; ++i) {
 			D3D11_INPUT_ELEMENT_DESC& desc = descriptors[counter++];
 			const InstanceLayoutDeclaration& current = instDecl[i];
@@ -2263,7 +2262,7 @@ namespace ds {
 			desc.InputSlot = 1;
 			desc.AlignedByteOffset = index;
 			desc.InputSlotClass = D3D11_INPUT_PER_INSTANCE_DATA;
-			desc.InstanceDataStepRate = 0;
+			desc.InstanceDataStepRate = 1;
 			index += formatType.bytes;
 		}
 		uint16_t sidx = getResourceIndex(shaderId, RT_SHADER);
@@ -2686,14 +2685,7 @@ namespace ds {
 		switch (cmd.drawType) {
 			case DT_VERTICES: _ctx->d3dContext->Draw(cmd.size, 0); break;
 			case DT_INDEXED: _ctx->d3dContext->DrawIndexed(cmd.size, 0, 0); break;
-		}
-	}
-
-	void draw(uint32_t num, DrawType type, PrimitiveTypes topology) {
-		_ctx->d3dContext->IASetPrimitiveTopology(PRIMITIVE_TOPOLOGIES[topology]);
-		switch (type) {
-			case DT_VERTICES: _ctx->d3dContext->Draw(num, 0); break;
-			case DT_INDEXED: _ctx->d3dContext->DrawIndexed(num, 0, 0); break;
+			case DT_INSTANCED: _ctx->d3dContext->DrawInstanced(cmd.size, cmd.instances, 0, 0); break;
 		}
 	}
 
@@ -3305,7 +3297,7 @@ namespace ds {
 				setTextureFromRenderTarget(d->rid, d->type, d->slot);
 				used[SGI_SET_RT] = 1;
 			}
-			else if (_types[i] == SGI_SET_CONSTANTBUFFER && used[SGI_SET_CONSTANTBUFFER] == 0) {
+			else if (_types[i] == SGI_SET_CONSTANTBUFFER ) {//&& used[SGI_SET_CONSTANTBUFFER] == 0) {
 				ConstantBufferBindData* d = (ConstantBufferBindData*)(_data + _indices[i]);
 				if (d->data != 0) {
 					updateConstantBuffer(d->rid, d->data);

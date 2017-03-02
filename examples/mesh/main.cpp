@@ -11,6 +11,7 @@ const int TOTAL = HEIGHT * WIDTH;
 struct GridItem {
 	v3 pos;
 	float timer;
+	ds::Color color;
 };
 
 struct CubeConstantBuffer {
@@ -26,17 +27,18 @@ struct LightBuffer {
 };
 
 struct InstanceData {
-	matrix world;
+	v3 pos;
 	ds::Color color;
 };
 // ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
-
+	v3 rotation(ds::PI * 0.5f, 0.0f, 0.0f);
+	matrix rotX = mat_RotationX(rotation.x);
 	ObjVertex vertices[512];
 	WaveFrontReader reader;
-	int num = reader.load("hex.obj", vertices, 512);
+	int num = reader.load("hex.obj", vertices, 512,&rotX);
 	if ( num == -1) {
 		printf("Cannot load file\n");
 	}
@@ -46,7 +48,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::RenderSettings rs;
 	rs.width = 1024;
 	rs.height = 768;
-	rs.title = "Hello world";
+	rs.title = "Instancing example - 140 Hexagons";
 	rs.clearColor = ds::Color(0.1f, 0.1f, 0.1f, 1.0f);
 	rs.multisampling = 4;
 	ds::init(rs);
@@ -64,10 +66,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID shaderID = ds::createShader(desc,2);
 
 	ds::InstanceLayoutDeclaration instDecl[] = {
-		{ "WORLD", 0, ds::BufferAttributeType::FLOAT, 4 },
-		{ "WORLD", 1, ds::BufferAttributeType::FLOAT, 4 },
-		{ "WORLD", 2, ds::BufferAttributeType::FLOAT, 4 },
-		{ "WORLD", 3, ds::BufferAttributeType::FLOAT, 4 },
+		{ "NORMAL", 1, ds::BufferAttributeType::FLOAT, 3 },
 		{ "COLOR", 0, ds::BufferAttributeType::FLOAT, 4 }
 	};
 
@@ -83,13 +82,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	lightBuffer.padding = 0.0f;
 	v3 lightPos = v3(0.0f, -0.5f, 1.0f);
 	lightBuffer.lightDirection = normalize(lightPos);
-
-
-	//RID rid = ds::createVertexDeclaration(decl, 4, shaderID);
-
-	RID rid = ds::createInstanceDeclaration(decl, 3, instDecl, 5, shaderID);
-
-
+	
+	RID rid = ds::createInstanceDeclaration(decl, 3, instDecl, 2, shaderID);
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
 	RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer));
 	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, num, sizeof(ObjVertex), vertices);
@@ -99,7 +93,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::setViewPosition(vp);
 
 	v3 scale(1.0f, 1.0f, 1.0f);
-	v3 rotation(ds::PI * 0.5f, 0.0f, 0.0f);
+	
 	v3 pos(0.0f, 0.0f, 0.0f);
 
 	FPSCamera camera(1024, 768);
@@ -122,6 +116,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			GridItem& item = items[w + r * WIDTH];
 			item.pos = p;
 			item.timer = ds::random(0.0f, ds::PI);
+			item.color = ds::Color(ds::random(0.6f, 1.0f), ds::random(0.6f, 1.0f), ds::random(0.6f, 1.0f), 1.0f);
 			++w;
 		}
 	}
@@ -141,25 +136,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	while (ds::isRunning()) {
 		ds::begin();
-
-		matrix rotX = mat_RotationX(rotation.x);
 		for (int y = 0; y < TOTAL; ++y) {
 			GridItem& item = items[y];
 			item.timer += ds::getElapsedSeconds();
-			matrix w = mat_Translate(v3(item.pos.x, item.pos.y, sin(item.timer) * 0.4f));
-			w = mat_Transpose(rotX * w);
-			instances[y] = { w,ds::Color(192,0,0,255) };
+			instances[y] = { v3(item.pos.x, item.pos.y, sin(item.timer) * 0.4f), item.color };
 		}
-
 		ds::mapBufferData(idid, instances, sizeof(InstanceData) * TOTAL);
 		camera.update(static_cast<float>(ds::getElapsedSeconds()));
 		matrix vpm = camera.getViewProjectionMatrix();
 		constantBuffer.viewProjectionMatrix = mat_Transpose(vpm);
 		matrix world = mat_identity();
 		constantBuffer.worldMatrix = mat_Transpose(world);
-
 		ds::submit(drawItem);
-
 		ds::end();
 	}
 	ds::shutdown();

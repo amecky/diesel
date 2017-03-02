@@ -13,5 +13,5 @@ struct ObjVertex {
 class WaveFrontReader {
 
 public:
-	int load(const char* fileName, ObjVertex* objVertices, int max);
+	int load(const char* fileName, ObjVertex* objVertices, int max, matrix* world = 0);
 };

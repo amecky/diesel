@@ -2,7 +2,7 @@
 #include <fstream>
 #include <vector>
 
-int WaveFrontReader::load(const char * fileName, ObjVertex* objVertices, int max) {
+int WaveFrontReader::load(const char * fileName, ObjVertex* objVertices, int max, matrix* world) {
 	std::ifstream file(fileName);
 	if (!file) {
 		return -1;
@@ -58,6 +58,9 @@ int WaveFrontReader::load(const char * fileName, ObjVertex* objVertices, int max
 				}
 				ObjVertex ov;
 				ov.position = vertices[v - 1];
+				if (world != 0) {
+					ov.position = *world * ov.position;
+				}
 				if (t != -1) {
 					ov.texture = textures[t - 1];
 				}
