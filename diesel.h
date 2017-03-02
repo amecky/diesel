@@ -2487,7 +2487,7 @@ namespace ds {
 				unsigned int stride = res->getVertexSize();
 				unsigned int offset = 0;
 				ID3D11Buffer* buffer = res->get();
-				_ctx->d3dContext->IASetVertexBuffers(0, 2, &buffer, &stride, &offset);
+				_ctx->d3dContext->IASetVertexBuffers(0, 1, &buffer, &stride, &offset);
 			}
 			_ctx->selectedVertexBuffer = ridx;
 		}

@@ -167,7 +167,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID vertexDeclId = ds::createVertexDeclaration(decl, 4, shaderID);
 		
 	RID cbid = ds::createConstantBuffer(sizeof(SpriteConstantBuffer));
-	RID vertexBufferID = ds::createVertexBuffer(ds::BufferType::DYNAMIC, 64, vertexDeclId);
+	RID vertexBufferID = ds::createVertexBuffer(ds::BufferType::DYNAMIC, 64, sizeof(SpriteVertex));
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 
 	// create orthographic view
@@ -188,7 +188,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	sg->bindShader(shaderID);
 	sg->bindTexture(textureID, ds::ShaderType::PIXEL, 0);
 
-	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::POINT_LIST };
+	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::POINT_LIST, 0 };
 
 	while (ds::isRunning()) {
 		// move sprites
@@ -221,7 +221,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			t.w = sprite.texture.height;
 			vertices[i] = SpriteVertex(sprite.position, t, v3(sprite.scale.x, sprite.scale.y, sprite.rotation), sprite.color);
 		}
-		ds::mapBufferData(vertexBufferID, vertices, 64 * sizeof(SpriteVertex));
+		ds::mapBufferData(vertexBufferID, vertices, numSprites * sizeof(SpriteVertex));
 		drawCmd.size = numSprites;
 		ds::submit(drawCmd, sg);
 		ds::setDepthBufferState(ds::DepthBufferState::ENABLED);

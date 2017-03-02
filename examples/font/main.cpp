@@ -142,7 +142,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	SpriteVertex vertices[256];
 	int numVertices = 0;
 
-	//addText(font, v2(100.0f, 300.0f), "Hello world. This good year");
+	addText(font, v2(100.0f, 300.0f), "Hello world. This good year");
 	//addText(font, v2(300.0f, 500.0f), "More text is here");
 	//addText(font, v2(600.0f, 100.0f), "Here is also some text");
 
@@ -188,7 +188,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID vertexDeclId = ds::createVertexDeclaration(decl, 4, shaderID);
 		
 	RID cbid = ds::createConstantBuffer(sizeof(SpriteConstantBuffer));
-	RID vertexBufferID = ds::createVertexBuffer(ds::BufferType::DYNAMIC, MAX_SPRITES, vertexDeclId);
+	RID vertexBufferID = ds::createVertexBuffer(ds::BufferType::DYNAMIC, MAX_SPRITES, sizeof(SpriteVertex));
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 
 	// create orthographic view
@@ -213,7 +213,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	while (ds::isRunning()) {
 		ds::begin();
-		//ds::Color textColor(255, 255, 255, 255);
+		ds::Color textColor(255, 255, 255, 255);
+		/*
 		Message& m = messages[currentMessage];
 		m.timer += static_cast<float>(ds::getElapsedSeconds());
 		if (m.timer >= TTL[m.state]) {
@@ -243,6 +244,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		else {
 			textColor.a = 1.0f;
 		}
+		*/
 		// disbale depth buffer
 		ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
 		matrix w = mat_identity();
@@ -257,7 +259,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			t.w = sprite.texture.height;
 			vertices[numVertices++] = SpriteVertex(sprite.position, t, v3(sprite.scale.x, sprite.scale.y, sprite.rotation), textColor);
 		}
-		ds::mapBufferData(vertexBufferID, vertices, 64 * sizeof(SpriteVertex));
+		ds::mapBufferData(vertexBufferID, vertices, numVertices * sizeof(SpriteVertex));
 		drawCmd.size = numSprites;
 		ds::submit(drawCmd, sg);
 		// enable depth buffer

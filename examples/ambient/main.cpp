@@ -135,9 +135,9 @@ int main(const char** args) {
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
 	RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer));
 	RID indexBuffer = ds::createQuadIndexBuffer(36);
-	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, rid, v,sizeof(Vertex));
-	RID floorBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 4, rid, floorVertices, sizeof(Vertex));
-	RID bulbID = ds::createVertexBuffer(ds::BufferType::STATIC, 24, rid, lv, sizeof(Vertex));
+	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v);
+	RID floorBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 4, sizeof(Vertex), floorVertices);
+	RID bulbID = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), lv);
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 	v3 vp = v3(0.0f, 2.0f, -6.0f);
 	ds::setViewPosition(vp);

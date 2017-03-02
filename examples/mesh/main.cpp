@@ -147,7 +147,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			GridItem& item = items[y];
 			item.timer += ds::getElapsedSeconds();
 			matrix w = mat_Translate(v3(item.pos.x, item.pos.y, sin(item.timer) * 0.4f));
-			w = rotX * w;
+			w = mat_Transpose(rotX * w);
 			instances[y] = { w,ds::Color(192,0,0,255) };
 		}
 
