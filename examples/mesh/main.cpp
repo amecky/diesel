@@ -24,6 +24,11 @@ struct LightBuffer {
 	v3 lightDirection;
 	float padding;
 };
+
+struct InstanceData {
+	matrix world;
+	ds::Color color;
+};
 // ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------
@@ -46,7 +51,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.multisampling = 4;
 	ds::init(rs);
 
-	
+	InstanceData instances[512];
 
 
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
@@ -58,11 +63,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID shaderID = ds::createShader(desc,2);
 
+	ds::InstanceLayoutDeclaration instDecl[] = {
+		{ "WORLD", 0, ds::BufferAttributeType::FLOAT, 4 },
+		{ "WORLD", 1, ds::BufferAttributeType::FLOAT, 4 },
+		{ "WORLD", 2, ds::BufferAttributeType::FLOAT, 4 },
+		{ "WORLD", 3, ds::BufferAttributeType::FLOAT, 4 },
+		{ "COLOR", 0, ds::BufferAttributeType::FLOAT, 4 }
+	};
+
 	ds::VertexDeclaration decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 },
-		{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,3 },
-		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
+		{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,3 }
 	};
 
 	LightBuffer lightBuffer;
@@ -73,10 +85,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	lightBuffer.lightDirection = normalize(lightPos);
 
 
-	RID rid = ds::createVertexDeclaration(decl, 4, shaderID);
+	//RID rid = ds::createVertexDeclaration(decl, 4, shaderID);
+
+	RID rid = ds::createInstanceDeclaration(decl, 3, instDecl, 5, shaderID);
+
+
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
 	RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer));
-	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, num, rid, vertices,sizeof(ObjVertex));
+	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, num, sizeof(ObjVertex), vertices);
+	RID idid = ds::createVertexBuffer(ds::BufferType::DYNAMIC, 512, sizeof(InstanceData));
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 	v3 vp = v3(0.0f, 3.0f, -6.0f);
 	ds::setViewPosition(vp);
@@ -111,32 +128,38 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	ds::StateGroup* sg = ds::createStateGroup();
 	sg->bindLayout(rid);
+	sg->bindShader(shaderID);
 	sg->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, &constantBuffer);
 	sg->bindConstantBuffer(lightBufferID, ds::ShaderType::PIXEL, &lightBuffer);
 	sg->bindBlendState(bs_id);
 	sg->bindSamplerState(ssid,ds::ShaderType::PIXEL);
-	sg->bindVertexBuffer(vbid);
-	sg->bindShader(shaderID);
+	sg->bindInstancedVertexBuffer(vbid,idid);
+	
+	ds::DrawCommand drawCmd = { num, ds::DrawType::DT_INSTANCED, ds::PrimitiveTypes::TRIANGLE_LIST, TOTAL };
 
-	ds::DrawCommand drawCmd = { num, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::TRIANGLE_LIST };
+	ds::DrawItem* drawItem = ds::compile(drawCmd, sg);
 
 	while (ds::isRunning()) {
 		ds::begin();
 
-		camera.update(static_cast<float>(ds::getElapsedSeconds()));
-		matrix vpm = camera.getViewProjectionMatrix();
 		matrix rotX = mat_RotationX(rotation.x);
-		constantBuffer.viewProjectionMatrix = mat_Transpose(vpm);
-		// draw cube
 		for (int y = 0; y < TOTAL; ++y) {
 			GridItem& item = items[y];
 			item.timer += ds::getElapsedSeconds();
 			matrix w = mat_Translate(v3(item.pos.x, item.pos.y, sin(item.timer) * 0.4f));
 			w = rotX * w;
-			constantBuffer.worldMatrix = mat_Transpose(w);
-			ds::submit(drawCmd, sg);
+			instances[y] = { w,ds::Color(192,0,0,255) };
 		}
-		
+
+		ds::mapBufferData(idid, instances, sizeof(InstanceData) * TOTAL);
+		camera.update(static_cast<float>(ds::getElapsedSeconds()));
+		matrix vpm = camera.getViewProjectionMatrix();
+		constantBuffer.viewProjectionMatrix = mat_Transpose(vpm);
+		matrix world = mat_identity();
+		constantBuffer.worldMatrix = mat_Transpose(world);
+
+		ds::submit(drawItem);
+
 		ds::end();
 	}
 	ds::shutdown();

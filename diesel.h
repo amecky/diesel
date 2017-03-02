@@ -643,6 +643,13 @@ namespace ds {
 		uint8_t size;
 	};
 
+	struct InstanceLayoutDeclaration {
+		const char* name;
+		uint8_t nameIndex;
+		BufferAttributeType type;
+		uint8_t size;		
+	};
+
 	enum BlendStates {
 		ZERO,
 		ONE,
@@ -732,6 +739,7 @@ namespace ds {
 		uint32_t size;
 		DrawType drawType;
 		PrimitiveTypes topology;
+		uint32_t instances;
 	};
 
 	
@@ -776,6 +784,7 @@ namespace ds {
 		void bindBlendState(RID rid);
 		void bindSamplerState(RID rid, ShaderType type);
 		void bindVertexBuffer(RID rid);
+		void bindInstancedVertexBuffer(RID rid, RID instanceBuffer);
 		void bindShader(RID rid);
 		void bindIndexBuffer(RID rid);
 		void bindTexture(RID rid, ShaderType type, int slot);
@@ -808,6 +817,8 @@ namespace ds {
 
 	RID createVertexDeclaration(VertexDeclaration* decl, uint8_t num, RID shaderId);
 
+	RID createInstanceDeclaration(VertexDeclaration* decl, uint8_t num, InstanceLayoutDeclaration* instDecl, uint8_t instNum, RID shaderId);
+
 	// constant buffer
 
 	RID createConstantBuffer(int byteWidth);
@@ -822,9 +833,7 @@ namespace ds {
 
 	// vertex buffer
 
-	RID createVertexBuffer(BufferType type, int numVertices, RID vertexDecl);
-
-	RID createVertexBuffer(BufferType type, int numVertices, RID vertexDecl, void* data, unsigned long long vertexSize);
+	RID createVertexBuffer(BufferType type, int numVertices, uint32_t vertexSize, void* data = 0);
 
 	void mapBufferData(RID rid, void* data, uint32_t size);
 
@@ -1206,7 +1215,7 @@ namespace ds {
 	class VertexBufferResource : public AbstractResource<ID3D11Buffer*> {
 
 	public:
-		VertexBufferResource(ID3D11Buffer* t, int size, BufferType type, RID inputLayout, int vertexSize) : AbstractResource(t), _size(size), _inputLayout(inputLayout) , _vertexSize(vertexSize) {}
+		VertexBufferResource(ID3D11Buffer* t, int size, BufferType type, int vertexSize) : AbstractResource(t), _size(size), _vertexSize(vertexSize) {}
 		virtual ~VertexBufferResource() {}
 
 		void release() {
@@ -1218,9 +1227,6 @@ namespace ds {
 		int size() const {
 			return _size;
 		}
-		RID getInputLayout() const {
-			return _inputLayout;
-		}
 		const ResourceType getType() const {
 			return RT_VERTEX_BUFFER;
 		}
@@ -1231,7 +1237,6 @@ namespace ds {
 			return _vertexSize;
 		}
 	private:
-		RID _inputLayout;
 		int _size;
 		BufferType _type;
 		int _vertexSize;
@@ -2215,7 +2220,57 @@ namespace ds {
 		ShaderResource* sres = (ShaderResource*)_ctx->_resources[sidx];
 		Shader* s = sres->get();
 		ID3D11InputLayout* layout = 0;
-		assert_result(_ctx->d3dDevice->CreateInputLayout(descriptors, num, s->vertexShaderBuffer, s->bufferSize, &layout), "Failed to create input layout");
+		ASSERT_RESULT(_ctx->d3dDevice->CreateInputLayout(descriptors, num, s->vertexShaderBuffer, s->bufferSize, &layout), "Failed to create input layout");
+		InputLayoutResource* res = new InputLayoutResource(layout, index);
+		return addResource(res, RT_VERTEX_DECLARATION);
+	}
+
+	RID createInstanceDeclaration(VertexDeclaration* decl, uint8_t num, InstanceLayoutDeclaration* instDecl, uint8_t instNum, RID shaderId) {
+		int total = num + instNum;
+		D3D11_INPUT_ELEMENT_DESC* descriptors = new D3D11_INPUT_ELEMENT_DESC[total];
+		uint32_t index = 0;
+		uint32_t counter = 0;
+		int si[8] = { 0 };
+		for (int i = 0; i < num; ++i) {
+			D3D11_INPUT_ELEMENT_DESC& desc = descriptors[counter++];
+			const VertexDeclaration& current = decl[i];
+			int fidx = find_format(current.type, current.size);
+			if (fidx == -1) {
+				return INVALID_RID;
+			}
+			const DXBufferAttributeType& formatType = DXBufferAttributeTypes[fidx];
+			desc.SemanticName = DXBufferAttributeNames[decl[i].attribute];
+			desc.SemanticIndex = si[decl[i].attribute];
+			desc.Format = formatType.format;
+			desc.InputSlot = 0;
+			desc.AlignedByteOffset = index;
+			desc.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+			desc.InstanceDataStepRate = 0;
+			index += formatType.bytes;
+			si[decl[i].attribute] += 1;
+		}
+		for (int i = 0; i < instNum; ++i) {
+			D3D11_INPUT_ELEMENT_DESC& desc = descriptors[counter++];
+			const InstanceLayoutDeclaration& current = instDecl[i];
+			int fidx = find_format(current.type, current.size);
+			if (fidx == -1) {
+				return INVALID_RID;
+			}
+			const DXBufferAttributeType& formatType = DXBufferAttributeTypes[fidx];
+			desc.SemanticName = current.name;
+			desc.SemanticIndex = current.nameIndex;
+			desc.Format = formatType.format;
+			desc.InputSlot = 1;
+			desc.AlignedByteOffset = index;
+			desc.InputSlotClass = D3D11_INPUT_PER_INSTANCE_DATA;
+			desc.InstanceDataStepRate = 0;
+			index += formatType.bytes;
+		}
+		uint16_t sidx = getResourceIndex(shaderId, RT_SHADER);
+		ShaderResource* sres = (ShaderResource*)_ctx->_resources[sidx];
+		Shader* s = sres->get();
+		ID3D11InputLayout* layout = 0;
+		ASSERT_RESULT(_ctx->d3dDevice->CreateInputLayout(descriptors, total, s->vertexShaderBuffer, s->bufferSize, &layout), "Failed to create input layout");
 		InputLayoutResource* res = new InputLayoutResource(layout, index);
 		return addResource(res, RT_VERTEX_DECLARATION);
 	}
@@ -2376,13 +2431,10 @@ namespace ds {
 	}
 
 	// ------------------------------------------------------
-	// vertex buffer with data
+	// vertex buffer with optional data
 	// ------------------------------------------------------
-	RID createVertexBuffer(BufferType type, int numVertices, RID vertexDecl) {
-		uint16_t vdidx = getResourceIndex(vertexDecl, RT_VERTEX_DECLARATION);
-		InputLayoutResource* iRes = (InputLayoutResource*)_ctx->_resources[vdidx];
-		UINT size = numVertices * iRes->size();
-
+	RID createVertexBuffer(BufferType type, int numVertices, uint32_t vertexSize, void* data) {
+		UINT size = numVertices * vertexSize;
 		D3D11_BUFFER_DESC bufferDesciption;
 		ZeroMemory(&bufferDesciption, sizeof(bufferDesciption));
 		if (type == BufferType::DYNAMIC) {
@@ -2397,39 +2449,17 @@ namespace ds {
 		bufferDesciption.ByteWidth = size;
 
 		ID3D11Buffer* buffer = 0;
-		assert_result(_ctx->d3dDevice->CreateBuffer(&bufferDesciption, 0, &buffer),"Failed to create vertex buffer");
-		VertexBufferResource* res = new VertexBufferResource(buffer, size, type, vertexDecl, iRes->size());
-		return addResource(res, RT_VERTEX_BUFFER);
-	}
-
-	// ------------------------------------------------------
-	// vertex buffer with data
-	// ------------------------------------------------------
-	RID createVertexBuffer(BufferType type, int numVertices, RID vertexDecl, void* data, unsigned long long vertexSize) {
-		uint16_t vdidx = getResourceIndex(vertexDecl, RT_VERTEX_DECLARATION);
-		InputLayoutResource* iRes = (InputLayoutResource*)_ctx->_resources[vdidx];
-		UINT size = numVertices * iRes->size();
-
-		D3D11_BUFFER_DESC bufferDesciption;
-		ZeroMemory(&bufferDesciption, sizeof(bufferDesciption));
-		if (type == BufferType::DYNAMIC) {
-			bufferDesciption.Usage = D3D11_USAGE_DYNAMIC;
-			bufferDesciption.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		if (data != 0) {
+			D3D11_SUBRESOURCE_DATA resource;
+			resource.pSysMem = data;
+			resource.SysMemPitch = 0;
+			resource.SysMemSlicePitch = 0;
+			ASSERT_RESULT(_ctx->d3dDevice->CreateBuffer(&bufferDesciption, &resource, &buffer), "Failed to create vertex buffer");
 		}
 		else {
-			bufferDesciption.Usage = D3D11_USAGE_DEFAULT;
-			bufferDesciption.CPUAccessFlags = 0;
+			ASSERT_RESULT(_ctx->d3dDevice->CreateBuffer(&bufferDesciption, 0, &buffer), "Failed to create vertex buffer");
 		}
-		bufferDesciption.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		bufferDesciption.ByteWidth = size;
-
-		ID3D11Buffer* buffer = 0;
-		D3D11_SUBRESOURCE_DATA resource;
-		resource.pSysMem = data;
-		resource.SysMemPitch = 0;
-		resource.SysMemSlicePitch = 0;
-		assert_result(_ctx->d3dDevice->CreateBuffer(&bufferDesciption, &resource, &buffer),"Failed to create vertex buffer");
-		VertexBufferResource* res = new VertexBufferResource(buffer, size, type, vertexDecl, iRes->size());
+		VertexBufferResource* res = new VertexBufferResource(buffer, size, type, vertexSize);
 		return addResource(res, RT_VERTEX_BUFFER);
 	}
 
@@ -2457,10 +2487,26 @@ namespace ds {
 				unsigned int stride = res->getVertexSize();
 				unsigned int offset = 0;
 				ID3D11Buffer* buffer = res->get();
-				_ctx->d3dContext->IASetVertexBuffers(0, 1, &buffer, &stride, &offset);
+				_ctx->d3dContext->IASetVertexBuffers(0, 2, &buffer, &stride, &offset);
 			}
 			_ctx->selectedVertexBuffer = ridx;
 		}
+	}
+
+	// ------------------------------------------------------
+	// set vertex buffer
+	// ------------------------------------------------------
+	static void setVertexBuffer(RID first, RID second) {
+		uint16_t firstRidx = getResourceIndex(first, RT_VERTEX_BUFFER);
+		uint16_t secondRidx = getResourceIndex(second, RT_VERTEX_BUFFER);
+		VertexBufferResource* fr = (VertexBufferResource*)_ctx->_resources[firstRidx];
+		VertexBufferResource* sr = (VertexBufferResource*)_ctx->_resources[secondRidx];
+		unsigned int strides[2] = { fr->getVertexSize(),sr->getVertexSize() };
+		unsigned int offsets[2] = { 0 };
+		ID3D11Buffer* bufferPointers[2];
+		bufferPointers[0] = fr->get();
+		bufferPointers[1] = sr->get();
+		_ctx->d3dContext->IASetVertexBuffers(0, 2, bufferPointers, strides, offsets);
 	}
 
 	// ------------------------------------------------------
@@ -2630,6 +2676,7 @@ namespace ds {
 		switch (cmd.drawType) {
 			case DT_VERTICES: _ctx->d3dContext->Draw(cmd.size, 0); break;
 			case DT_INDEXED: _ctx->d3dContext->DrawIndexed(cmd.size, 0, 0); break;
+			case DT_INSTANCED: _ctx->d3dContext->DrawInstanced(cmd.size, cmd.instances, 0, 0); break;
 		}
 	}
 
@@ -3076,7 +3123,8 @@ namespace ds {
 		SGI_SET_SHADER,
 		SGI_SET_INDEX_BUFFER,
 		SGI_SET_TEXTURE,
-		SGI_SET_RT
+		SGI_SET_RT,
+		SGI_SET_VERTEX_BUFFERS
 	};
 
 	struct ConstantBufferBindData {
@@ -3094,6 +3142,11 @@ namespace ds {
 		RID rid;
 		ShaderType type;
 		int slot;
+	};
+
+	struct InstancedBindData {
+		RID rid;
+		RID instanceBuffer;
 	};
 
 	void* StateGroup::allocate(uint16_t type, uint16_t size) {
@@ -3142,6 +3195,12 @@ namespace ds {
 	void StateGroup::bindShader(RID rid) {
 		RID* d = (RID*)allocate(SGI_SET_SHADER, sizeof(RID));
 		*d = rid;
+	}
+
+	void StateGroup::bindInstancedVertexBuffer(RID rid, RID instanceBuffer) {
+		InstancedBindData* d = (InstancedBindData*)allocate(SGI_SET_VERTEX_BUFFERS, sizeof(InstancedBindData));
+		d->rid = rid;
+		d->instanceBuffer = instanceBuffer;
 	}
 
 	void StateGroup::bindVertexBuffer(RID rid) {
@@ -3199,45 +3258,60 @@ namespace ds {
 	}
 
 	void StateGroup::apply() {
+		int used[16] = { 0 };
 		for (int i = 0; i < _num; ++i) {
-			if (_types[i] == SGI_SET_LAYOUT) {
+			if (_types[i] == SGI_SET_LAYOUT && used[SGI_SET_LAYOUT] == 0) {
 				RID* d = (RID*)(_data + _indices[i]);
 				setVertexDeclaration(*d);
+				used[SGI_SET_LAYOUT] = 1;
 			}
-			else if (_types[i] == SGI_SET_SAMPLER_STATE) {
+			else if (_types[i] == SGI_SET_SAMPLER_STATE && used[SGI_SET_SAMPLER_STATE] == 0) {
 				SamplerStateBindData* d = (SamplerStateBindData*)(_data + _indices[i]);
 				setSamplerState(d->rid, d->type);
+				used[SGI_SET_SAMPLER_STATE] = 1;
 			}
-			else if (_types[i] == SGI_SET_BLEND_STATE) {
+			else if (_types[i] == SGI_SET_BLEND_STATE && used[SGI_SET_BLEND_STATE] == 0) {
 				RID* d = (RID*)(_data + _indices[i]);
 				setBlendState(*d);
+				used[SGI_SET_BLEND_STATE] = 1;
 			}
-			else if (_types[i] == SGI_SET_VERTEX_BUFFER) {
+			else if (_types[i] == SGI_SET_VERTEX_BUFFER && used[SGI_SET_VERTEX_BUFFER] == 0) {
 				RID* d = (RID*)(_data + _indices[i]);
 				setVertexBuffer(*d);
+				used[SGI_SET_VERTEX_BUFFER] = 1;
 			}
-			else if (_types[i] == SGI_SET_INDEX_BUFFER) {
+			else if (_types[i] == SGI_SET_VERTEX_BUFFERS && used[SGI_SET_VERTEX_BUFFERS] == 0) {
+				InstancedBindData* d = (InstancedBindData*)(_data + _indices[i]);
+				setVertexBuffer(d->rid,d->instanceBuffer);
+				used[SGI_SET_VERTEX_BUFFERS] = 1;
+			}
+			else if (_types[i] == SGI_SET_INDEX_BUFFER && used[SGI_SET_INDEX_BUFFER] == 0) {
 				RID* d = (RID*)(_data + _indices[i]);
 				setIndexBuffer(*d);
+				used[SGI_SET_INDEX_BUFFER] = 1;
 			}
-			else if (_types[i] == SGI_SET_SHADER) {
+			else if (_types[i] == SGI_SET_SHADER && used[SGI_SET_SHADER] == 0) {
 				RID* d = (RID*)(_data + _indices[i]);
 				setShader(*d);
+				used[SGI_SET_SHADER] = 1;
 			}
-			else if (_types[i] == SGI_SET_TEXTURE) {
+			else if (_types[i] == SGI_SET_TEXTURE && used[SGI_SET_TEXTURE] == 0) {
 				TextureBindData* d = (TextureBindData*)(_data + _indices[i]);
 				setTexture(d->rid, d->type, d->slot);
+				used[SGI_SET_TEXTURE] = 1;
 			}
-			else if (_types[i] == SGI_SET_RT) {
+			else if (_types[i] == SGI_SET_RT && used[SGI_SET_RT] == 0) {
 				TextureBindData* d = (TextureBindData*)(_data + _indices[i]);
 				setTextureFromRenderTarget(d->rid, d->type, d->slot);
+				used[SGI_SET_RT] = 1;
 			}
-			else if (_types[i] == SGI_SET_CONSTANTBUFFER) {
+			else if (_types[i] == SGI_SET_CONSTANTBUFFER && used[SGI_SET_CONSTANTBUFFER] == 0) {
 				ConstantBufferBindData* d = (ConstantBufferBindData*)(_data + _indices[i]);
 				if (d->data != 0) {
 					updateConstantBuffer(d->rid, d->data);
 				}
 				setConstantBuffer(d->rid, d->type);
+				used[SGI_SET_CONSTANTBUFFER] = 1;
 			}
 		}
 	}
