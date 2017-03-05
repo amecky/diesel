@@ -2,15 +2,15 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="WaveFrontReader.cpp" />
     <ClCompile Include="..\common\Camera.cpp" />
     <ClCompile Include="hex.cpp" />
+    <ClCompile Include="..\common\WaveFrontReader.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="WaveFrontReader.h" />
     <ClInclude Include="..\common\Camera.h" />
     <ClInclude Include="HexGrid.h" />
     <ClInclude Include="hex.h" />
+    <ClInclude Include="..\common\WaveFrontReader.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Mesh_vs.hlsl" />

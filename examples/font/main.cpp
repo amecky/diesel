@@ -110,9 +110,8 @@ void addText(const HieroFont& font, const v2& pos, const char* text) {
 		const HieroFontItem& item = font.get(*current);
 		float dimX = item.width;
 		float dimY = item.height;
-		float x = xpos + item.xoffset;
-		float y = ypos - (item.height - item.yoffset);
-		add(v2(xpos + dimX * 0.5f, ypos + dimY * 0.5f), Rect(item.y, item.x, item.width, item.height));
+		float th = item.height + item.yoffset;
+		add(v2(xpos + dimX * 0.5f, ypos - th - item.yoffset * 0.5f), Rect(item.y, item.x, item.width, item.height));
 		xpos += item.xadvance + 4;
 		++current;
 	}
@@ -123,7 +122,7 @@ void addText(const HieroFont& font, const v2& pos, const char* text) {
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
 	
 	HieroFont font;
-	font.load("nulshock_32.fnt");
+	font.load("verdana_32.fnt");
 
 	
 	std::vector<Message> messages;
@@ -142,7 +141,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	SpriteVertex vertices[256];
 	int numVertices = 0;
 
-	addText(font, v2(100.0f, 300.0f), "Hello world. This good year");
+	//addText(font, v2(100.0f, 300.0f), "Hello world. This good year");
 	//addText(font, v2(300.0f, 500.0f), "More text is here");
 	//addText(font, v2(600.0f, 100.0f), "Here is also some text");
 
@@ -162,7 +161,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	// load image using stb_image
 	int x, y, n;
-	unsigned char *data = stbi_load("nulshock_32.png", &x, &y, &n, 4);
+	unsigned char *data = stbi_load("verdana_32.png", &x, &y, &n, 4);
 	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
 	stbi_image_free(data);
 
@@ -189,7 +188,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		
 	RID cbid = ds::createConstantBuffer(sizeof(SpriteConstantBuffer));
 	RID vertexBufferID = ds::createVertexBuffer(ds::BufferType::DYNAMIC, MAX_SPRITES, sizeof(SpriteVertex));
-	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
+	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::POINT);
 
 	// create orthographic view
 	matrix viewMatrix = mat_identity();
@@ -213,8 +212,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	while (ds::isRunning()) {
 		ds::begin();
-		ds::Color textColor(255, 255, 255, 255);
-		/*
+		//ds::Color textColor(255, 255, 255, 255);
 		Message& m = messages[currentMessage];
 		m.timer += static_cast<float>(ds::getElapsedSeconds());
 		if (m.timer >= TTL[m.state]) {
@@ -244,7 +242,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		else {
 			textColor.a = 1.0f;
 		}
-		*/
 		// disbale depth buffer
 		ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
 		matrix w = mat_identity();

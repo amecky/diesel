@@ -128,15 +128,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\common\Camera.cpp" />
+    <ClCompile Include="..\common\WaveFrontReader.cpp" />
     <ClCompile Include="hex.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="WaveFrontReader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\common\Camera.h" />
+    <ClInclude Include="..\common\WaveFrontReader.h" />
     <ClInclude Include="hex.h" />
     <ClInclude Include="HexGrid.h" />
-    <ClInclude Include="WaveFrontReader.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Mesh_ps.hlsl">

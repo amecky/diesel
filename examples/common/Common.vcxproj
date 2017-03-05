@@ -44,12 +44,14 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="Grid.cpp" />
+    <ClCompile Include="WaveFrontReader.cpp" />
     <ClCompile Include="WorldMatrix.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Geometry.h" />
     <ClInclude Include="Grid.h" />
+    <ClInclude Include="WaveFrontReader.h" />
     <ClInclude Include="WorldMatrix.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

@@ -1,6 +1,6 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
-#include "WaveFrontReader.h"
+#include "..\common\WaveFrontReader.h"
 #include "..\common\Camera.h"
 #include "HexGrid.h"
 
@@ -38,11 +38,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	matrix rotX = mat_RotationX(rotation.x);
 	ObjVertex vertices[512];
 	WaveFrontReader reader;
-	int num = reader.load("hex.obj", vertices, 512,&rotX);
+	int num = reader.load("hex.obj", &rotX);
+	for (size_t i = 0; i < reader.size(); ++i) {
+		vertices[i] = reader.get(i);
+	}
 	if ( num == -1) {
 		printf("Cannot load file\n");
 	}
-	
+	num = reader.size();
 	CubeConstantBuffer constantBuffer;
 	
 	ds::RenderSettings rs;
@@ -67,13 +70,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	ds::InstanceLayoutDeclaration instDecl[] = {
 		{ "NORMAL", 1, ds::BufferAttributeType::FLOAT, 3 },
-		{ "COLOR", 0, ds::BufferAttributeType::FLOAT, 4 }
+		{ "COLOR", 1, ds::BufferAttributeType::FLOAT, 4 }
 	};
 
 	ds::VertexDeclaration decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 },
-		{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,3 }
+		{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,3 },
+		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
 	};
 
 	LightBuffer lightBuffer;
@@ -83,7 +87,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	v3 lightPos = v3(0.0f, -0.5f, 1.0f);
 	lightBuffer.lightDirection = normalize(lightPos);
 	
-	RID rid = ds::createInstanceDeclaration(decl, 3, instDecl, 2, shaderID);
+	RID rid = ds::createInstanceDeclaration(decl, 4, instDecl, 2, shaderID);
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
 	RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer));
 	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, num, sizeof(ObjVertex), vertices);
@@ -116,7 +120,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			GridItem& item = items[w + r * WIDTH];
 			item.pos = p;
 			item.timer = ds::random(0.0f, ds::PI);
-			item.color = ds::Color(ds::random(0.6f, 1.0f), ds::random(0.6f, 1.0f), ds::random(0.6f, 1.0f), 1.0f);
+			//item.color = ds::Color(ds::random(0.6f, 1.0f), ds::random(0.6f, 1.0f), ds::random(0.6f, 1.0f), 1.0f);
+			item.color = ds::Color(255, 255, 255, 255);
 			++w;
 		}
 	}

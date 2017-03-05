@@ -593,6 +593,14 @@ namespace ds {
 			return &values[0];
 		}
 
+		uint32_t u32() {
+			uint32_t u = r * 255.0f;
+			u = (u << 8) + g * 255.0f;
+			u = (u << 8) + b * 255.0f;
+			u = (u << 8) + a * 255.0f;
+			return u;
+		}
+
 	} Color;
 
 

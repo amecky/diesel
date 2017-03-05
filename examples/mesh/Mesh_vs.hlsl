@@ -7,8 +7,9 @@ struct VS_Input {
     float4 position  : POSITION;
     float2 texcoord : TEXCOORD;
 	float3 normal : NORMAL0;
+	float4 color : COLOR0;
 	float3 instancepos : NORMAL1;
-	float4 color : COLOR;
+	float4 icolor : COLOR1;
 };
 
 struct PS_Input {
@@ -27,7 +28,7 @@ PS_Input VS_Main( VS_Input vertex ) {
 	p.z += vertex.instancepos.z;
     vsOut.pos = mul( p, world);
 	vsOut.pos = mul(vsOut.pos, mvp);
-    vsOut.color = vertex.color;
+    vsOut.color = vertex.color * vertex.icolor;
 	vsOut.normal = normalize(mul(vertex.normal, (float3x3)world));
     return vsOut;
 }
