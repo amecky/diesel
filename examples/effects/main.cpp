@@ -77,7 +77,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	PostProcessBuffer ppBuffer;
 	float t = 0.0f;
 
-	RID rtID = ds::createRenderTarget(1024, 768);
+	RID rtID = ds::createRenderTarget(1024, 768, ds::Color(0.0f,0.0f,0.0f,1.0f));
 
 	CubeConstantBuffer constantBuffer;
 		

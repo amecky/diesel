@@ -743,6 +743,12 @@ namespace ds {
 		const char* csoName;
 	};
 
+	struct ShaderDataDescriptor {
+		ShaderType type;
+		const void* data;
+		int size;
+	};
+
 	struct DrawCommand {
 		uint32_t size;
 		DrawType drawType;
@@ -863,6 +869,8 @@ namespace ds {
 
 	RID createShader(ShaderDescriptor* descriptors,int num);
 
+	RID createShader(ShaderDataDescriptor* descriptors, int num);
+
 	void loadShader(RID shader, ShaderType type, const char* csoName);
 
 	// texture
@@ -873,7 +881,7 @@ namespace ds {
 
 	// render target
 
-	RID createRenderTarget(uint16_t width, uint16_t height);
+	RID createRenderTarget(uint16_t width, uint16_t height, const ds::Color& clearColor);
 
 	void setRenderTarget(RID rtID);
 
@@ -1144,6 +1152,7 @@ namespace ds {
 		ID3D11ShaderResourceView* srv;
 		ID3D11Texture2D* depthTexture;
 		ID3D11DepthStencilView* depthStencilView;
+		ds::Color clearColor;
 	};
 
 	// ------------------------------------------------------
@@ -2706,11 +2715,56 @@ namespace ds {
 		return addResource(res, RT_SHADER);
 	}
 
+	// ------------------------------------------------------
+	// load shader
+	// ------------------------------------------------------
+	static void loadShader(RID shader, ShaderType type, const void* data, int size) {
+		uint16_t ridx = getResourceIndex(shader, RT_SHADER);
+		if (ridx != NO_RID) {
+			ShaderResource* res = (ShaderResource*)_ctx->_resources[ridx];
+			Shader* s = res->get();
+			if (type == GEOMETRY) {
+				assert_result(_ctx->d3dDevice->CreateGeometryShader(
+					data,
+					size,
+					nullptr,
+					&s->geometryShader
+				), "Failed to create geometry shader");
+			}
+			else if (type == PIXEL) {
+				assert_result(_ctx->d3dDevice->CreatePixelShader(
+					data,
+					size,
+					nullptr,
+					&s->pixelShader), "Failed to create pixel shader");
+			}
+			else if (type == VERTEX) {
+				assert_result(_ctx->d3dDevice->CreateVertexShader(
+					data,
+					size,
+					nullptr,
+					&s->vertexShader), "Failed to create vertex shader");
+				s->vertexShaderBuffer = new char[size];
+				memcpy(s->vertexShaderBuffer, data, size);
+				s->bufferSize = size;
+			}
+		}
+	}
+
 	RID createShader(ShaderDescriptor* descriptors, int num) {
 		RID rid = createShader();
 		for (int i = 0; i < num; ++i) {
 			const ShaderDescriptor& desc = descriptors[i];
 			loadShader(rid, desc.type, desc.csoName);
+		}
+		return rid;
+	}
+
+	RID createShader(ShaderDataDescriptor* descriptors, int num) {
+		RID rid = createShader();
+		for (int i = 0; i < num; ++i) {
+			const ShaderDataDescriptor& desc = descriptors[i];
+			loadShader(rid, desc.type, desc.data,desc.size);
 		}
 		return rid;
 	}
@@ -2993,9 +3047,9 @@ namespace ds {
 	// ------------------------------------------------------
 	// create render target
 	// ------------------------------------------------------
-	RID createRenderTarget(uint16_t width, uint16_t height) {
+	RID createRenderTarget(uint16_t width, uint16_t height, const ds::Color& clearColor) {
 		RenderTarget* rt = new RenderTarget;
-		
+		rt->clearColor = clearColor;
 		// Initialize the render target texture description.
 		D3D11_TEXTURE2D_DESC textureDesc;
 		ZeroMemory(&textureDesc, sizeof(textureDesc));
@@ -3069,7 +3123,7 @@ namespace ds {
 			RenderTarget* rt = res->get();
 			_ctx->d3dContext->OMSetRenderTargets(1, &rt->view, rt->depthStencilView);
 			// Clear the back buffer.
-			//_ctx->d3dContext->ClearRenderTargetView(rt->view, _descriptor.clearColor);
+			_ctx->d3dContext->ClearRenderTargetView(rt->view, rt->clearColor);
 			// Clear the depth buffer.
 			_ctx->d3dContext->ClearDepthStencilView(rt->depthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 		}
