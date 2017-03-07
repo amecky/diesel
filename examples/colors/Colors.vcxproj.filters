@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Map.cpp" />
+    <ClCompile Include="Board.cpp" />
+    <ClCompile Include="..\common\SpriteBuffer.cpp" />
+    <ClCompile Include="utils\tweening.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stb_image.h" />
+    <ClInclude Include="Grid.h" />
+    <ClInclude Include="Map.h" />
+    <ClInclude Include="Board.h" />
+    <ClInclude Include="Constants.h" />
+    <ClInclude Include="..\common\SpriteBuffer.h" />
+    <ClInclude Include="GameSettings.h" />
+    <ClInclude Include="utils\tweening.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\common\Sprite_GS_Main.inc" />
+    <None Include="..\common\Sprite_PS_Main.inc" />
+    <None Include="..\common\Sprite_VS_Main.inc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="utils">
+      <UniqueIdentifier>{3dd4c714-0a4e-44e0-a36f-d5373d9c1ea9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

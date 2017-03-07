@@ -29,9 +29,10 @@ class SpriteBuffer {
 public:
 	SpriteBuffer(int maxSprites);
 	void begin();
-	void add(const v2& position);
+	void add(const v2& position, RID textureID, const v4& rect,const v2& scale = v2(1.0f), float rotation = 0.0f, const ds::Color& clr = ds::Color(1.0f,1.0f,1.0f,1.0f));
 	void flush();
 private:	
+	RID _currentTexture;
 	int _max;
 	int _current;
 	SpriteBufferConstantBuffer _constantBuffer;

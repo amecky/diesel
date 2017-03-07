@@ -21,3 +21,5 @@ examples/particles2D/Debug/
 examples/GPUParticles/Debug/
 examples/mesh/Debug/
 examples/deferred/Debug/
+examples/colors/Debug/
+examples/ripples/Debug/
