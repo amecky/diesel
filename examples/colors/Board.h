@@ -60,15 +60,15 @@ enum BoardMode {
 };
 
 //typedef std::vector<ds::Sprite> Highlights;
-//typedef std::vector<ds::GridPoint> Points;
-//typedef std::vector<ds::DroppedCell> DroppedCells;
+typedef std::vector<v2> Points;
+typedef std::vector<ds::DroppedCell<MyEntry>> DroppedCells;
 typedef std::vector<MovingCell> MovingCells;
 
 public:
 	Board(SpriteBuffer* buffer, RID textureID, GameSettings* settings);
 	virtual ~Board();
 	void fill(int maxColors);
-	int select(const v2& mousePos);
+	int select();
 	void move(const v2& mousePos);
 	int getMovesLeft() {
 		return 100;
@@ -84,8 +84,8 @@ private:
 	void drawFillGrid();
 
 	ColorGrid m_Grid;
-	//Points m_Points;
-	//DroppedCells m_DroppedCells;
+	Points m_Points;
+	DroppedCells m_DroppedCells;
 	MovingCells m_MovingCells;
 	BoardMode m_Mode;
 	float m_Timer;
@@ -93,9 +93,10 @@ private:
 	v4 m_GridTex[3];
 	int m_Counter;
 	GameSettings* _settings;
-	v2 _selectedPiece;
 	int _flashCount;
 
+	int _selectedX;
+	int _selectedY;
 	SpriteBuffer* _buffer;
 	RID _textureID;
 	

@@ -3,6 +3,7 @@
 #include "..\common\SpriteBuffer.h"
 #include "GameSettings.h"
 #include "utils\tweening.h"
+#include "utils\utils.h"
 
 Board::Board(SpriteBuffer* buffer, RID textureID, GameSettings* settings) : _buffer(buffer) , _textureID(textureID) , _settings(settings) {
 	m_GridTex[0] = v4(420, 200, 430, 486);
@@ -42,8 +43,8 @@ void Board::fill(int maxColors) {
 	m_Mode = BM_FILLING;
 	m_Timer = 0.0f;
 	m_Counter = MAX_X * MAX_Y;
-	_selectedPiece.x = -1;
-	_selectedPiece.y = -1;
+	_selectedX = -1;
+	_selectedY = -1;
 	_flashCount = 0;
 }
 
@@ -74,11 +75,9 @@ void Board::render() {
 	}
 
 	// moving cells
-	//for (size_t i = 0; i < m_MovingCells.size(); ++i) {
-		//sp.position = m_MovingCells[i].current;
-		//sp.texture = m_MovingCells[i].texture;
-		//ds::sprites::draw(sp);
-	//}
+	for (size_t i = 0; i < m_MovingCells.size(); ++i) {
+		_buffer->add(m_MovingCells[i].current, _textureID, m_MovingCells[i].texture);
+	}
 }
 
 // -------------------------------------------------------
@@ -93,17 +92,16 @@ void Board::update(float elapsed) {
 			m_Timer = 0.0f;
 		}
 	}
-	/*
 	else if (m_Mode == BM_FLASHING) {
 		m_Timer += elapsed;
-		if (m_Timer > m_Settings->flashTTL) {
+		if (m_Timer > _settings->flashTTL) {
 			m_Mode = BM_READY;
 			m_Timer = 0.0f;
-			m_Grid.remove(m_Points);
+			m_Grid.remove(m_Points,true);
 			m_DroppedCells.clear();
 			m_Grid.dropCells(m_DroppedCells);
 			for (size_t i = 0; i < m_DroppedCells.size(); ++i) {
-				ds::DroppedCell* dc = &m_DroppedCells[i];
+				ds::DroppedCell<MyEntry>* dc = &m_DroppedCells[i];
 				MyEntry& e = m_Grid.get(dc->to.x, dc->to.y);
 				e.hidden = true;
 				MovingCell m;
@@ -123,7 +121,7 @@ void Board::update(float elapsed) {
 	}
 	else if (m_Mode == BM_MOVING) {
 		m_Timer += elapsed;
-		if (m_Timer > m_Settings->droppingTTL) {
+		if (m_Timer > _settings->droppingTTL) {
 			m_Mode = BM_READY;
 			m_Timer = 0.0f;
 			for (size_t i = 0; i < m_MovingCells.size(); ++i) {
@@ -134,22 +132,21 @@ void Board::update(float elapsed) {
 			m_MovingCells.clear();
 		}
 		else {
-			float norm = m_Timer / m_Settings->droppingTTL;
+			float norm = m_Timer / _settings->droppingTTL;
 			for (size_t i = 0; i < m_MovingCells.size(); ++i) {
 				MovingCell& m = m_MovingCells[i];
-				m.current = tweening::interpolate(&tweening::easeOutQuad, m.start, m.end, norm);
+				m.current = tweening::interpolate(&tweening::easeOutQuad, m.start, m.end, m_Timer, _settings->droppingTTL);
 			}
 		}
 	}
-	*/
 	else if (m_Mode == BM_READY) {
 		v2 mousePos = ds::getMousePosition();
-		int my = ((int)mousePos.y - STARTY + HALF_CELL_SIZE)/CELL_SIZE;
-		int mx = ((int)mousePos.x - STARTX + HALF_CELL_SIZE)/CELL_SIZE;
-
-		if (mx >= 0 && my >= 0) {
-			if (mx != _selectedPiece.x || my != _selectedPiece.y) {
-				_selectedPiece = v2(mx,my);
+		int mx = -1;
+		int my = -1;
+		if ( input::convertMouse2Grid(&mx,&my)) {
+			if (mx != _selectedX || my != _selectedY) {
+				_selectedX = mx;
+				_selectedY = my;
 				MyEntry& me = m_Grid(mx, my);
 				if (me.state == TS_NORMAL) {
 					me.timer = 0.0f;
@@ -163,21 +160,19 @@ void Board::update(float elapsed) {
 		for (int y = 0; y < MAX_Y; ++y) {
 			if (!m_Grid.isFree(x, y)) {
 				MyEntry& e = m_Grid.get(x, y);
-				/*
 				if (e.state == TS_SHRINKING) {
 					e.timer += elapsed;
-					if (e.timer >= m_Settings->flashTTL) {
+					if (e.timer >= _settings->flashTTL) {
 						e.state = TS_NORMAL;
 						e.scale = 1.0f;
 						--_flashCount;
 					}
 					else {
-						float norm = e.timer / m_Settings->flashTTL;
+						float norm = e.timer /_settings->flashTTL;
 						e.scale = 1.0f - norm * 0.9f;
 					}
 				}
-				else */
-				if (e.state == TS_WIGGLE) {
+				else if (e.state == TS_WIGGLE) {
 					e.timer += elapsed;
 					// FIXME: wiggleTTL
 					if (e.timer >= 0.4f) {
@@ -213,36 +208,34 @@ void Board::rebuild() {
 // -------------------------------------------------------
 // Select
 // -------------------------------------------------------
-int Board::select(const v2& mousePos) {
-	/*
+int Board::select() {
 	int ret = -1;
 	if ( m_Mode == BM_READY ) {
-		v2 converted = grid::convertMousePosToGridPos(mousePos);
-		if ( converted.x >= 0 && converted.y >= 0) {
-			MyEntry& me = m_Grid(converted.x, converted.y);
+		int cx = -1;
+		int cy = -1;
+		if (input::convertMouse2Grid(&cx,&cy)) {
+			MyEntry& me = m_Grid(cx, cy);
 			m_Points.clear();		
-			m_Grid.findMatchingNeighbours(converted.x,converted.y,m_Points);
+			m_Grid.findMatchingNeighbours(cx,cy,m_Points);
 			if ( m_Points.size() > 1 ) {
 				m_Timer = 0.0f;
 				m_Mode = BM_FLASHING;
 				ret = m_Points.size();				
 				for ( size_t i = 0; i < m_Points.size(); ++i ) {
-					ds::GridPoint* gp = &m_Points[i];
+					v2* gp = &m_Points[i];
 					MyEntry& c = m_Grid.get(gp->x, gp->y);
 					c.state = TS_SHRINKING;
 					c.timer = 0.0f;
 					++_flashCount;
 				}
-				LOG << "flash count: " << _flashCount;
+				//LOG << "flash count: " << _flashCount;
 			}
 		}
 	}
-	else {
-		LOG << "Board is not ready";
-	}
+	//else {
+		//LOG << "Board is not ready";
+	//}
 	return ret;
-	*/
-	return 0;
 }
 
 void Board::debugContainer() {

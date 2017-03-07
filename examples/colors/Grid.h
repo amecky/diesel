@@ -475,7 +475,7 @@ inline void Grid<T>::dropCells(std::vector<DroppedCell<T>>& droppedCells) {
 					droppedCells.push_back(dc);
 					set(x,y,get(x,sy));
 					if (!remove(x, sy)) {
-						LOGE << "Cannot remove at " << x << " " << sy;
+						//LOGE << "Cannot remove at " << x << " " << sy;
 					}
 				}
 			}
@@ -519,7 +519,7 @@ inline void Grid<T>::remove(const std::vector<v2>& v2s,bool shift) {
     for ( std::size_t i = 0; i < v2s.size(); ++i ) {
         v2 gp = v2s[i];
 		if (!remove(gp.x, gp.y)) {
-			LOG << "cannot remove cell at " << gp.x << " " << gp.y;
+			//LOG << "cannot remove cell at " << gp.x << " " << gp.y;
 		}
     }
 	if (shift) {

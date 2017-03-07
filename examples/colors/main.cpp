@@ -5,6 +5,8 @@
 #include "..\common\SpriteBuffer.h"
 #include "Board.h"
 #include "GameSettings.h"
+#include "utils\utils.h"
+#include "utils\HUD.h"
 
 // ---------------------------------------------------------------
 // Rect
@@ -29,7 +31,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.width = 1024;
 	rs.height = 768;
 	rs.title = "Hello world";
-	rs.clearColor = ds::Color(0.2f, 0.2f, 0.2f, 1.0f);
+	rs.clearColor = ds::Color(0.0f, 0.0f, 0.0f, 1.0f);
 	rs.multisampling = 4;
 	ds::init(rs);
 
@@ -46,19 +48,49 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	settings.tweeningTTL = 2.0f;
 	settings.tweeningYAdd = 100;
 	settings.tweeningYOffset = 300;
+	settings.flashTTL = 0.5f;
+	settings.droppingTTL = 1.0f;
 
 	Board* board = new Board(&spriteBuffer,textureID, &settings);
 	board->fill(4);
 
+	HUD hud(&spriteBuffer, textureID);
+	hud.reset();
+
+	char txt[256];
+
+	bool pressed = false;
+
+	int score = 0;
+
 	while (ds::isRunning()) {
 
+		if (ds::isMouseButtonPressed(0) && !pressed) {
+			int points = board->select();
+			if (points > 0) {
+				score += points * 10;
+				hud.setNumber(score);
+			}
+			pressed = true;
+		}
+		if (!ds::isMouseButtonPressed(0) && pressed) {
+			pressed = false;
+		}
+
 		board->update(static_cast<float>(ds::getElapsedSeconds()));
+
+		hud.tick(static_cast<float>(ds::getElapsedSeconds()));
 
 		ds::begin();
 
 		spriteBuffer.begin();
 
+		spriteBuffer.add(v2(512, 734), textureID, v4(0, 720, 1024, 68));
+		spriteBuffer.add(v2(512, 16), textureID, v4(0, 800, 1024, 68));
+
 		board->render();
+
+		hud.render();
 
 		spriteBuffer.flush();
 		

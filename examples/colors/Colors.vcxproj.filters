@@ -8,6 +8,12 @@
     <ClCompile Include="utils\tweening.cpp">
       <Filter>utils</Filter>
     </ClCompile>
+    <ClCompile Include="utils\utils.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\HUD.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stb_image.h" />
@@ -18,6 +24,12 @@
     <ClInclude Include="..\common\SpriteBuffer.h" />
     <ClInclude Include="GameSettings.h" />
     <ClInclude Include="utils\tweening.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\utils.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\HUD.h">
       <Filter>utils</Filter>
     </ClInclude>
   </ItemGroup>

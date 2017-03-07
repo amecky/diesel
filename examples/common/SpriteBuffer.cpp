@@ -31,7 +31,7 @@ SpriteBuffer::SpriteBuffer(int maxSprites) : _max(maxSprites) {
 
 	RID cbid = ds::createConstantBuffer(sizeof(SpriteBufferConstantBuffer));
 	_vertexBufferID = ds::createVertexBuffer(ds::BufferType::DYNAMIC, maxSprites, sizeof(SpriteBufferVertex));
-	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
+	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::POINT);
 
 	// create orthographic view
 	matrix viewMatrix = mat_identity();
