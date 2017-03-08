@@ -60,11 +60,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.multisampling = 4;
 	ds::init(rs);
 
-	WarpingGrid grid;
+	
 	WarpingGridData gridData;
 	gridData.width = 41;
 	gridData.height = 22;
 	gridData.cellSize = 30.0f;
+	gridData.flashTTL = 0.4f;
+	gridData.regularColor = ds::Color(64, 64, 64, 255);
+	gridData.flashColor = ds::Color(192, 0, 0, 255);
+
+	WarpingGrid grid;
 	grid.createGrid(gridData);
 
 	const int NUM = gridData.width * gridData.height * 4;
@@ -94,7 +99,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::begin();
 
 		if (ds::isMouseButtonPressed(0)) {
-			grid.applyForce(v2(10,10), 0.25f,80.0f,120.0f);
+			grid.applyForce(ds::getMousePosition(), 0.025f,80.0f,120.0f);
+		}
+
+		if (ds::isMouseButtonPressed(1)) {
+			grid.applyNegativeForce(ds::getMousePosition(), 0.025f, 80.0f, 120.0f);
 		}
 
 		grid.tick(static_cast<float>(ds::getElapsedSeconds()));

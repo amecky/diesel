@@ -1,7 +1,17 @@
 #include "WarpingGrid.h"
 
 const float TIME_STEPSIZE2 = 0.95f * 0.95f;
-const v3 DOT_POINTS[] = { v3(-2, 2, 0), v3(2, 2, 0), v3(2, -2, 0), v3(-2, -2, 0) };
+
+ds::Color lerp(const ds::Color& lhs, const ds::Color& rhs, float t) {
+	if (t <= 0.0f) {
+		return lhs;
+	}
+	if (t >= 1.0f) {
+		return rhs;
+	}
+	float invT = 1.0f - t;
+	return ds::Color(lhs.r * invT + rhs.r * t, lhs.g * invT + rhs.g * t, lhs.b * invT + rhs.b * t, lhs.a * invT + rhs.a * t);
+}
 
 WarpingGrid::WarpingGrid() : _grid(0) {
 }
@@ -16,6 +26,7 @@ WarpingGrid::~WarpingGrid() {
 // create grid
 // -------------------------------------------------------
 void WarpingGrid::createGrid(const WarpingGridData& data) {
+	_data = data;
 	_width = data.width;
 	_height = data.height;
 	_grid = new GridPoint[_width * _height];
@@ -33,7 +44,7 @@ void WarpingGrid::createGrid(const WarpingGridData& data) {
 			gp.velocity = v2(0.0f);
 			gp.pos = v2(2.0f + x * data.cellSize, 50.0f + y * data.cellSize);
 			gp.old_pos = gp.pos;
-			gp.color = ds::Color(1.0f, 0.0f, 0.0f, 1.0f);
+			gp.color = data.regularColor;
 			gp.fading = false;
 			gp.timer = 0.0f;
 		}
@@ -91,16 +102,16 @@ void WarpingGrid::tick(float dt) {
 				gp.old_pos = temp;
 				gp.acceleration = v2(0.0f);
 			}
-			/*
+			
 			if (gp.fading) {
 				gp.timer += dt;
-				gp.color = ds::color::lerp(_settings->grid.flash, _settings->grid.regular, gp.timer/_settings->grid.ttl);
-				if (gp.timer >= _settings->grid.ttl) {
+				gp.color = lerp(_data.flashColor, _data.regularColor, gp.timer / _data.flashTTL);
+				if (gp.timer >= _data.flashTTL) {
 					gp.fading = false;
-					gp.color = _settings->grid.regular;
+					gp.color = _data.regularColor;
 				}
 			}
-			*/
+			
 		}
 	}
 
@@ -133,12 +144,31 @@ void WarpingGrid::applyForce(const v2& pos, float force, float radius) {
 			if (gp.movable) {
 				v2 d = gp.pos - pos;
 				if (sqr_length(d) < sr) {
-					applyForce(v2(x, y), d * force);
+					applyForce(x, y, d * force);
 				}
 			}
 		}
 	}
 }
+
+// -------------------------------------------------------
+// apply force
+// -------------------------------------------------------
+void WarpingGrid::applyNegativeForce(const v2& pos, float force, float radius) {
+	float sr = radius * radius;
+	for (int y = 0; y < _height; ++y) {
+		for (int x = 0; x < _width; ++x) {
+			GridPoint& gp = _grid[x + y * _width];
+			if (gp.movable) {
+				v2 d = pos - gp.pos;
+				if (sqr_length(d) < sr) {
+					applyForce(x, y, d * force);
+				}
+			}
+		}
+	}
+}
+
 
 // -------------------------------------------------------
 // apply force
@@ -152,7 +182,7 @@ void WarpingGrid::applyForce(const v2& pos, float force, float innerRadius, floa
 			if (gp.movable) {
 				v2 d = gp.pos - pos;
 				if (sqr_length(d) > isr && sqr_length(d) < osr) {
-					applyForce(v2(x, y), d * force);
+					applyForce(x, y, d * force);
 					gp.color = ds::Color(128, 0, 0, 255);
 					gp.fading = true;
 					gp.timer = 0.2f;
@@ -163,10 +193,31 @@ void WarpingGrid::applyForce(const v2& pos, float force, float innerRadius, floa
 }
 
 // -------------------------------------------------------
+// apply negative force using inner and outer radius
+// -------------------------------------------------------
+void WarpingGrid::applyNegativeForce(const v2& pos, float force, float innerRadius, float outerRadius) {
+	float isr = innerRadius * innerRadius;
+	float osr = outerRadius * outerRadius;
+	for (int y = 0; y < _height; ++y) {
+		for (int x = 0; x < _width; ++x) {
+			GridPoint& gp = _grid[x + y * _width];
+			if (gp.movable) {
+				v2 d = pos - gp.pos;
+				if (sqr_length(d) > isr && sqr_length(d) < osr) {
+					applyForce(x, y, d * force);
+					gp.color = ds::Color(128, 0, 0, 255);
+					gp.fading = true;
+					gp.timer = 0.2f;
+				}
+			}
+		}
+	}
+}
+// -------------------------------------------------------
 // applay force
 // -------------------------------------------------------
-void WarpingGrid::applyForce(v2 p, const v2& f) {
-	GridPoint& gp = get(p);
+void WarpingGrid::applyForce(int x, int y, const v2& f) {
+	GridPoint& gp = _grid[x + y * _width];
 	gp.acceleration += f * gp.invMass;
 }
 

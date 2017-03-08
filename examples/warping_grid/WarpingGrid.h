@@ -41,6 +41,9 @@ struct WarpingGridData {
 	int width;
 	int height;
 	float cellSize;
+	ds::Color regularColor;
+	ds::Color flashColor;
+	float flashTTL;
 };
 
 class WarpingGrid {
@@ -51,14 +54,17 @@ public:
 	void createGrid(const WarpingGridData& data);
 	void tick(float dt);
 	int mapData(GridVertex* vertices,int maxVertices);
-	void applyForce(v2 p,const v2& f);
+	void applyForce(int x,int y,const v2& f);
 	void applyForce(const v2& pos, float force, float radius);
+	void applyNegativeForce(const v2& pos, float force, float radius);
 	void applyForce(const v2& pos, float force, float innerRadius, float outerRadius);
+	void applyNegativeForce(const v2& pos, float force, float innerRadius, float outerRadius);
 private:
 	void addSpring(v2 start, v2 end, float stiffness, float damping);
 	const GridPoint& get(const v2& gp) const;
 	GridPoint& get(const v2& gp);
 
+	WarpingGridData _data;
 	int _width;
 	int _height;
 	GridPoint* _grid;// [GRID_DIM_X][GRID_DIM_Y];
