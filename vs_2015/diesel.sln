@@ -37,6 +37,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Ripples", "..\examples\ripp
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Colors", "..\examples\colors\Colors.vcxproj", "{17E5DD44-D961-4F8C-844B-FA75ACD391B1}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WarpingGrid", "..\examples\warping_grid\WarpingGrid.vcxproj", "{EE6ECE8C-BD33-4C18-AAD0-89B470BCE39D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -181,6 +183,14 @@ Global
 		{17E5DD44-D961-4F8C-844B-FA75ACD391B1}.Release|x64.Build.0 = Release|x64
 		{17E5DD44-D961-4F8C-844B-FA75ACD391B1}.Release|x86.ActiveCfg = Release|Win32
 		{17E5DD44-D961-4F8C-844B-FA75ACD391B1}.Release|x86.Build.0 = Release|Win32
+		{EE6ECE8C-BD33-4C18-AAD0-89B470BCE39D}.Debug|x64.ActiveCfg = Debug|x64
+		{EE6ECE8C-BD33-4C18-AAD0-89B470BCE39D}.Debug|x64.Build.0 = Debug|x64
+		{EE6ECE8C-BD33-4C18-AAD0-89B470BCE39D}.Debug|x86.ActiveCfg = Debug|Win32
+		{EE6ECE8C-BD33-4C18-AAD0-89B470BCE39D}.Debug|x86.Build.0 = Debug|Win32
+		{EE6ECE8C-BD33-4C18-AAD0-89B470BCE39D}.Release|x64.ActiveCfg = Release|x64
+		{EE6ECE8C-BD33-4C18-AAD0-89B470BCE39D}.Release|x64.Build.0 = Release|x64
+		{EE6ECE8C-BD33-4C18-AAD0-89B470BCE39D}.Release|x86.ActiveCfg = Release|Win32
+		{EE6ECE8C-BD33-4C18-AAD0-89B470BCE39D}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
