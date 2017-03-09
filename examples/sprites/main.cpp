@@ -2,7 +2,7 @@
 #include "..\..\diesel.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-
+#include "..\common\math.h"
 /*
 	Simple sprite demo.
 
@@ -18,22 +18,7 @@
 	screenDimension : this is split into the screen dimension and the texture width and height
 	screenCenter : the actual center of the screen and the last two components are for padding
 
-	The demo also uses the Batch class which can be used to batch draw calls.
 */
-// ---------------------------------------------------------------
-// Rect
-// ---------------------------------------------------------------
-struct Rect {
-	float top;
-	float left;
-	float width;
-	float height;
-
-	Rect() : top(0.0f), left(0.0f), width(0.0f), height(0.0f) {}
-	Rect(float t, float l, float w, float h) : top(t), left(l), width(w), height(h) {}
-
-};
-
 // ---------------------------------------------------------------
 // The sprite
 // ---------------------------------------------------------------
@@ -42,11 +27,11 @@ struct Sprite {
 	v2 position;
 	v2 scale;
 	float rotation;
-	Rect texture;
-	ds::Color color;
+	v4 texture;
+	v4 color;
 	v2 velocity;
 
-	Sprite() : position(0, 0), scale(1, 1), rotation(0.0f), color(ds::Color(255, 255, 255, 255)) , texture(0,0,0,0) , velocity(0.0f,0.0f) {}
+	Sprite() : position(0, 0), scale(1, 1), rotation(0.0f), color(1.0f,1.0f,1.0f,1.0f) , texture(0,0,0,0) , velocity(0.0f,0.0f) {}
 
 };
 
@@ -55,24 +40,20 @@ struct Sprite {
 // ---------------------------------------------------------------
 struct SpriteVertex {
 
-	v3 position;
-	v4 texture;
-	v3 size;
-	ds::Color color;
+	float position[3];
+	float texture[4];
+	float size[3];
+	float color[4];
 
-	SpriteVertex() : position(0, 0, 0) {}
-	SpriteVertex(const v3& p, const v4& t, const ds::Color& c) : position(p), texture(t), color(c) {}
-	SpriteVertex(const v2& p, const v4& t, const ds::Color& c) : position(p, 1.0f), texture(t), color(c) {}
-	SpriteVertex(const v2& p, const v4& t, const v3& s, const ds::Color& c) : position(p, 1.0f), texture(t), size(s), color(c) {}
 };
 
 // ---------------------------------------------------------------
 // the sprite constant buffer
 // ---------------------------------------------------------------
 struct SpriteConstantBuffer {
-	v4 screenDimension;
-	v4 screenCenter;
-	matrix wvp;
+	float screenDimension[4];
+	float screenCenter[4];
+	float wvp[16];
 };
 
 // ---------------------------------------------------------------
@@ -88,12 +69,12 @@ float getAngle(const v2& u, const v2& v) {
 // ---------------------------------------------------------------
 // create sprite
 // ---------------------------------------------------------------
-int add(const v2& p, const Rect& r, Sprite* sprites, int index) {
+int add(const v2& p, const v4& r, Sprite* sprites, int index) {
 	if ((index + 1) < 64) {
 		float angle = ds::random(0.0f, ds::PI * 2.0f);
 		Sprite& s = sprites[index];
 		s.position = p;
-		s.color = ds::Color(1.0f, 1.0f, 1.0f, 1.0f);
+		s.color = v4(1.0f, 1.0f, 1.0f, 1.0f);
 		s.scale = v2(1.0f, 1.0f);
 		s.rotation = angle;
 		s.texture = r;
@@ -122,12 +103,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		float y = ds::random(200.0f, 500.0f);
 		int r = ds::random(0.0, 1.9f);
 		int c = ds::random(0.0, 1.9f);
-		numSprites = add(v2(x, y), Rect(r * 40, c * 40, 40, 40), sprites, numSprites);
+		numSprites = add(v2(x, y), v4(r * 40, c * 40, 40, 40), sprites, numSprites);
 	}
 
 	SpriteConstantBuffer constantBuffer;
-	constantBuffer.screenDimension = v4(1024.0f, 768.0f, 128.0f, 128.0f);
-	constantBuffer.screenCenter = v4(512.0f, 384.0f, 0.0f, 0.0f);
+	ds::vec4(constantBuffer.screenDimension, 1024.0f, 768.0f, 128.0f, 128.0f);
+	ds::vec4(constantBuffer.screenCenter, 512.0f, 384.0f, 0.0f, 0.0f);
 	float t = 0.0f;
 
 	// prepare application
@@ -171,16 +152,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 
 	// create orthographic view
-	matrix viewMatrix = mat_identity();
-	matrix projectionMatrix = mat_OrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
-	matrix viewProjectionMatrix = viewMatrix * projectionMatrix;
+	float viewMatrix[16];
+	ds::matIdentity(viewMatrix);
+	float projectionMatrix[16];
+	ds::matOrthoLH(projectionMatrix, 1024.0f, 768.0f, 0.1f, 1.0f);
+	float viewProjectionMatrix[16];
+	ds::matMultiply(viewProjectionMatrix, viewMatrix, projectionMatrix);
 
 	ds::setViewMatrix(viewMatrix);
 	ds::setProjectionMatrix(projectionMatrix);
 
 	ds::StateGroup* sg = ds::createStateGroup();
 	sg->bindLayout(vertexDeclId);
-	sg->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, &constantBuffer);
 	sg->bindConstantBuffer(cbid, ds::ShaderType::GEOMETRY, &constantBuffer);
 	sg->bindBlendState(bs_id);
 	sg->bindSamplerState(ssid, ds::ShaderType::PIXEL);
@@ -189,6 +172,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	sg->bindTexture(textureID, ds::ShaderType::PIXEL, 0);
 
 	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::POINT_LIST, 0 };
+
+	float world[16];
+	ds::matIdentity(world);
+	ds::matTranspose(constantBuffer.wvp, viewProjectionMatrix);
 
 	while (ds::isRunning()) {
 		// move sprites
@@ -210,16 +197,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::begin();
 		// disbale depth buffer
 		ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
-		matrix w = mat_identity();
-		constantBuffer.wvp = mat_Transpose(viewProjectionMatrix);
+		
 		for (int i = 0; i < numSprites; ++i) {
 			const Sprite& sprite = sprites[i];
-			v4 t;
-			t.x = sprite.texture.left;
-			t.y = sprite.texture.top;
-			t.z = sprite.texture.width;
-			t.w = sprite.texture.height;
-			vertices[i] = SpriteVertex(sprite.position, t, v3(sprite.scale.x, sprite.scale.y, sprite.rotation), sprite.color);
+			ds::vec3(vertices[i].position, sprite.position.x,sprite.position.y,0.0f);
+			ds::vec4(vertices[i].texture, sprite.texture());
+			ds::vec3(vertices[i].size, sprite.scale.x, sprite.scale.y, sprite.rotation);
+			ds::vec4(vertices[i].color, sprite.color());
 		}
 		ds::mapBufferData(vertexBufferID, vertices, numSprites * sizeof(SpriteVertex));
 		drawCmd.size = numSprites;

@@ -14,7 +14,17 @@ inline uint32_t fnv1a(const char* text, uint32_t hash = FNV_Seed) {
 	return hash;
 }
 
-int WaveFrontReader::load(const char * fileName, matrix* world) {
+v3 matVec3Multiply(const float* m, const v3& v) {
+	float tmp[4] = { v.x,v.y,v.z,1.0f };
+	ds::matVec4Multiply(tmp, m, tmp);
+	v3 ret(0.0f);
+	for (int i = 0; i < 3; ++i) {
+		ret.data[i] = tmp[i];
+	}
+	return ret;
+}
+
+int WaveFrontReader::load(const char * fileName, float* world) {
 	std::ifstream file(fileName);
 	if (!file) {
 		return -1;
@@ -82,14 +92,14 @@ int WaveFrontReader::load(const char * fileName, matrix* world) {
 				ObjVertex ov;
 				ov.position = vertices[v - 1];
 				if (world != 0) {
-					ov.position = *world * ov.position;
+					ov.position = matVec3Multiply(world,ov.position);
 				}
 				if (t != -1) {
 					ov.texture = textures[t - 1];
 				}
 				if (n != -1) {
 					if (world != 0) {
-						ov.normal = *world * normals[n - 1];
+						ov.normal = matVec3Multiply(world, normals[n - 1]);
 					}
 					else {
 						ov.normal = normals[n - 1];
