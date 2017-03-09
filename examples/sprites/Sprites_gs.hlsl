@@ -49,7 +49,7 @@ void GS_Main(point GSPS_INPUT gin[1], inout TriangleStream<PS_Input> triStream)
 		float xt = c * sx - s * sy;
 		float yt = s * sx + c * sy;
 		gout.pos = mul(float4(xt + pos.x, yt + pos.y, 0.0f, 1.0f), wvp);
-		gout.pos.z = 1.0;
+		gout.pos.z = 0.0;
 		gout.tex0 = t[i];
 		gout.color = gin[0].Color;
 		triStream.Append(gout);
