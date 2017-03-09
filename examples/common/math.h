@@ -81,7 +81,7 @@ struct Vector<3, T> {
 	Vector<3, T>(const Vector<2, T>& v) { x = v.x; y = v.y; z = 0.0f; }
 	const T& operator[] (int idx) const { return data[idx]; }
 	T& operator[] (int idx) { return data[idx]; }
-	T* operator() () {
+	const T* operator() () const {
 		return &data[0];
 	}
 	Vector<3, T>& operator = (const Vector<3, T>& other) {

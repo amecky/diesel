@@ -1,4 +1,5 @@
 #include "..\..\diesel.h"
+#include "math.h"
 
 typedef uint8_t BYTE;
 
@@ -21,7 +22,7 @@ struct SpriteBufferVertex {
 struct SpriteBufferConstantBuffer {
 	v4 screenDimension;
 	v4 screenCenter;
-	matrix wvp;
+	float wvp[16];
 };
 
 class SpriteBuffer {

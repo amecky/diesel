@@ -4,27 +4,26 @@
 #include "stb_image.h"
 #include "..\common\Grid.h"
 #include "..\common\Geometry.h"
-#include "..\common\WorldMatrix.h"
 
 // ---------------------------------------------------------------
 // Vertex
 // ---------------------------------------------------------------
 struct Vertex {
 
-	v3 p;
-	v2 uv;
+	float x;
+	float y;
+	float z;
+	float u;
+	float v;
 
-	Vertex() : p(0.0f), uv(0.0f) {}
-	Vertex(const v3& pv, float u, float v) : p(pv) , uv(u,v) {}
-	Vertex(const v3& pv, const v2& uvv) : p(pv), uv(uvv) {}
 };
 
 // ---------------------------------------------------------------
 // the cube constant buffer
 // ---------------------------------------------------------------
 struct CubeConstantBuffer {
-	matrix viewProjectionMatrix;
-	matrix worldMatrix;
+	float viewProjectionMatrix[16];
+	float worldMatrix[16];
 };
 
 // ---------------------------------------------------------------
@@ -38,57 +37,6 @@ RID loadImage(const char* name) {
 	return textureID;
 }
 
-void saveObj(Vertex* vertices, int num) {
-	std::vector<int> vertIndices;
-	std::vector<int> uvIndices;
-	std::vector<v3> vertCache;
-	for (int i = 0; i < num; ++i) {
-		bool found = false;
-		for (int j = 0; j < vertCache.size(); ++j) {
-			if (vertCache[j] == vertices[i].p) {
-				found = true;
-				vertIndices.push_back(j + 1);
-			}
-		}
-		if (!found) {
-			vertCache.push_back(vertices[i].p);
-			vertIndices.push_back(vertCache.size());
-		}
-	}
-	std::vector<v2> uvCache;
-	for (int i = 0; i < num; ++i) {
-		bool found = false;
-		for (int j = 0; j < uvCache.size(); ++j) {
-			if (uvCache[j] == vertices[i].uv) {
-				found = true;
-				uvIndices.push_back(j + 1);
-			}
-		}
-		if (!found) {
-			uvCache.push_back(vertices[i].uv);
-			uvIndices.push_back(uvCache.size());
-		}
-	}
-
-	FILE* fp = fopen("test.txt","w");
-	if (fp) {
-		for (int i = 0; i < vertCache.size(); ++i) {
-			const v3& p = vertCache[i];
-			fprintf(fp, "v %g %g %g\n", p.x, p.y, p.z);
-		}
-		for (int i = 0; i < uvCache.size(); ++i) {
-			const v2& p = uvCache[i];
-			fprintf(fp, "vt %g %g\n", p.x, p.y);
-		}
-		int faces = vertIndices.size() / 4;
-		for (int i = 0; i < faces; ++i) {
-			int idx = i * 4;
-			fprintf(fp, "f %d/%d %d/%d %d/%d %d/%d\n", vertIndices[idx], uvIndices[idx], vertIndices[idx + 1], uvIndices[idx + 1], vertIndices[idx + 2], uvIndices[idx + 2], vertIndices[idx + 3], uvIndices[idx + 3]);
-		}
-		fclose(fp);
-	}
-}
-
 // ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------
@@ -96,31 +44,33 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	v3 positions[24];
 	v2 uvs[24];
-	matrix m = mat_identity();
+	float m[16];
+	ds::matIdentity(m);
 	geometry::buildCube(m, positions, uvs);
 
 	Vertex v[24];
 	for (int i = 0; i < 24; ++i) {
-		v[i] = Vertex(positions[i], uvs[i]);
+		v[i] = { positions[i].x, positions[i].y, positions[i].z, uvs[i].x,uvs[i].y };
 	}
 
-	v3 CP[] = { v3(-2,0,-1),v3(-2,0,3),v3(2,0,-1),v3(2,0,3) };
 	const int numCubes = 4;
+	float CP[numCubes][3] = { {-2,0,-1},{-2,0,3},{2,0,-1},{2,0,3} };
+	
 	const int totalCubeVertices = numCubes * 24;
 	Vertex sv[totalCubeVertices];
 	int cnt = 0;
+	float s[16];
+	ds::matScale(s, 0.5f, 2.0f, 0.5f);
 	for(int j = 0; j < numCubes; ++j) {
-		matrix m = mat_Translate(CP[j]);
-		matrix s = mat_Scale(v3(0.5f,2.0f,0.5f));
-		matrix w = s * m;
-		geometry::buildCube(w, positions, uvs);
+		ds::matTranslate(m, CP[j]);
+		ds::matMultiply(m, s, m);
+		geometry::buildCube(m, positions, uvs);
 		for (int i = 0; i < 24; ++i) {
-			sv[cnt++] = Vertex(positions[i], uvs[i]);
+			sv[cnt++] = { positions[i].x,positions[i].y,positions[i].z, uvs[i].x,uvs[i].y };
 		}
 	}
 	
 	CubeConstantBuffer constantBuffer;
-	float t = 0.0f;
 	ds::RenderSettings rs;
 	rs.width = 1024;
 	rs.height = 768;
@@ -160,10 +110,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v);
 	RID staticCubes = ds::createVertexBuffer(ds::BufferType::STATIC, totalCubeVertices, sizeof(Vertex), sv);
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
-	v3 vp = v3(0.0f, 2.0f, -6.0f);
+	float vp[3] = { 0.0f, 2.0f, -6.0f };
 	ds::setViewPosition(vp);
-
-	WorldMatrix wm;
 
 	ds::StateGroup* basicGroup = ds::createStateGroup();
 	basicGroup->bindLayout(rid);
@@ -189,20 +137,28 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::StateGroup* cubeStack[] = { basicGroup, cubeGroup };
 	ds::DrawItem* cubeItem = ds::compile(drawCmd, cubeStack, 2);
 	
+	float t = 0.0f;
+
+	float vpm[16];
+	ds::getViewProjectionMatrix(vpm);
+	ds::matTranspose(constantBuffer.viewProjectionMatrix, vpm);
+
+	float world[16];
+	ds::matIdentity(world);
+
 	while (ds::isRunning()) {
 		ds::begin();
 
 		grid.render();
-		
-		constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
 
+		ds::matIdentity(world);
 		// spinning cube
-		matrix world = mat_identity();
-		constantBuffer.worldMatrix = mat_Transpose(world);
+		ds::matTranspose(constantBuffer.worldMatrix, world);
 		ds::submit(staticItem);
 
-		wm.rotateBy(v3(static_cast<float>(ds::getElapsedSeconds()), 2.0f  * static_cast<float>(ds::getElapsedSeconds()), 0.0f));
-		constantBuffer.worldMatrix = wm.getTransposedMatrix();
+		t += static_cast<float>(ds::getElapsedSeconds());
+		ds::matSRT(world, 1.0f, 1.0f, 1.0f, t, 2.0f * t, 0.0f, 0.0f, 0.0f, 0.0f);
+		ds::matTranspose(constantBuffer.worldMatrix, world);
 		ds::submit(cubeItem);
 		
 		ds::end();

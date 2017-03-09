@@ -1,18 +1,18 @@
 #include "Camera.h"
 
 FPSCamera::FPSCamera(float screenWidth, float screenHeight)  {
-	_projectionMatrix = mat_PerspectiveFovLH(ds::PI * 0.25f, screenWidth / screenHeight, 0.01f, 100.0f);
-	_position = v3(0, 2, -4);
-	_lastMousePos = ds::getMousePosition();
-	_target = v3(0, 0, 1);
-	_up = v3(0, 1, 0);
-	_right = v3(1, 0, 0);
+	ds::matPerspectiveFovLH(_projectionMatrix, ds::PI * 0.25f, screenWidth / screenHeight, 0.01f, 100.0f);
+	ds::vec3(_position, 0.0f, 2.0f, -4.0f);
+	ds::getMousePosition(_lastMousePos);
+	ds::vec3(_target, 0, 0, 1);
+	ds::vec3(_up, 0, 1, 0 );
+	ds::vec3(_right, 1, 0, 0 );
 	_speed = 10.0f;
 	_yaw = 0.0f;
 	_pitch = 0.0f;
-	_viewMatrix = mat_LookAtLH(_position, _target, _up);
+	ds::matLookAtLH(_viewMatrix,_position, _target, _up);
 	ds::setProjectionMatrix(_projectionMatrix);
-	_viewProjectionMatrix = _viewMatrix * _projectionMatrix;
+	ds::matMultiply(_viewProjectionMatrix, _viewMatrix, _projectionMatrix);
 	buildView();
 }
 
@@ -21,60 +21,77 @@ FPSCamera::~FPSCamera() {
 }
 
 void FPSCamera::setPosition(const v3& pos, const v3& target) {
-	_position = pos;
-	_target = target;
+	ds::vec3(_position,pos());
+	ds::vec3(_target,target());
 	buildView();
 }
 
 void FPSCamera::setPosition(const v3& pos) {
-	_position = pos;		
+	ds::vec3(_position,pos());		
 	buildView();
 }
 
 void FPSCamera::move(float unit) {
-	_position += _target * unit;
+	for (int i = 0; i < 3; ++i) {
+		_position[i] += _target[i] * unit;
+	}
 	buildView();
 }
 
 void FPSCamera::strafe(float unit) {
-	_position += _right * unit;
+	for (int i = 0; i < 3; ++i) {
+		_position[i] += _right[i] * unit;
+	}
 	buildView();
 }
 
 void FPSCamera::up(float unit) {
-	v3 tmp = _up * unit;
-	_position = _position + tmp;
+	float tmp[3] = { 0.0f };
+	for (int i = 0; i < 3; ++i) {
+		tmp[i] = _up[i] * unit;
+	}
+	for (int i = 0; i < 3; ++i) {
+		_position[i] = _position[i] + tmp[i];
+	}
 	buildView();
 }
 
 void FPSCamera::setPitch(float angle) {
-	matrix R = mat_Rotation(_right,angle);
-	_up = mat_TransformNormal(_up, R);
-	_target = mat_TransformNormal(_target, R);
+	float R[16];
+	ds::matRotation(R,_right,angle);
+	ds::matTransformNormal(_up, _up, R);
+	ds::matTransformNormal(_target, _target, R);
 	buildView();
 }
 
 void FPSCamera::resetYaw(float angle) {
 	_yaw = angle;
-	matrix R = mat_RotationZ(_yaw);
-	_right = R * v3(1, 0, 0);
-	_target = R * v3(0, 0, 1);
+	float R[16];
+	ds::matRotationZ(R, _yaw);
+	float right[3] = { 1,0,0 };
+	ds::matVec3Multiply(_right, R, right);
+	float target[3] = { 0,0,1 };
+	ds::matVec3Multiply(_target, R, target);
 	buildView();
 }
 
 void FPSCamera::setYaw(float angle) {
-	matrix R = mat_RotationY(angle);
-	_right = mat_TransformNormal(_right, R);
-	_up = mat_TransformNormal(_up, R);
-	_target = mat_TransformNormal(_target, R);
+	float R[16];
+	ds::matRotationY(R, angle);
+	ds::matTransformNormal(_right,_right, R);
+	ds::matTransformNormal(_up, _up, R);
+	ds::matTransformNormal(_target,_target, R);
 	buildView();
 }
 	
 void FPSCamera::resetPitch(float angle) {
 	_pitch = angle;
-	matrix R = mat_RotationY(_pitch);
-	_right = R * v3(1, 0, 0);
-	_target = R * v3(0, 0, 1);
+	float R[16];
+	ds::matRotationY(R, _pitch);
+	float right[3] = { 1,0,0 };
+	ds::matVec3Multiply(_right, R, right);
+	float target[3] = { 0,0,1 };
+	ds::matVec3Multiply(_target, R, target);
 	buildView();
 }
 
@@ -97,16 +114,17 @@ void FPSCamera::update(float elapsedTime) {
 	if (ds::isKeyPressed('E')) {
 		up(-5.0f*elapsedTime);
 	}
-	v2 mp = ds::getMousePosition();
+	float mp[2];
+	ds::getMousePosition(mp);
 	if (ds::isMouseButtonPressed(0)) {
 		// Make each pixel correspond to a quarter of a degree.
-		float dx = DEGTORAD(0.25f*(mp.x - _lastMousePos.x));
-		float dy = DEGTORAD(0.25f*(mp.y - _lastMousePos.y));
+		float dx = DEGTORAD(0.25f*(mp[0] - _lastMousePos[0]));
+		float dy = DEGTORAD(0.25f*(mp[1] - _lastMousePos[1]));
 		setPitch(dy);
 		setYaw(-dx);			
 	}
-	_lastMousePos.x = mp.x;
-	_lastMousePos.y = mp.y;
+	_lastMousePos[0] = mp[0];
+	_lastMousePos[1] = mp[1];
 		
 }
 
@@ -124,31 +142,31 @@ void FPSCamera::buildView() {
 	float y = -dot(P, U);
 	float z = -dot(P, L);
 
-	_right = R;
-	_up = U;
-	_target = L;
+	ds::vec3(_right,R());
+	ds::vec3(_up, U());
+	ds::vec3(_target, L());
 
-	_viewMatrix(0, 0) = _right.x;
-	_viewMatrix(1, 0) = _right.y;
-	_viewMatrix(2, 0) = _right.z;
-	_viewMatrix(3, 0) = x;
+	_viewMatrix[0] = _right[0];
+	_viewMatrix[1] = _right[1];
+	_viewMatrix[2] = _right[2];
+	_viewMatrix[3] = x;
 
-	_viewMatrix(0, 1) = _up.x;
-	_viewMatrix(1, 1) = _up.y;
-	_viewMatrix(2, 1) = _up.z;
-	_viewMatrix(3, 1) = y;
+	_viewMatrix[4] = _up[0];
+	_viewMatrix[5] = _up[1];
+	_viewMatrix[6] = _up[2];
+	_viewMatrix[7] = y;
 
-	_viewMatrix(0, 2) = _target.x;
-	_viewMatrix(1, 2) = _target.y;
-	_viewMatrix(2, 2) = _target.z;
-	_viewMatrix(3, 2) = z;
+	_viewMatrix[8] = _target[0];
+	_viewMatrix[9] = _target[1];
+	_viewMatrix[10] = _target[2];
+	_viewMatrix[11] = z;
 
-	_viewMatrix(0, 3) = 0.0f;
-	_viewMatrix(1, 3) = 0.0f;
-	_viewMatrix(2, 3) = 0.0f;
-	_viewMatrix(3, 3) = 1.0f;
+	_viewMatrix[12] = 0.0f;
+	_viewMatrix[13] = 0.0f;
+	_viewMatrix[14] = 0.0f;
+	_viewMatrix[15] = 1.0f;
 
-	_viewProjectionMatrix = _viewMatrix * _projectionMatrix;
+	ds::matMultiply(_viewProjectionMatrix, _viewMatrix, _projectionMatrix);
 
 	ds::setViewMatrix(_viewMatrix);
 }

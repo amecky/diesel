@@ -46,7 +46,6 @@
     <ClCompile Include="Grid.cpp" />
     <ClCompile Include="SpriteBuffer.cpp" />
     <ClCompile Include="WaveFrontReader.cpp" />
-    <ClCompile Include="WorldMatrix.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
@@ -55,7 +54,6 @@
     <ClInclude Include="math.h" />
     <ClInclude Include="SpriteBuffer.h" />
     <ClInclude Include="WaveFrontReader.h" />
-    <ClInclude Include="WorldMatrix.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Sprite_GS_Main.inc" />

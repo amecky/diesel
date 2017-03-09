@@ -20,38 +20,6 @@ const uint16_t NO_RID = UINT16_MAX - 1;
 #define RADTODEG( radian ) ((radian) * (180.0f / 3.141592654f))
 #endif
 
-/*
-matrix mat_Scale(const v3& scale);
-
-matrix mat_RotationX(float angle);
-
-matrix mat_RotationY(float angle);
-
-matrix mat_RotationZ(float angle);
-
-matrix mat_Rotation(const v3& r);
-
-matrix mat_Transpose(const matrix& m);
-
-
-
-matrix mat_Translate(const v3& pos);
-
-matrix mat_LookAtLH(const v3& eye, const v3& lookAt, const v3& up);
-
-matrix mat_PerspectiveFovLH(float fovy, float aspect, float zn, float zf);
-
-v3 mat_TransformNormal(const v3& v, const matrix& m);
-
-matrix mat_Rotation(const v3& v, float angle);
-
-matrix operator * (const matrix& m1, const matrix& m2);
-
-v3 operator * (const matrix& m, const v3& v);
-
-v4 operator * (const matrix& m, const v4& v);
-*/
-
 // ----------------------------------------------------------------------
 //
 // The rendering API
@@ -113,6 +81,8 @@ namespace ds {
 
 	void matScale(float* result, const float* scale);
 
+	void matScale(float* result, float sx, float sy, float sz);
+
 	void matLookAtLH(float* result, const float* eye, const float* lookAt, const float* up);
 
 	void matPerspectiveFovLH(float* result, float fovy, float aspect, float zn, float zf);
@@ -120,6 +90,30 @@ namespace ds {
 	void matTranslate(float* result, const float* pos);
 
 	void matSRT(float* result, float scaleX, float scaleY, float scaleZ, float rotX, float rotY, float rotZ, float posX, float posY, float posZ);
+
+	void matVec3Multiply(float* result, const float* m, const float* v);
+
+	void matVec4Multiply(float* result, const float* m, const float* v);
+
+	void matRotationX(float* result, float angle);
+
+	void matRotationY(float* result, float angle);
+
+	void matRotationZ(float* result, float angle);
+
+	void matRotation(float* result, const float* r);
+
+	void matTransformNormal(float* result, const float* v, const float* m);
+
+	void matRotation(float* result, const float* v, float angle);
+
+	void vec3(float* result, float x, float y, float z);
+
+	void vec3(float* result, const float* v);
+
+	void vec4(float* result, float x, float y, float z, float w);
+
+	void vec4(float* result, const float* v);
 
 	// ----------------------------------------------------------------------
 	// Enums
@@ -2956,49 +2950,79 @@ namespace ds {
 	// -------------------------------------------------------
 	// Scale matrix
 	// -------------------------------------------------------
+	void matScale(float* result, float sx, float sy, float sz) {
+		matIdentity(result);
+		result[0] = sx;
+		result[5] = sy;
+		result[10] = sz;
+	}
+
 	void matScale(float* result, const float* scale) {
 		matIdentity(result);
 		result[0] = scale[0];
 		result[5] = scale[1];
 		result[10] = scale[2];
 	}
-	/*
+	
 	// http://www.cprogramming.com/tutorial/3d/rotationMatrices.html
 	// left hand sided
-	matrix mat_RotationX(float angle) {
-		matrix sm(
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, cos(angle), -sin(angle), 0.0f,
-			0.0f, sin(angle), cos(angle), 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f
-		);
-		return sm;
+	void matRotationX(float* result, float angle) {
+		float sx = sinf(angle);
+		float cx = cosf(angle);
+		matIdentity(result);
+		result[5] = cx;
+		result[6] = -sx;
+		result[9] = sx;
+		result[10] = cx;
 	}
 
-	matrix mat_RotationY(float angle) {
-		matrix sm(
-			cos(angle), 0.0f, sin(angle), 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			-sin(angle), 0.0f, cos(angle), 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f
-		);
-		return sm;
+	void matRotationY(float* result, float angle) {
+		matIdentity(result);
+		result[0] = cos(angle);
+		result[2] = sin(angle);
+		result[8] = -sin(angle);
+		result[10] = cos(angle);
 	}
+
 	// FIXME: wrong direction!!!!
-	matrix mat_RotationZ(float angle) {
-		matrix sm(
-			cos(angle), -sin(angle), 0.0f, 0.0f,
-			sin(angle), cos(angle), 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f
-		);
-		return sm;
+	void matRotationZ(float* result, float angle) {
+		matIdentity(result);
+		result[0] = cos(angle);
+		result[1] = -sin(angle);
+		result[4] = sin(angle);
+		result[5] = cos(angle);
 	}
 
-	matrix mat_Rotation(const v3& r) {
-		return mat_RotationZ(r.z) * mat_RotationY(r.y) * mat_RotationX(r.x);
+	void matRotation(float* result, const float* r) {
+		float rmz[16];
+		matRotationZ(rmz, r[2]);
+		float rmy[16];
+		matRotationY(rmy, r[1]);
+		float rmx[16];
+		matRotationX(rmx, r[0]);
+		matMultiply(result, rmy, rmx);
+		matMultiply(result, rmz, result);
+
+		const float sx = sinf(r[0]);
+		const float cx = cosf(r[0]);
+		const float sy = sinf(r[1]);
+		const float cy = cosf(r[1]);
+		const float sz = sinf(r[2]);
+		const float cz = cosf(r[2]);
+
+		memset(result, 0, sizeof(float) * 16);
+		result[0] = cy*cz;
+		result[1] = -cy*sz;
+		result[2] = sy;
+		result[4] = cz*sx*sy + cx*sz;
+		result[5] = cx*cz - sx*sy*sz;
+		result[6] = -cy*sx;
+		result[8] = -cx*cz*sy + sx*sz;
+		result[9] = cz*sx + cx*sy*sz;
+		result[10] = cx*cy;
+		result[15] = 1.0f;
 	}
-	*/
+
 	// -------------------------------------------------------
 	// Transpose matrix
 	// -------------------------------------------------------
@@ -3136,54 +3160,76 @@ namespace ds {
 		result[14] = posZ;
 		result[15] = 1.0f;
 	}
-	/*
-	v3 mat_TransformNormal(const v3& v, const matrix& m) {
-		v3 result =
-			v3(v.x * m._11 + v.y * m._21 + v.z * m._31,
-				v.x * m._12 + v.y * m._22 + v.z * m._32,
-				v.x * m._13 + v.y * m._23 + v.z * m._33);
-		return result;
+	
+	void matTransformNormal(float* result, const float* v, const float* m) {
+		result[0] = v[0] * m[0] + v[1] * m[4] + v[2] * m[8];
+		result[1] = v[0] * m[1] + v[1] * m[5] + v[2] * m[9];
+		result[2] = v[0] * m[2] + v[1] * m[6] + v[2] * m[10];
+	}
+	
+	void matRotation(float* result, const float* v, float angle) {
+		float L = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+		float u2 = v[0] * v[0];
+		float v2 = v[1] * v[1];
+		float w2 = v[2] * v[2];
+		matIdentity(result);
+		result[0] = (u2 + (v2 + w2) * cos(angle)) / L;
+		result[1] = (v[0] * v[1] * (1 - cos(angle)) - v[2] * sqrt(L) * sin(angle)) / L;
+		result[2] = (v[0] * v[2] * (1 - cos(angle)) + v[1] * sqrt(L) * sin(angle)) / L;
+		result[3] = 0.0f;
+
+		result[4] = (v[0] * v[1] * (1 - cos(angle)) + v[2] * sqrt(L) * sin(angle)) / L;
+		result[5] = (v2 + (u2 + w2) * cos(angle)) / L;
+		result[6] = (v[1] * v[2] * (1 - cos(angle)) - v[0] * sqrt(L) * sin(angle)) / L;
+		result[7] = 0.0f;
+
+		result[8] = (v[0] * v[2] * (1 - cos(angle)) - v[1] * sqrt(L) * sin(angle)) / L;
+		result[9] = (v[1] * v[2] * (1 - cos(angle)) + v[0] * sqrt(L) * sin(angle)) / L;
+		result[10] = (w2 + (u2 + v2) * cos(angle)) / L;
+		result[11] = 0.0f;
+
+	}
+	
+
+	void matVec3Multiply(float* result, const float* m, const float* v) {
+		float tmp[4] = { v[0],v[1],v[2],1.0f };
+		matVec4Multiply(tmp, m, tmp);
+		for (int i = 0; i < 3; ++i) {
+			result[i] = tmp[i];
+		}
 	}
 
-	matrix mat_Rotation(const v3& v, float angle) {
-		float L = (v.x * v.x + v.y * v.y + v.z * v.z);
-		float u2 = v.x * v.x;
-		float v2 = v.y * v.y;
-		float w2 = v.z * v.z;
-		matrix tmp = mat_identity();
-		tmp._11 = (u2 + (v2 + w2) * cos(angle)) / L;
-		tmp._12 = (v.x * v.y * (1 - cos(angle)) - v.z * sqrt(L) * sin(angle)) / L;
-		tmp._13 = (v.x * v.z * (1 - cos(angle)) + v.y * sqrt(L) * sin(angle)) / L;
-		tmp._14 = 0.0f;
-
-		tmp._21 = (v.x * v.y * (1 - cos(angle)) + v.z * sqrt(L) * sin(angle)) / L;
-		tmp._22 = (v2 + (u2 + w2) * cos(angle)) / L;
-		tmp._23 = (v.y * v.z * (1 - cos(angle)) - v.x * sqrt(L) * sin(angle)) / L;
-		tmp._24 = 0.0f;
-
-		tmp._31 = (v.x * v.z * (1 - cos(angle)) - v.y * sqrt(L) * sin(angle)) / L;
-		tmp._32 = (v.y * v.z * (1 - cos(angle)) + v.x * sqrt(L) * sin(angle)) / L;
-		tmp._33 = (w2 + (u2 + v2) * cos(angle)) / L;
-		tmp._34 = 0.0f;
-
-		return tmp;
+	void matVec4Multiply(float* result, const float* m, const float* v) {
+		result[0] = m[0] * v[0] + m[4] * v[1] + m[8] * v[2] + m[12] * v[3];
+		result[1] = m[1] * v[0] + m[5] * v[1] + m[9] * v[2] + m[13] * v[3];
+		result[2] = m[2] * v[0] + m[6] * v[1] + m[10] * v[2] + m[14] * v[3];
+		result[3] = m[3] * v[0] + m[7] * v[1] + m[11] * v[2] + m[15] * v[3];
 	}
 
-	v4 operator * (const matrix& m, const v4& v) {
-		// row mode
-		v4 tmp;
-		tmp.x = m._11 * v.x + m._21 * v.y + m._31 * v.z + m._41 * v.w;
-		tmp.y = m._12 * v.x + m._22 * v.y + m._32 * v.z + m._42 * v.w;
-		tmp.z = m._13 * v.x + m._23 * v.y + m._33 * v.z + m._43 * v.w;
-		tmp.w = m._14 * v.x + m._24 * v.y + m._34 * v.z + m._44 * v.w;
-		return tmp;
+	void vec3(float* result, float x, float y, float z) {
+		result[0] = x;
+		result[1] = y;
+		result[2] = z;
 	}
 
-	v3 operator * (const matrix& m, const v3& v) {
-		v4 nv(v.x, v.y, v.z, 1.0f);
-		v4 tmp = m * nv;
-		return v3(tmp.x, tmp.y, tmp.z);
+	void vec3(float* result, const float* v) {
+		for (int i = 0; i < 3; ++i) {
+			result[i] = v[i];
+		}
 	}
-	*/
+
+	void vec4(float* result, float x, float y, float z,float w) {
+		result[0] = x;
+		result[1] = y;
+		result[2] = z;
+		result[3] = w;
+	}
+
+	void vec4(float* result, const float* v) {
+		for (int i = 0; i < 4; ++i) {
+			result[i] = v[i];
+		}
+	}
+	
 }
 #endif

@@ -1,5 +1,6 @@
 #pragma once
 #include "..\..\diesel.h"
+#include "..\common\math.h"
 
 const float MOVE_TTL = 1.2f;
 const int CELL_SIZE = 40;
