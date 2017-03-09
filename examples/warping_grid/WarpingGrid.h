@@ -1,6 +1,8 @@
 #pragma once
 #include "..\..\diesel.h"
 #include <vector>
+#define MATH_IMPLEMENTATION
+#include "..\common\math.h"
 
 struct GridVertex {
 	v3 position;

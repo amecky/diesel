@@ -3,8 +3,6 @@
 
 // https://www.dropbox.com/sh/4uvmgy14je7eaxv/AABboa6UE5Pzfg3d9updwUexa?dl=0&preview=Designing+a+Modern+GPU+Interface.pdf
 
-
-
 // ----------------------------------------------------
 // resource handle
 // first 16 bit is the index
@@ -22,195 +20,7 @@ const uint16_t NO_RID = UINT16_MAX - 1;
 #define RADTODEG( radian ) ((radian) * (180.0f / 3.141592654f))
 #endif
 
-// ----------------------------------------------------------------------
-//
-// The necessary math
-//
-// ----------------------------------------------------------------------
-
-// ------------------------------------------------
-// Vector template
-// ------------------------------------------------
-template<int Size, class T>
-struct Vector {
-
-	typedef T Type;
-
-	T data[Size];
-
-};
-
-// ------------------------------------------------
-// Vector 2
-// ------------------------------------------------
-template <class T>
-struct Vector<2, T> {
-	union {
-		T data[2];
-		struct {
-			T x, y;
-		};
-	};
-	Vector<2, T>() : x(0), y(0) {}
-	explicit Vector<2, T>(T t) : x(t), y(t) {}
-	Vector<2, T>(T xv, T yv) : x(xv), y(yv) {}
-	Vector<2, T>(const Vector<2, int>& other) : x(other.x), y(other.y) {}
-	Vector<2, T>(const T* value) {
-		x = *value;
-		++value;
-		y = *value;
-	}
-	const T& operator[] (int idx) const { return data[idx]; }
-	T& operator[] (int idx) { return data[idx]; }
-	T* operator() () {
-		return &data[0];
-	}
-	Vector<2, T>& operator = (const Vector<2, T>& other) {
-		x = other.x;
-		y = other.y;
-		return *this;
-	}
-};
-
-// ------------------------------------------------
-// Vector 3
-// ------------------------------------------------
-template <class T>
-struct Vector<3, T> {
-	union {
-		T data[3];
-		struct {
-			T x, y, z;
-		};
-	};
-
-	Vector<3, T>() : x(0.0f), y(0.0f), z(0.0f) {}
-	explicit Vector<3, T>(T t) : x(t), y(t), z(t) {}
-	Vector<3, T>(T xv, T yv, T zv) : x(xv), y(yv), z(zv) {}
-	Vector<3, T>(const Vector<2, T>& other, T tz) : x(other.x), y(other.y), z(tz) {}
-	Vector<3, T>(const Vector<3, T>& other) : x(other.x), y(other.y), z(other.z) {}
-	Vector<3, T>(const T* value) {
-		x = *value;
-		++value;
-		y = *value;
-		++value;
-		z = *value;
-	}
-	Vector<3, T>(const Vector<2, T>& v) { x = v.x; y = v.y; z = 0.0f; }
-	const T& operator[] (int idx) const { return data[idx]; }
-	T& operator[] (int idx) { return data[idx]; }
-	T* operator() () {
-		return &data[0];
-	}
-	Vector<3, T>& operator = (const Vector<3, T>& other) {
-		x = other.x;
-		y = other.y;
-		z = other.z;
-		return *this;
-	}
-	Vector<2, T> xy() const {
-		return Vector<2, T>(x, y);
-	}
-};
-
-// ------------------------------------------------
-// Vector 4 
-// ------------------------------------------------
-template <class T> struct Vector<4, T> {
-	union {
-		T data[4];
-		struct {
-			T x, y, z, w;
-		};
-		struct {
-			T r, g, b, a;
-		};
-	};
-	Vector<4, T>() : x(0), y(0), z(0), w(0) {}
-	explicit Vector<4, T>(T t) : x(t), y(t), z(t), w(t) {}
-	Vector<4, T>(T tx, T ty, T tz, T tw) : x(tx), y(ty), z(tz), w(tw) {}
-	Vector<4, T>(const Vector<4, T>& other) : x(other.x), y(other.y), z(other.z), w(other.w) {}
-	Vector<4, T>(const Vector<3, T>& other, float tw) : x(other.x), y(other.y), z(other.z), w(tw) {}
-	Vector<4, T>(const T* data) {
-		x = *data;
-		++data;
-		y = *data;
-		++data;
-		z = *data;
-		++data;
-		w = *data;
-	}
-	const T* operator() () const {
-		return &data[0];
-	}
-	Vector<4, T>& operator = (const Vector<4, T>& other) {
-		x = other.x;
-		y = other.y;
-		z = other.z;
-		w = other.w;
-		return *this;
-	}
-	Vector<2, T> xy() const {
-		return Vector<2, T>(x, y);
-	}
-	Vector<3, T> xyz() const {
-		return Vector<3, T>(x, y, z);
-	}
-};
-
-// ------------------------------------------------
-// Type definitions
-// ------------------------------------------------
-typedef Vector<2, float> v2;
-typedef Vector<3, float> v3;
-typedef Vector<4, float> v4;
-
-const v2 V2_RIGHT = v2(1, 0);
-const v2 V2_LEFT = v2(-1, 0);
-const v2 V2_UP = v2(0, 1);
-const v2 V2_DOWN = v2(0, -1);
-const v2 V2_ZERO = v2(0, 0);
-const v2 V2_ONE = v2(1, 1);
-
-const v3 V3_RIGHT = v3(1, 0, 0);
-const v3 V3_LEFT = v3(-1, 0, 0);
-const v3 V3_UP = v3(0, 1, 0);
-const v3 V3_DOWN = v3(0, -1, 0);
-const v3 V3_FORWARD = v3(0, 0, -1);
-const v3 V3_BACKWARD = v3(0, 0, 1);
-const v3 V3_ZERO = v3(0, 0, 0);
-const v3 V3_ONE = v3(1, 1, 1);
-
-// ------------------------------------------------
-// Matrix
-// ------------------------------------------------
-struct matrix {
-
-	union {
-		struct {
-			float        _11, _12, _13, _14;
-			float        _21, _22, _23, _24;
-			float        _31, _32, _33, _34;
-			float        _41, _42, _43, _44;
-
-		};
-		float m[4][4];
-	};
-
-	matrix();
-	matrix(float m11, float m12, float m13, float m14, float m21, float m22, float m23, float m24, float m31, float m32, float m33, float m34, float m41, float m42, float m43, float m44);
-
-	operator float *() const { return (float *)&_11; }
-
-	float& operator () (int a, int b) {
-		return m[a][b];
-	}
-};
-
-matrix mat_identity();
-
-matrix mat_OrthoLH(float w, float h, float zn, float zf);
-
+/*
 matrix mat_Scale(const v3& scale);
 
 matrix mat_RotationX(float angle);
@@ -222,6 +32,8 @@ matrix mat_RotationZ(float angle);
 matrix mat_Rotation(const v3& r);
 
 matrix mat_Transpose(const matrix& m);
+
+
 
 matrix mat_Translate(const v3& pos);
 
@@ -238,323 +50,7 @@ matrix operator * (const matrix& m1, const matrix& m2);
 v3 operator * (const matrix& m, const v3& v);
 
 v4 operator * (const matrix& m, const v4& v);
-
-template<int Size, class T>
-bool operator == (const Vector<Size, T>& u, const Vector<Size, T>& v) {
-	for (int i = 0; i < Size; ++i) {
-		if (u.data[i] != v.data[i]) {
-			return false;
-		}
-	}
-	return true;
-}
-
-template<int Size, class T>
-bool operator != (const Vector<Size, T>& u, const Vector<Size, T>& v) {
-	for (int i = 0; i < Size; ++i) {
-		if (u.data[i] != v.data[i]) {
-			return true;
-		}
-	}
-	return false;
-}
-
-template<int Size, class T>
-Vector<Size, T> operator - (const Vector<Size, T>& v) {
-	Vector<Size, T> ret;
-	for (int i = 0; i < Size; ++i) {
-		ret.data[i] = -v.data[i];
-	}
-	return ret;
-}
-
-template<int Size, class T>
-Vector<Size, T> operator += (Vector<Size, T>& u, const Vector<Size, T>& v) {
-	for (int i = 0; i < Size; ++i) {
-		u.data[i] += v.data[i];
-	}
-	return u;
-}
-
-template<int Size, class T>
-Vector<Size, T> operator += (const Vector<Size, T>& u, const Vector<Size, T>& v) {
-	Vector<Size, T> r;
-	for (int i = 0; i < Size; ++i) {
-		r.data[i] = u.data[i] + v.data[i];
-	}
-	return r;
-}
-
-template<int Size, class T>
-Vector<Size, T> operator *= (Vector<Size, T>& u, T other) {
-	for (int i = 0; i < Size; ++i) {
-		u.data[i] *= other;
-	}
-	return u;
-}
-
-template<int Size, class T>
-Vector<Size, T>& operator /= (Vector<Size, T>& u, T other) {
-	for (int i = 0; i < Size; ++i) {
-		u.data[i] /= other;
-	}
-	return u;
-}
-
-template<int Size, class T>
-Vector<Size, T>& operator -= (Vector<Size, T>& u, const Vector<Size, T>& v) {
-	for (int i = 0; i < Size; ++i) {
-		u.data[i] -= v.data[i];
-	}
-	return u;
-}
-
-template<int Size, class T>
-Vector<Size, T>& operator -= (const Vector<Size, T>& u, const Vector<Size, T>& v) {
-	Vector<Size, T> r;
-	for (int i = 0; i < Size; ++i) {
-		r.data[i] = u.data[i] - v.data[i];
-	}
-	return r;
-}
-
-template<int Size, class T>
-Vector<Size, T> operator + (const Vector<Size, T>& u, const Vector<Size, T>& v) {
-	Vector<Size, T> ret = u;
-	return ret += v;
-}
-
-template<int Size, class T>
-Vector<Size, T> operator - (const Vector<Size, T>& u, const Vector<Size, T>& v) {
-	Vector<Size, T> ret = u;
-	return ret -= v;
-}
-
-template<int Size, class T>
-Vector<Size, T> operator * (const Vector<Size, T>& u, const T& v) {
-	Vector<Size, T> ret = u;
-	return ret *= v;
-}
-
-template<int Size, class T>
-Vector<Size, T> operator * (const T& v, const Vector<Size, T>& u) {
-	Vector<Size, T> ret = u;
-	return ret *= v;
-}
-
-template<int Size, class T>
-Vector<Size, T> operator / (const Vector<Size, T>& u, const T& v) {
-	Vector<Size, T> ret = u;
-	return ret /= v;
-}
-
-template<int Size, class T>
-T dot(const Vector<Size, T>& v, const Vector<Size, T>& u) {
-	T t(0);
-	for (int i = 0; i < Size; ++i) {
-		t += v.data[i] * u.data[i];
-	}
-	return t;
-}
-
-template<int Size, class T>
-T length(const Vector<Size, T>& v) {
-	T t = dot(v, v);
-	float tmp = std::sqrt(static_cast<float>(t));
-	return static_cast<T>(tmp);
-}
-
-template<int Size, class T>
-T sqr_length(const Vector<Size, T>& v) {
-	return dot(v, v);
-}
-
-template<int Size, class T>
-Vector<Size, T> normalize(const Vector<Size, T>& u) {
-	T len = length(u);
-	if (len == 0.0f) {
-		return Vector<Size, T>();
-	}
-	return u / len;
-}
-
-template<int Size, class T>
-Vector<Size, T>* normalize(const Vector<Size, T>& u, Vector<Size, T>* ret) {
-	T len = length(u);
-	for (int i = 0; i < Size; ++i) {
-		ret->data[i] /= len;
-	}
-	return ret;
-}
-
-template<int Size, class T>
-T distance(const Vector<Size, T>& u, const Vector<Size, T>& v) {
-	Vector<Size, T> sub = u - v;
-	return length(sub);
-}
-
-template<int Size, class T>
-T sqr_distance(const Vector<Size, T>& u, const Vector<Size, T>& v) {
-	Vector<Size, T> sub = u - v;
-	return sqr_length(sub);
-}
-
-template<class T>
-Vector<3, T> cross(const Vector<3, T>& u, const Vector<3, T>& v) {
-	T x = u.y * v.z - u.z * v.y;
-	T y = u.z * v.x - u.x * v.z;
-	T z = u.x * v.y - u.y * v.x;
-	return Vector<3, T>(x, y, z);
-}
-
-template<class T>
-Vector<3, T>* cross(const Vector<3, T>& u, const Vector<3, T>& v, Vector<3, T>* ret) {
-	ret->x = u.y * v.z - u.z * v.y;
-	ret->y = u.z * v.x - u.x * v.z;
-	ret->z = u.x * v.y - u.y * v.x;
-	return ret;
-}
-
-template<class T>
-T inline cross(const Vector<2, T>& v1, const Vector<2, T>& v2) {
-	return v1.x * v2.y - v2.x * v1.y;
-}
-
-template<int Size>
-Vector<Size, float>* lerp(const Vector<Size, float>& u, const Vector<Size, float>& v, float time, Vector<Size, float>* ret) {
-	float norm = time;
-	if (norm < 0.0f) {
-		norm = 0.0f;
-	}
-	if (norm > 1.0f) {
-		norm = 1.0f;
-	}
-	for (int i = 0; i < Size; ++i) {
-		ret->data[i] = u.data[i] * (1.0f - norm) + v.data[i] * norm;
-	}
-	return ret;
-}
-
-template<int Size>
-Vector<Size, float> lerp(const Vector<Size, float>& u, const Vector<Size, float>& v, float time) {
-	Vector<Size, float> ret;
-	lerp(u, v, time, &ret);
-	return ret;
-}
-
-template<int Size, class T>
-Vector<Size, T> vec_min(const Vector<Size, T>& u, const Vector<Size, T>& v) {
-	Vector<Size, T> ret;
-	for (int i = 0; i < Size; ++i) {
-		if (u.data[i] <= v.data[i]) {
-			ret.data[i] = u.data[i];
-		}
-		else {
-			ret.data[i] = v.data[i];
-		}
-	}
-	return ret;
-}
-
-template<int Size, class T>
-Vector<Size, T> vec_max(const Vector<Size, T>& u, const Vector<Size, T>& v) {
-	Vector<Size, T> ret;
-	for (int i = 0; i < Size; ++i) {
-		if (u.data[i] >= v.data[i]) {
-			ret.data[i] = u.data[i];
-		}
-		else {
-			ret.data[i] = v.data[i];
-		}
-	}
-	return ret;
-}
-
-template<int Size, class T>
-Vector<Size, T> clamp(const Vector<Size, T>& u, const Vector<Size, T>& min, const Vector<Size, T>& max) {
-	Vector<Size, T> ret;
-	for (int i = 0; i < Size; ++i) {
-		ret.data[i] = u.data[i];
-		if (u.data[i] > max.data[i]) {
-			ret.data[i] = max.data[i];
-		}
-		else if (u.data[i] < min.data[i]) {
-			ret.data[i] = min.data[i];
-		}
-	}
-	return ret;
-}
-
-template<int Size, class T>
-void clamp(Vector<Size, T>* u, const Vector<Size, T>& min, const Vector<Size, T>& max) {
-	for (int i = 0; i < Size; ++i) {
-		if (u->data[i] > max.data[i]) {
-			u->data[i] = max.data[i];
-		}
-		else if (u->data[i] < min.data[i]) {
-			u->data[i] = min.data[i];
-		}
-	}
-}
-
-template<int Size>
-Vector<Size, float> saturate(const Vector<Size, float>& u) {
-	return clamp(u, Vector<Size, float>(0.0f), Vector<Size, float>(1.0f));
-}
-
-template<int Size>
-Vector<Size, int> saturate(const Vector<Size, int>& u) {
-	return clamp(u, Vector<Size, int>(0), Vector<Size, int>(1));
-}
-
-template<int Size, class T>
-void limit(Vector<Size, T>* v, const Vector<Size, T>& u) {
-	for (int i = 0; i < Size; ++i) {
-		if (v->data[i] > u.data[i]) {
-			v->data[i] = u.data[i];
-		}
-		else if (v->data[i] < -u.data[i]) {
-			v->data[i] = -u.data[i];
-		}
-	}
-}
-
-template<int Size, class T>
-Vector<Size, T> reflect(const Vector<Size, T>& u, const Vector<Size, T>& norm) {
-	Vector<Size, T> ret;
-	float dp = dot(u, norm);
-	for (int i = 0; i < Size; ++i) {
-		ret.data[i] = u.data[i] - 2.0f * dp * norm.data[i];
-	}
-	return ret;
-}
-
-inline matrix::matrix() {
-	for (int i = 0; i < 4; ++i) {
-		for (int j = 0; j < 4; ++j) {
-			m[i][j] = 0.0f;
-		}
-	}
-}
-
-inline matrix::matrix(float m11, float m12, float m13, float m14, float m21, float m22, float m23, float m24, float m31, float m32, float m33, float m34, float m41, float m42, float m43, float m44) {
-	_11 = m11;
-	_12 = m12;
-	_13 = m13;
-	_14 = m14;
-	_21 = m21;
-	_22 = m22;
-	_23 = m23;
-	_24 = m24;
-	_31 = m31;
-	_32 = m32;
-	_33 = m33;
-	_34 = m34;
-	_41 = m41;
-	_42 = m42;
-	_43 = m43;
-	_44 = m44;
-}
+*/
 
 // ----------------------------------------------------------------------
 //
@@ -603,8 +99,31 @@ namespace ds {
 
 	} Color;
 
+	// ----------------------------------------------------------------------
+	// Math / Matrix
+	// ----------------------------------------------------------------------
 
+	void matIdentity(float* result);
 
+	void matTranspose(float* result, const float* input);
+
+	void matOrthoLH(float* result, float w, float h, float zn, float zf);
+
+	void matMultiply(float* result, float* m1, float* m2);
+
+	void matScale(float* result, const float* scale);
+
+	void matLookAtLH(float* result, const float* eye, const float* lookAt, const float* up);
+
+	void matPerspectiveFovLH(float* result, float fovy, float aspect, float zn, float zf);
+
+	void matTranslate(float* result, const float* pos);
+
+	void matSRT(float* result, float scaleX, float scaleY, float scaleZ, float rotX, float rotY, float rotZ, float posX, float posY, float posZ);
+
+	// ----------------------------------------------------------------------
+	// Enums
+	// ----------------------------------------------------------------------
 	enum BufferAttribute {
 		POSITION,
 		COLOR,
@@ -908,21 +427,21 @@ namespace ds {
 
 	// view and projection matrix
 
-	const matrix& getViewMatrix();
+	void getViewMatrix(float* result);
 
-	void setViewMatrix(const matrix& m);
+	void setViewMatrix(const float* m);
 
-	const matrix& getProjectionMatrix();
+	void getProjectionMatrix(float* result);
 
-	const matrix& getViewProjectionMatrix();
+	void getViewProjectionMatrix(float* result);
 
-	void setViewPosition(const v3& viewPos);
+	void setViewPosition(const float* viewPos);
 
-	v3 getViewPosition();
+	float* getViewPosition();
 
-	void lookAt(const v3& pos);
+	void lookAt(const float* pos);
 
-	void setProjectionMatrix(const matrix& m);
+	void setProjectionMatrix(const float* m);
 
 	void setProjectionMatrix(float fieldOfView, float aspectRatio);
 
@@ -932,7 +451,7 @@ namespace ds {
 
 	bool isKeyPressed(uint8_t key);
 
-	v2 getMousePosition();
+	void getMousePosition(float* result);
 
 	bool isMouseButtonPressed(int button);	
 
@@ -1437,16 +956,16 @@ namespace ds {
 		ID3D11DepthStencilState* depthDisabledStencilState;
 		ID3D11DepthStencilState* depthEnabledStencilState;
 
-		matrix viewMatrix;
-		matrix projectionMatrix;
-		matrix viewProjectionMatrix;
+		float viewMatrix[16];
+		float projectionMatrix[16];
+		float viewProjectionMatrix[16];
 
 		std::vector<BaseResource*> _resources;
 		std::vector<StateGroup*> _groups;
 
-		v3 viewPosition;
-		v3 lookAt;
-		v3 up;
+		float viewPosition[3];
+		float lookAt[3];
+		float up[3];
 
 		int mouseButtonState[2];
 		int keyState[256];
@@ -1843,61 +1362,76 @@ namespace ds {
 			return false;
 		}
 
-		_ctx->viewMatrix = mat_identity();
+		matIdentity(_ctx->viewMatrix);
 
-		_ctx->viewPosition = v3(0, 0, -6);
-		_ctx->lookAt = v3(0, 0, 0);
-		_ctx->up = v3(0, 1, 0);
-		_ctx->viewMatrix = mat_LookAtLH(_ctx->viewPosition, _ctx->lookAt, _ctx->up);
+		_ctx->viewPosition[0] = 0.0f;
+		_ctx->viewPosition[1] = 0.0f;
+		_ctx->viewPosition[2] = -6.0f;
+
+		_ctx->lookAt[0] = 0.0f;
+		_ctx->lookAt[1] = 0.0f;
+		_ctx->lookAt[2] = 0.0f;
+
+		_ctx->up[0] = 0.0f;
+		_ctx->up[1] = 1.0f;
+		_ctx->up[2] = 0.0f;
+
+		matLookAtLH(_ctx->viewMatrix, _ctx->viewPosition, _ctx->lookAt, _ctx->up);
 
 		float fieldOfView = PI / 4.0f;
 		float screenAspect = (float)_ctx->screenWidth / (float)_ctx->screenHeight;
-		_ctx->projectionMatrix = mat_PerspectiveFovLH(fieldOfView, screenAspect, 0.01f, 100.0f);
-		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
+		matPerspectiveFovLH(_ctx->projectionMatrix, fieldOfView, screenAspect, 0.01f, 100.0f);
+		matMultiply(_ctx->viewProjectionMatrix, _ctx->viewMatrix, _ctx->projectionMatrix);
 		return true;
 	}
 
 	// ------------------------------------------------------
 	// set view position
 	// ------------------------------------------------------
-	void setViewPosition(const v3& viewPos) {
-		_ctx->viewPosition = viewPos;
-		_ctx->viewMatrix = mat_LookAtLH(_ctx->viewPosition, _ctx->lookAt, _ctx->up);
-		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
+	void setViewPosition(const float* viewPos) {
+		for (int i = 0; i < 3; ++i) {
+			_ctx->viewPosition[i] = viewPos[i];
+		}
+		matLookAtLH(_ctx->viewMatrix, _ctx->viewPosition, _ctx->lookAt, _ctx->up);
+		matMultiply(_ctx->viewProjectionMatrix,_ctx->viewMatrix,_ctx->projectionMatrix);
 	}
 
-	v3 getViewPosition() {
+	float* getViewPosition() {
 		return _ctx->viewPosition;
 	}
 
 	// ------------------------------------------------------
 	// look at
 	// ------------------------------------------------------
-	void lookAt(const v3& pos) {
-		_ctx->lookAt = pos;
-		_ctx->viewMatrix = mat_LookAtLH(_ctx->viewPosition, _ctx->lookAt, _ctx->up);
-		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
+	void lookAt(const float* pos) {
+		for (int i = 0; i < 3; ++i) {
+			_ctx->lookAt[i] = pos[i];
+		}
+		matLookAtLH(_ctx->viewMatrix,_ctx->viewPosition, _ctx->lookAt, _ctx->up);
+		matMultiply(_ctx->viewProjectionMatrix, _ctx->viewMatrix, _ctx->projectionMatrix);
 	}
 
 	// ------------------------------------------------------
 	// set projection matrix
 	// ------------------------------------------------------
 	void setProjectionMatrix(float fieldOfView, float aspectRatio) {
-		_ctx->projectionMatrix = mat_PerspectiveFovLH(fieldOfView, aspectRatio, 0.01f, 100.0f);
-		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
+		matPerspectiveFovLH(_ctx->projectionMatrix, fieldOfView, aspectRatio, 0.01f, 100.0f);
+		matMultiply(_ctx->viewProjectionMatrix, _ctx->viewMatrix, _ctx->projectionMatrix);
 	}
 
-	void setProjectionMatrix(const matrix& m) {
-		_ctx->projectionMatrix = m;
-		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
+	void setProjectionMatrix(const float* m) {
+		for (int i = 0; i < 16; ++i) {
+			_ctx->projectionMatrix[i] = m[i];
+		}
+		matMultiply(_ctx->viewProjectionMatrix, _ctx->viewMatrix, _ctx->projectionMatrix);
 	}
 
 	// ------------------------------------------------------
 	// set projection matrix
 	// ------------------------------------------------------
 	void setProjectionMatrix(float fieldOfView, float aspectRatio, float minDepth, float maxDepth) {
-		_ctx->projectionMatrix = mat_PerspectiveFovLH(fieldOfView, aspectRatio, minDepth, maxDepth);
-		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
+		matPerspectiveFovLH(_ctx->projectionMatrix, fieldOfView, aspectRatio, minDepth, maxDepth);
+		matMultiply(_ctx->viewProjectionMatrix, _ctx->viewMatrix, _ctx->projectionMatrix);
 	}
 
 	// ------------------------------------------------------
@@ -1940,16 +1474,14 @@ namespace ds {
 	// ------------------------------------------------------
 	// get mouse position
 	// ------------------------------------------------------
-	v2 getMousePosition() {
-		v2 mp;
+	void getMousePosition(float* result) {		
 		tagPOINT p;
 		if (GetCursorPos(&p)) {
 			if (ScreenToClient(ds::_ctx->hwnd, &p)) {
-				mp.x = static_cast<float>(p.x);
-				mp.y = static_cast<float>(ds::_ctx->screenHeight - p.y);
+				result[0] = static_cast<float>(p.x);
+				result[1] = static_cast<float>(ds::_ctx->screenHeight - p.y);
 			}
 		}
-		return mp;
 	}
 
 	// ------------------------------------------------------
@@ -2119,27 +1651,35 @@ namespace ds {
 	// ------------------------------------------------------
 	// get view matrix
 	// ------------------------------------------------------
-	const matrix& getViewMatrix() {
-		return _ctx->viewMatrix;
+	void getViewMatrix(float* result) {
+		for (int i = 0; i < 16; ++i) {
+			result[i] = _ctx->viewMatrix[i];
+		}
 	}
 
-	void setViewMatrix(const matrix& m) {
-		_ctx->viewMatrix = m;
-		_ctx->viewProjectionMatrix = m * _ctx->projectionMatrix;
+	void setViewMatrix(const float* m) {
+		for (int i = 0; i < 16; ++i) {
+			_ctx->viewMatrix[i] = m[i];
+		}
+		matMultiply(_ctx->viewProjectionMatrix, _ctx->viewMatrix, _ctx->projectionMatrix);
 	}
 
 	// ------------------------------------------------------
 	// get projection matrix
 	// ------------------------------------------------------
-	const matrix& getProjectionMatrix() {
-		return _ctx->projectionMatrix;
+	void getProjectionMatrix(float* result) {
+		for (int i = 0; i < 16; ++i) {
+			result[i] = _ctx->projectionMatrix[i];
+		}
 	}
 
 	// ------------------------------------------------------
 	// get view projection matrix
 	// ------------------------------------------------------
-	const matrix& getViewProjectionMatrix() {
-		return _ctx->viewProjectionMatrix;
+	void getViewProjectionMatrix(float* result) {
+		for (int i = 0; i < 16; ++i) {
+			result[i] = _ctx->viewProjectionMatrix[i];
+		}
 	}
 
 	// ------------------------------------------------------
@@ -3369,218 +2909,281 @@ namespace ds {
 			}
 		}
 	}
-}
 
 
-// -----------------------------------------------------------------
-// Math
-// -----------------------------------------------------------------
-matrix mat_identity() {
-	matrix m(
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 0.0f, 1.0f
-	);
-	return m;
-}
+	// -----------------------------------------------------------------
+	// Math
+	// -----------------------------------------------------------------
+	void matIdentity(float* result) {
+		memset(result, 0, sizeof(float) * 16);
+		result[0] = 1.0f;
+		result[5] = 1.0f;
+		result[10] = 1.0f;
+		result[15] = 1.0f;
+	}
 
-matrix mat_OrthoLH(float w, float h, float zn, float zf) {
-	// msdn.microsoft.com/de-de/library/windows/desktop/bb204940(v=vs.85).aspx
-	matrix tmp = mat_identity();
-	tmp._11 = 2.0f / w;
-	tmp._22 = 2.0f / h;
-	tmp._33 = 1.0f / (zf - zn);
-	tmp._43 = zn / (zn - zf);
-	return tmp;
-}
+	void matOrthoLH(float* result, float w, float h, float zn, float zf) {
+		// msdn.microsoft.com/de-de/library/windows/desktop/bb204940(v=vs.85).aspx
+		matIdentity(result);
+		result[0] = 2.0f / w;
+		result[5] = 2.0f / h;
+		result[10] = 1.0f / (zf - zn);
+		result[14] = zn / (zn - zf);
+	}
 
-matrix operator * (const matrix& m1, const matrix& m2) {
-	matrix tmp;
-	tmp._11 = m1._11 * m2._11 + m1._12 * m2._21 + m1._13 * m2._31 + m1._14 * m2._41;
-	tmp._12 = m1._11 * m2._12 + m1._12 * m2._22 + m1._13 * m2._32 + m1._14 * m2._42;
-	tmp._13 = m1._11 * m2._13 + m1._12 * m2._23 + m1._13 * m2._33 + m1._14 * m2._43;
-	tmp._14 = m1._11 * m2._14 + m1._12 * m2._24 + m1._13 * m2._34 + m1._14 * m2._44;
+	void matMultiply(float* result, float* m1, float* m2) {
+		result[0] = m1[0] * m2[0] + m1[1] * m2[4] + m1[2] * m2[8] + m1[3] * m2[12];
+		result[1] = m1[0] * m2[1] + m1[1] * m2[5] + m1[2] * m2[9] + m1[3] * m2[13];
+		result[2] = m1[0] * m2[2] + m1[1] * m2[6] + m1[2] * m2[10] + m1[3] * m2[14];
+		result[3] = m1[0] * m2[3] + m1[1] * m2[7] + m1[2] * m2[11] + m1[3] * m2[15];
 
-	tmp._21 = m1._21 * m2._11 + m1._22 * m2._21 + m1._23 * m2._31 + m1._24 * m2._41;
-	tmp._22 = m1._21 * m2._12 + m1._22 * m2._22 + m1._23 * m2._32 + m1._24 * m2._42;
-	tmp._23 = m1._21 * m2._13 + m1._22 * m2._23 + m1._23 * m2._33 + m1._24 * m2._43;
-	tmp._24 = m1._21 * m2._14 + m1._22 * m2._24 + m1._23 * m2._34 + m1._24 * m2._44;
+		result[4] = m1[4] * m2[0] + m1[5] * m2[4] + m1[6] * m2[8] + m1[7] * m2[12];
+		result[5] = m1[4] * m2[1] + m1[5] * m2[5] + m1[6] * m2[9] + m1[7] * m2[13];
+		result[6] = m1[4] * m2[2] + m1[5] * m2[6] + m1[6] * m2[10] + m1[7] * m2[14];
+		result[7] = m1[4] * m2[3] + m1[5] * m2[7] + m1[6] * m2[11] + m1[7] * m2[15];
 
-	tmp._31 = m1._31 * m2._11 + m1._32 * m2._21 + m1._33 * m2._31 + m1._34 * m2._41;
-	tmp._32 = m1._31 * m2._12 + m1._32 * m2._22 + m1._33 * m2._32 + m1._34 * m2._42;
-	tmp._33 = m1._31 * m2._13 + m1._32 * m2._23 + m1._33 * m2._33 + m1._34 * m2._43;
-	tmp._34 = m1._31 * m2._14 + m1._32 * m2._24 + m1._33 * m2._34 + m1._34 * m2._44;
+		result[8] = m1[8] * m2[0] + m1[9] * m2[4] + m1[10] * m2[8] + m1[11] * m2[12];
+		result[9] = m1[8] * m2[1] + m1[9] * m2[5] + m1[10] * m2[9] + m1[11] * m2[13];
+		result[10] = m1[8] * m2[2] + m1[9] * m2[6] + m1[10] * m2[10] + m1[11] * m2[14];
+		result[11] = m1[8] * m2[3] + m1[9] * m2[7] + m1[10] * m2[11] + m1[11] * m2[15];
 
-	tmp._41 = m1._41 * m2._11 + m1._42 * m2._21 + m1._43 * m2._31 + m1._44 * m2._41;
-	tmp._42 = m1._41 * m2._12 + m1._42 * m2._22 + m1._43 * m2._32 + m1._44 * m2._42;
-	tmp._43 = m1._41 * m2._13 + m1._42 * m2._23 + m1._43 * m2._33 + m1._44 * m2._43;
-	tmp._44 = m1._41 * m2._14 + m1._42 * m2._24 + m1._43 * m2._34 + m1._44 * m2._44;
+		result[12] = m1[12] * m2[0] + m1[13] * m2[4] + m1[14] * m2[8] + m1[15] * m2[12];
+		result[13] = m1[12] * m2[1] + m1[13] * m2[5] + m1[14] * m2[9] + m1[15] * m2[13];
+		result[14] = m1[12] * m2[2] + m1[13] * m2[6] + m1[14] * m2[10] + m1[15] * m2[14];
+		result[15] = m1[12] * m2[3] + m1[13] * m2[7] + m1[14] * m2[11] + m1[15] * m2[15];
+	}
 
-	return tmp;
-}
+	// -------------------------------------------------------
+	// Scale matrix
+	// -------------------------------------------------------
+	void matScale(float* result, const float* scale) {
+		matIdentity(result);
+		result[0] = scale[0];
+		result[5] = scale[1];
+		result[10] = scale[2];
+	}
+	/*
+	// http://www.cprogramming.com/tutorial/3d/rotationMatrices.html
+	// left hand sided
+	matrix mat_RotationX(float angle) {
+		matrix sm(
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, cos(angle), -sin(angle), 0.0f,
+			0.0f, sin(angle), cos(angle), 0.0f,
+			0.0f, 0.0f, 0.0f, 1.0f
+		);
+		return sm;
+	}
 
-// -------------------------------------------------------
-// Scale matrix
-// -------------------------------------------------------
-matrix mat_Scale(const v3& scale) {
-	matrix sm(
-		scale.x, 0.0f, 0.0f, 0.0f,
-		0.0f, scale.y, 0.0f, 0.0f,
-		0.0f, 0.0f, scale.z, 0.0f,
-		0.0f, 0.0f, 0.0f, 1.0f
-	);
-	return sm;
-}
+	matrix mat_RotationY(float angle) {
+		matrix sm(
+			cos(angle), 0.0f, sin(angle), 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			-sin(angle), 0.0f, cos(angle), 0.0f,
+			0.0f, 0.0f, 0.0f, 1.0f
+		);
+		return sm;
+	}
+	// FIXME: wrong direction!!!!
+	matrix mat_RotationZ(float angle) {
+		matrix sm(
+			cos(angle), -sin(angle), 0.0f, 0.0f,
+			sin(angle), cos(angle), 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f,
+			0.0f, 0.0f, 0.0f, 1.0f
+		);
+		return sm;
+	}
 
-// http://www.cprogramming.com/tutorial/3d/rotationMatrices.html
-// left hand sided
-matrix mat_RotationX(float angle) {
-	matrix sm(
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, cos(angle), -sin(angle), 0.0f,
-		0.0f, sin(angle), cos(angle), 0.0f,
-		0.0f, 0.0f, 0.0f, 1.0f
-	);
-	return sm;
-}
-
-matrix mat_RotationY(float angle) {
-	matrix sm(
-		cos(angle), 0.0f, sin(angle), 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		-sin(angle), 0.0f, cos(angle), 0.0f,
-		0.0f, 0.0f, 0.0f, 1.0f
-	);
-	return sm;
-}
-// FIXME: wrong direction!!!!
-matrix mat_RotationZ(float angle) {
-	matrix sm(
-		cos(angle), -sin(angle), 0.0f, 0.0f,
-		sin(angle), cos(angle), 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 0.0f, 1.0f
-	);
-	return sm;
-}
-
-matrix mat_Rotation(const v3& r) {
-	return mat_RotationZ(r.z) * mat_RotationY(r.y) * mat_RotationX(r.x);
-}
-
-// -------------------------------------------------------
-// Transpose matrix
-// -------------------------------------------------------
-matrix mat_Transpose(const matrix& m) {
-	matrix current = m;
-	matrix tmp;
-	for (int i = 0; i < 4; i++) {
-		for (int j = 0; j < 4; j++) {
-			tmp.m[i][j] = current.m[j][i];
+	matrix mat_Rotation(const v3& r) {
+		return mat_RotationZ(r.z) * mat_RotationY(r.y) * mat_RotationX(r.x);
+	}
+	*/
+	// -------------------------------------------------------
+	// Transpose matrix
+	// -------------------------------------------------------
+	void matTranspose(float* result, const float* input) {
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < 4; j++) {
+				result[i + j * 4] = input[j + i * 4];
+			}
 		}
 	}
-	return tmp;
-}
 
-// -------------------------------------------------------
-// Translation matrix
-// -------------------------------------------------------
-matrix mat_Translate(const v3& pos) {
-	matrix tm(
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		pos.x, pos.y, pos.z, 1.0f
-	);
-	return tm;
-}
+	// -------------------------------------------------------
+	// Translation matrix
+	// -------------------------------------------------------
+	void matTranslate(float* result, const float* pos) {
+		matIdentity(result);
+		for (int i = 0; i < 3; ++i) {
+			result[12 + i] = pos[i];
+		}
+	}
+	
 
-matrix mat_LookAtLH(const v3& eye, const v3& lookAt, const v3& up) {
-	// see msdn.microsoft.com/de-de/library/windows/desktop/bb205342(v=vs.85).aspx
-	v3 zAxis = normalize(lookAt - eye);
-	v3 xAxis = normalize(cross(up, zAxis));
-	v3 yAxis = cross(zAxis, xAxis);
-	float dox = -dot(xAxis, eye);
-	float doy = -dot(yAxis, eye);
-	float doz = -dot(zAxis, eye);
-	matrix tmp(
-		xAxis.x, yAxis.x, zAxis.x, 0.0f,
-		xAxis.y, yAxis.y, zAxis.y, 0.0f,
-		xAxis.z, yAxis.z, zAxis.z, 0.0f,
-		dox, doy, doz, 1.0f
-	);
-	return tmp;
-}
+	static float dot(const float* u, const float* v) {
+		float t = 0.0f;
+		for (int i = 0; i < 3; ++i) {
+			t += v[i] * u[i];
+		}
+		return t;
+	}
 
-matrix mat_PerspectiveFovLH(float fovy, float aspect, float zn, float zf) {
-	// msdn.microsoft.com/de-de/library/windows/desktop/bb205350(v=vs.85).aspx
-	float yScale = 1.0f / tan(fovy / 2.0f);
-	float xScale = yScale / aspect;
+	float vecLength(const float* v) {
+		float t = dot(v, v);
+		return std::sqrt(static_cast<float>(t));
+	}
 
-	matrix tmp(
-		xScale, 0.0f, 0.0f, 0.0f,
-		0.0f, yScale, 0.0f, 0.0f,
-		0.0f, 0.0f, zf / (zf - zn), 1.0f,
-		0.0f, 0.0f, -zn*zf / (zf - zn), 0.0f
-	);
-	return tmp;
-}
+	static void vecNormalize(float* result, const float* u) {
+		float len = vecLength(u);
+		for (int i = 0; i < 3; ++i) {
+			if (len == 0.0f) {
+				result[i] = 0.0f;
+			}
+			else {
+				result[i] = u[i] / len;
+			}
+		}
+	}
 
-v3 mat_TransformNormal(const v3& v, const matrix& m) {
-	v3 result =
-		v3(v.x * m._11 + v.y * m._21 + v.z * m._31,
-			v.x * m._12 + v.y * m._22 + v.z * m._32,
-			v.x * m._13 + v.y * m._23 + v.z * m._33);
-	return result;
-}
+	static void vecSubtract(float* result, const float* u, const float* v) {
+		for (int i = 0; i < 3; ++i) {
+			result[i] = u[i] - v[i];
+		}
+	}
 
-matrix mat_Rotation(const v3& v, float angle) {
-	float L = (v.x * v.x + v.y * v.y + v.z * v.z);
-	float u2 = v.x * v.x;
-	float v2 = v.y * v.y;
-	float w2 = v.z * v.z;
-	matrix tmp = mat_identity();
-	tmp._11 = (u2 + (v2 + w2) * cos(angle)) / L;
-	tmp._12 = (v.x * v.y * (1 - cos(angle)) - v.z * sqrt(L) * sin(angle)) / L;
-	tmp._13 = (v.x * v.z * (1 - cos(angle)) + v.y * sqrt(L) * sin(angle)) / L;
-	tmp._14 = 0.0f;
+	
 
-	tmp._21 = (v.x * v.y * (1 - cos(angle)) + v.z * sqrt(L) * sin(angle)) / L;
-	tmp._22 = (v2 + (u2 + w2) * cos(angle)) / L;
-	tmp._23 = (v.y * v.z * (1 - cos(angle)) - v.x * sqrt(L) * sin(angle)) / L;
-	tmp._24 = 0.0f;
+	static void vecCross(float* result, const float* u, const float* v) {
+		result[0] = u[1] * v[2] - u[2] * v[1];
+		result[1] = u[2] * v[0] - u[0] * v[2];
+		result[2] = u[0] * v[1] - u[1] * v[0];
+	}
 
-	tmp._31 = (v.x * v.z * (1 - cos(angle)) - v.y * sqrt(L) * sin(angle)) / L;
-	tmp._32 = (v.y * v.z * (1 - cos(angle)) + v.x * sqrt(L) * sin(angle)) / L;
-	tmp._33 = (w2 + (u2 + v2) * cos(angle)) / L;
-	tmp._34 = 0.0f;
+	void matLookAtLH(float* result, const float* eye, const float* lookAt, const float* up) {
+		// see msdn.microsoft.com/de-de/library/windows/desktop/bb205342(v=vs.85).aspx
+		float tmp[3];
 
-	return tmp;
-}
+		float view[3];
+		vecSubtract(tmp, lookAt, eye);
+		vecNormalize(view, tmp);
 
-v4 operator * (const matrix& m, const v4& v) {
-	// column mode
+		float right[3];
+		vecCross(tmp, up, view);
+		vecNormalize(right, tmp);
+
+		float _up[3];
+		vecCross(_up, view, right);
+
+		//vecNormalize(yAxis, yAxis);
+		matIdentity(result);
+		result[0] = right[0];
+		result[1] = _up[0];
+		result[2] = view[0];
+		result[4] = right[1];
+		result[5] = _up[1];
+		result[6] = view[1];
+		result[8] = right[2];
+		result[9] = _up[2];
+		result[10] = view[2];
+		result[12] = -dot(right, eye);
+		result[13] = -dot(_up, eye);
+		result[14] = -dot(view, eye);
+		result[15] = 1.0f;
+	}
+
+	void matPerspectiveFovLH(float* result, float fovy, float aspect, float zn, float zf) {
+		// msdn.microsoft.com/de-de/library/windows/desktop/bb205350(v=vs.85).aspx
+		float yScale = 1.0f / tan(fovy / 2.0f);
+		float xScale = yScale / aspect;
+		matIdentity(result);
+		result[0] = xScale;
+		result[5] = yScale;
+		result[10] = zf / (zf - zn);
+		result[11] = 1.0f;
+		result[14] = -zn*zf / (zf - zn);
+		result[15] = 0.0f;
+	}
+
+	void matSRT(float* result, float scaleX, float scaleY, float scaleZ, float rotX, float rotY, float rotZ, float posX, float posY, float posZ) {
+		const float sx = sinf(rotX);
+		const float cx = cosf(rotX);
+		const float sy = sinf(rotY);
+		const float cy = cosf(rotY);
+		const float sz = sinf(rotZ);
+		const float cz = cosf(rotZ);
+
+		const float sxsz = sx * sz;
+		const float cycz = cy * cz;
+
+		result[0] = scaleX * (cycz - sxsz*sy);
+		result[1] = scaleX * -cx * sz;
+		result[2] = scaleX * (cz*sy + cy*sxsz);
+		result[3] = 0.0f;
+
+		result[4] = scaleY * (cz*sx*sy + cy*sz);
+		result[5] = scaleY * cx * cz;
+		result[6] = scaleY * (sy*sz - cycz*sx);
+		result[7] = 0.0f;
+
+		result[8] = scaleZ * -cx * sy;
+		result[9] = scaleZ * sx;
+		result[10] = scaleZ * cx * cy;
+		result[11] = 0.0f;
+
+		result[12] = posX;
+		result[13] = posY;
+		result[14] = posZ;
+		result[15] = 1.0f;
+	}
 	/*
-	Vector4f tmp;
-	tmp.x = m._11 * v.x + m._12 * v.y + m._13 * v.z + m._14 * v.w;
-	tmp.y = m._21 * v.x + m._22 * v.y + m._23 * v.z + m._24 * v.w;
-	tmp.z = m._31 * v.x + m._32 * v.y + m._33 * v.z + m._34 * v.w;
-	tmp.w = m._41 * v.x + m._42 * v.y + m._43 * v.z + m._44 * v.w;
-	return tmp;
-	*/
-	// row mode
-	v4 tmp;
-	tmp.x = m._11 * v.x + m._21 * v.y + m._31 * v.z + m._41 * v.w;
-	tmp.y = m._12 * v.x + m._22 * v.y + m._32 * v.z + m._42 * v.w;
-	tmp.z = m._13 * v.x + m._23 * v.y + m._33 * v.z + m._43 * v.w;
-	tmp.w = m._14 * v.x + m._24 * v.y + m._34 * v.z + m._44 * v.w;
-	return tmp;
-}
+	v3 mat_TransformNormal(const v3& v, const matrix& m) {
+		v3 result =
+			v3(v.x * m._11 + v.y * m._21 + v.z * m._31,
+				v.x * m._12 + v.y * m._22 + v.z * m._32,
+				v.x * m._13 + v.y * m._23 + v.z * m._33);
+		return result;
+	}
 
-v3 operator * (const matrix& m, const v3& v) {
-	v4 nv(v.x, v.y, v.z, 1.0f);
-	v4 tmp = m * nv;
-	return v3(tmp.x, tmp.y, tmp.z);
+	matrix mat_Rotation(const v3& v, float angle) {
+		float L = (v.x * v.x + v.y * v.y + v.z * v.z);
+		float u2 = v.x * v.x;
+		float v2 = v.y * v.y;
+		float w2 = v.z * v.z;
+		matrix tmp = mat_identity();
+		tmp._11 = (u2 + (v2 + w2) * cos(angle)) / L;
+		tmp._12 = (v.x * v.y * (1 - cos(angle)) - v.z * sqrt(L) * sin(angle)) / L;
+		tmp._13 = (v.x * v.z * (1 - cos(angle)) + v.y * sqrt(L) * sin(angle)) / L;
+		tmp._14 = 0.0f;
+
+		tmp._21 = (v.x * v.y * (1 - cos(angle)) + v.z * sqrt(L) * sin(angle)) / L;
+		tmp._22 = (v2 + (u2 + w2) * cos(angle)) / L;
+		tmp._23 = (v.y * v.z * (1 - cos(angle)) - v.x * sqrt(L) * sin(angle)) / L;
+		tmp._24 = 0.0f;
+
+		tmp._31 = (v.x * v.z * (1 - cos(angle)) - v.y * sqrt(L) * sin(angle)) / L;
+		tmp._32 = (v.y * v.z * (1 - cos(angle)) + v.x * sqrt(L) * sin(angle)) / L;
+		tmp._33 = (w2 + (u2 + v2) * cos(angle)) / L;
+		tmp._34 = 0.0f;
+
+		return tmp;
+	}
+
+	v4 operator * (const matrix& m, const v4& v) {
+		// row mode
+		v4 tmp;
+		tmp.x = m._11 * v.x + m._21 * v.y + m._31 * v.z + m._41 * v.w;
+		tmp.y = m._12 * v.x + m._22 * v.y + m._32 * v.z + m._42 * v.w;
+		tmp.z = m._13 * v.x + m._23 * v.y + m._33 * v.z + m._43 * v.w;
+		tmp.w = m._14 * v.x + m._24 * v.y + m._34 * v.z + m._44 * v.w;
+		return tmp;
+	}
+
+	v3 operator * (const matrix& m, const v3& v) {
+		v4 nv(v.x, v.y, v.z, 1.0f);
+		v4 tmp = m * nv;
+		return v3(tmp.x, tmp.y, tmp.z);
+	}
+	*/
 }
 #endif
