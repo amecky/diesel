@@ -100,6 +100,7 @@ int WaveFrontReader::load(const char * fileName, float* world) {
 				if (n != -1) {
 					if (world != 0) {
 						ov.normal = matVec3Multiply(world, normals[n - 1]);
+						ov.normal = normals[n - 1];
 					}
 					else {
 						ov.normal = normals[n - 1];
