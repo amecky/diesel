@@ -7,7 +7,7 @@ class FPSCamera {
 public:
 	FPSCamera(float screenWidth, float screenHeight);
 	virtual ~FPSCamera();
-	void setPosition(const v3& pos, const v3& lookAt);
+	void setPosition(const ds::vec3& pos, const ds::vec3& lookAt);
 	void setSpeed(float spd) {
 		_speed = spd;
 	}
@@ -28,23 +28,23 @@ public:
 	float getPitch() const {
 		return _pitch;
 	}
-	const v3& getPosition() const {
+	const ds::vec3& getPosition() const {
 		return _position;
 	}
-	const v3& getTarget() const {
+	const ds::vec3& getTarget() const {
 		return _target;
 	}
 	float getYaw() const {
 		return _yaw;
 	}
 
-	const matrix& getViewProjectionMatrix() const {
-		return _viewProjectionMatrix;
+	const ds::matrix& getViewprojectionMatrix() const {
+		return _viewprojectionMatrix;
 	}
-	const matrix& getViewMatrix() const {
+	const ds::matrix& getviewMatrix() const {
 		return _viewMatrix;
 	}
-	const matrix& getProjectionMatrix() const {
+	const ds::matrix& getprojectionMatrix() const {
 		return _projectionMatrix;
 	}
 private:
@@ -56,16 +56,16 @@ private:
 	// rotation around Z axis
 	float _yaw;	
 
-	v3 _position;
-	v3 _target;
-	v3 _up;
-	v3 _right;
+	ds::vec3 _position;
+	ds::vec3 _target;
+	ds::vec3 _up;
+	ds::vec3 _right;
 
 	float _speed;
 
-	v2 _lastMousePos;
+	ds::vec2 _lastMousePos;
 
-	matrix _viewMatrix;
-	matrix _projectionMatrix;
-	matrix _viewProjectionMatrix;
+	ds::matrix _viewMatrix;
+	ds::matrix _projectionMatrix;
+	ds::matrix _viewprojectionMatrix;
 };

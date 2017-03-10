@@ -1,32 +1,32 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include "..\common\stb_image.h"
 #include "..\common\Grid.h"
 #include "..\common\Geometry.h"
-#include "..\common\WorldMatrix.h"
+#include "..\common\worldMatrix.h"
 
 // ---------------------------------------------------------------
 // Vertex
 // ---------------------------------------------------------------
 struct Vertex {
 
-	v3 p;
-	v2 uv;
-	v3 normal;
-	v3 tangent;
-	v3 binormal;
+	ds::vec3 p;
+	ds::vec2 uv;
+	ds::vec3 normal;
+	ds::vec3 tangent;
+	ds::vec3 binormal;
 
 	Vertex() : p(0.0f), uv(0.0f) , normal(0.0f) , tangent(0.0f) , binormal(0.0f) {}
-	Vertex(const v3& pv, const v2& uvv, const v3& n,const v3& t,const v3& b) : p(pv), uv(uvv) , normal(n) , tangent(t) , binormal(b) {}
+	Vertex(const ds::vec3& pv, const ds::vec2& uvv, const ds::vec3& n,const ds::vec3& t,const ds::vec3& b) : p(pv), uv(uvv) , normal(n) , tangent(t) , binormal(b) {}
 };
 
 // ---------------------------------------------------------------
 // the cube constant buffer
 // ---------------------------------------------------------------
 struct CubeConstantBuffer {
-	matrix viewProjectionMatrix;
-	matrix worldMatrix;
+	ds::matrix viewprojectionMatrix;
+	ds::matrix worldMatrix;
 };
 
 // ---------------------------------------------------------------
@@ -54,7 +54,7 @@ RID loadImage(const char* name, ds::TextureFormat format) {
 void saveObj(Vertex* vertices, int num) {
 	std::vector<int> vertIndices;
 	std::vector<int> uvIndices;
-	std::vector<v3> vertCache;
+	std::vector<ds::vec3> vertCache;
 	for (int i = 0; i < num; ++i) {
 		bool found = false;
 		for (int j = 0; j < vertCache.size(); ++j) {
@@ -68,7 +68,7 @@ void saveObj(Vertex* vertices, int num) {
 			vertIndices.push_back(vertCache.size());
 		}
 	}
-	std::vector<v2> uvCache;
+	std::vector<ds::vec2> uvCache;
 	for (int i = 0; i < num; ++i) {
 		bool found = false;
 		for (int j = 0; j < uvCache.size(); ++j) {
@@ -86,11 +86,11 @@ void saveObj(Vertex* vertices, int num) {
 	FILE* fp = fopen("test.txt","w");
 	if (fp) {
 		for (int i = 0; i < vertCache.size(); ++i) {
-			const v3& p = vertCache[i];
+			const ds::vec3& p = vertCache[i];
 			fprintf(fp, "v %g %g %g\n", p.x, p.y, p.z);
 		}
 		for (int i = 0; i < uvCache.size(); ++i) {
-			const v2& p = uvCache[i];
+			const ds::vec2& p = uvCache[i];
 			fprintf(fp, "vt %g %g\n", p.x, p.y);
 		}
 		int faces = vertIndices.size() / 4;
@@ -121,30 +121,30 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	Vertex vertices[] = {
 		// pos / uv / normal / tangent (u) / binormal (v)
 		// floor
-		{ v3(-sx, -sy, -sz), v2(0.0f,uvMax),  v3(0.0f,1.0f,0.0f), v3(1.0f,0.0f,0.0f), v3(0.0f,0.0f,-1.0f) },
-		{ v3(-sx, -sy,  sz), v2(0.0f,0.0f),   v3(0.0f,1.0f,0.0f), v3(1.0f,0.0f,0.0f), v3(0.0f,0.0f,-1.0f) },
-		{ v3( sx, -sy,  sz), v2(uvMax,0.0f),  v3(0.0f,1.0f,0.0f), v3(1.0f,0.0f,0.0f), v3(0.0f,0.0f,-1.0f) },
-		{ v3( sx, -sy, -sz), v2(uvMax,uvMax), v3(0.0f,1.0f,0.0f), v3(1.0f,0.0f,0.0f), v3(0.0f,0.0f,-1.0f) },
+		{ ds::vec3(-sx, -sy, -sz), ds::vec2(0.0f,uvMax),  ds::vec3(0.0f,1.0f,0.0f), ds::vec3(1.0f,0.0f,0.0f), ds::vec3(0.0f,0.0f,-1.0f) },
+		{ ds::vec3(-sx, -sy,  sz), ds::vec2(0.0f,0.0f),   ds::vec3(0.0f,1.0f,0.0f), ds::vec3(1.0f,0.0f,0.0f), ds::vec3(0.0f,0.0f,-1.0f) },
+		{ ds::vec3( sx, -sy,  sz), ds::vec2(uvMax,0.0f),  ds::vec3(0.0f,1.0f,0.0f), ds::vec3(1.0f,0.0f,0.0f), ds::vec3(0.0f,0.0f,-1.0f) },
+		{ ds::vec3( sx, -sy, -sz), ds::vec2(uvMax,uvMax), ds::vec3(0.0f,1.0f,0.0f), ds::vec3(1.0f,0.0f,0.0f), ds::vec3(0.0f,0.0f,-1.0f) },
 		// left wall
-		{ v3(-sx, -sy, -sz), v2(0.0f,uvMax),  v3(1.0f,0.0f,0.0f), v3(0.0f,0.0f,1.0f), v3(0.0f,-1.0f,0.0f) },
-		{ v3(-sx,  sy, -sz), v2(0.0f,0.0f),   v3(1.0f,0.0f,0.0f), v3(0.0f,0.0f,1.0f), v3(0.0f,-1.0f,0.0f) },
-		{ v3(-sx,  sy,  sz), v2(uvMax,0.0f),  v3(1.0f,0.0f,0.0f), v3(0.0f,0.0f,1.0f), v3(0.0f,-1.0f,0.0f) },
-		{ v3(-sx, -sy,  sz), v2(uvMax,uvMax), v3(1.0f,0.0f,0.0f), v3(0.0f,0.0f,1.0f), v3(0.0f,-1.0f,0.0f) },
+		{ ds::vec3(-sx, -sy, -sz), ds::vec2(0.0f,uvMax),  ds::vec3(1.0f,0.0f,0.0f), ds::vec3(0.0f,0.0f,1.0f), ds::vec3(0.0f,-1.0f,0.0f) },
+		{ ds::vec3(-sx,  sy, -sz), ds::vec2(0.0f,0.0f),   ds::vec3(1.0f,0.0f,0.0f), ds::vec3(0.0f,0.0f,1.0f), ds::vec3(0.0f,-1.0f,0.0f) },
+		{ ds::vec3(-sx,  sy,  sz), ds::vec2(uvMax,0.0f),  ds::vec3(1.0f,0.0f,0.0f), ds::vec3(0.0f,0.0f,1.0f), ds::vec3(0.0f,-1.0f,0.0f) },
+		{ ds::vec3(-sx, -sy,  sz), ds::vec2(uvMax,uvMax), ds::vec3(1.0f,0.0f,0.0f), ds::vec3(0.0f,0.0f,1.0f), ds::vec3(0.0f,-1.0f,0.0f) },
 		// back wall
-		{ v3(-sx, -sy,  sz), v2(0.0f,uvMax),  v3(0.0f,0.0f,-1.0f), v3(1.0f,0.0f,0.0f), v3(0.0f,-1.0f,0.0f) },
-		{ v3(-sx,  sy,  sz), v2(0.0f,0.0f),   v3(0.0f,0.0f,-1.0f), v3(1.0f,0.0f,0.0f), v3(0.0f,-1.0f,0.0f) },
-		{ v3( sx,  sy,  sz), v2(uvMax,0.0f),  v3(0.0f,0.0f,-1.0f), v3(1.0f,0.0f,0.0f), v3(0.0f,-1.0f,0.0f) },
-		{ v3( sx, -sy,  sz), v2(uvMax,uvMax), v3(0.0f,0.0f,-1.0f), v3(1.0f,0.0f,0.0f), v3(0.0f,-1.0f,0.0f) },
+		{ ds::vec3(-sx, -sy,  sz), ds::vec2(0.0f,uvMax),  ds::vec3(0.0f,0.0f,-1.0f), ds::vec3(1.0f,0.0f,0.0f), ds::vec3(0.0f,-1.0f,0.0f) },
+		{ ds::vec3(-sx,  sy,  sz), ds::vec2(0.0f,0.0f),   ds::vec3(0.0f,0.0f,-1.0f), ds::vec3(1.0f,0.0f,0.0f), ds::vec3(0.0f,-1.0f,0.0f) },
+		{ ds::vec3( sx,  sy,  sz), ds::vec2(uvMax,0.0f),  ds::vec3(0.0f,0.0f,-1.0f), ds::vec3(1.0f,0.0f,0.0f), ds::vec3(0.0f,-1.0f,0.0f) },
+		{ ds::vec3( sx, -sy,  sz), ds::vec2(uvMax,uvMax), ds::vec3(0.0f,0.0f,-1.0f), ds::vec3(1.0f,0.0f,0.0f), ds::vec3(0.0f,-1.0f,0.0f) },
 		// right wall
-		{ v3(sx, -sy,  sz), v2(0.0f,uvMax),  v3(-1.0f,0.0f,0.0f), v3(0.0f,0.0f,-1.0f), v3(0.0f,-1.0f,0.0f) },
-		{ v3(sx,  sy,  sz), v2(0.0f,0.0f),   v3(-1.0f,0.0f,0.0f), v3(0.0f,0.0f,-1.0f), v3(0.0f,-1.0f,0.0f) },
-		{ v3(sx,  sy, -sz), v2(uvMax,0.0f),  v3(-1.0f,0.0f,0.0f), v3(0.0f,0.0f,-1.0f), v3(0.0f,-1.0f,0.0f) },
-		{ v3(sx, -sy, -sz), v2(uvMax,uvMax), v3(-1.0f,0.0f,0.0f), v3(0.0f,0.0f,-1.0f), v3(0.0f,-1.0f,0.0f) },
+		{ ds::vec3(sx, -sy,  sz), ds::vec2(0.0f,uvMax),  ds::vec3(-1.0f,0.0f,0.0f), ds::vec3(0.0f,0.0f,-1.0f), ds::vec3(0.0f,-1.0f,0.0f) },
+		{ ds::vec3(sx,  sy,  sz), ds::vec2(0.0f,0.0f),   ds::vec3(-1.0f,0.0f,0.0f), ds::vec3(0.0f,0.0f,-1.0f), ds::vec3(0.0f,-1.0f,0.0f) },
+		{ ds::vec3(sx,  sy, -sz), ds::vec2(uvMax,0.0f),  ds::vec3(-1.0f,0.0f,0.0f), ds::vec3(0.0f,0.0f,-1.0f), ds::vec3(0.0f,-1.0f,0.0f) },
+		{ ds::vec3(sx, -sy, -sz), ds::vec2(uvMax,uvMax), ds::vec3(-1.0f,0.0f,0.0f), ds::vec3(0.0f,0.0f,-1.0f), ds::vec3(0.0f,-1.0f,0.0f) },
 		// ceiling
-		{ v3(-sx, sy,  sz), v2(0.0f,uvMax),  v3(0.0f,-1.0f,0.0f), v3(1.0f,0.0f,0.0f), v3(0.0f,0.0f,1.0f) },
-		{ v3(-sx, sy, -sz), v2(0.0f,0.0f),   v3(0.0f,-1.0f,0.0f), v3(1.0f,0.0f,0.0f), v3(0.0f,0.0f,1.0f) },
-		{ v3( sx, sy, -sz), v2(uvMax,0.0f),  v3(0.0f,-1.0f,0.0f), v3(1.0f,0.0f,0.0f), v3(0.0f,0.0f,1.0f) },
-		{ v3( sx, sy,  sz), v2(uvMax,uvMax), v3(0.0f,-1.0f,0.0f), v3(1.0f,0.0f,0.0f), v3(0.0f,0.0f,1.0f) }
+		{ ds::vec3(-sx, sy,  sz), ds::vec2(0.0f,uvMax),  ds::vec3(0.0f,-1.0f,0.0f), ds::vec3(1.0f,0.0f,0.0f), ds::vec3(0.0f,0.0f,1.0f) },
+		{ ds::vec3(-sx, sy, -sz), ds::vec2(0.0f,0.0f),   ds::vec3(0.0f,-1.0f,0.0f), ds::vec3(1.0f,0.0f,0.0f), ds::vec3(0.0f,0.0f,1.0f) },
+		{ ds::vec3( sx, sy, -sz), ds::vec2(uvMax,0.0f),  ds::vec3(0.0f,-1.0f,0.0f), ds::vec3(1.0f,0.0f,0.0f), ds::vec3(0.0f,0.0f,1.0f) },
+		{ ds::vec3( sx, sy,  sz), ds::vec2(uvMax,uvMax), ds::vec3(0.0f,-1.0f,0.0f), ds::vec3(1.0f,0.0f,0.0f), ds::vec3(0.0f,0.0f,1.0f) }
 	};
 
 	CubeConstantBuffer constantBuffer;
@@ -184,10 +184,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID roomBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), vertices);
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::WRAP, ds::TextureFilters::LINEAR);
 
-	v3 vp = v3(0.0f, 0.0f, -6.0f);
+	ds::vec3 vp = ds::vec3(0.0f, 0.0f, -6.0f);
 	ds::setViewPosition(vp);
 
-	WorldMatrix wm;
+	worldMatrix wm;
 
 	ds::StateGroup* basicGroup = ds::createStateGroup();
 	basicGroup->bindLayout(rid);
@@ -209,11 +209,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::begin();
 
 		
-		constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
+		constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix());
 
 		// spinning cube
-		matrix world = mat_identity();
-		constantBuffer.worldMatrix = mat_Transpose(world);
+		ds::matrix world = ds::matIdentity();
+		constantBuffer.worldMatrix = ds::matTranspose(world);
 		ds::submit(roomItem);
 
 		ds::end();

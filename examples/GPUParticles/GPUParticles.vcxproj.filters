@@ -6,7 +6,6 @@
     <ClCompile Include="..\common\Grid.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="stb_image.h" />
     <ClInclude Include="Particlesystem.h" />
     <ClInclude Include="..\common\Grid.h" />
   </ItemGroup>

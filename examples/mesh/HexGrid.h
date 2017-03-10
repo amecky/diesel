@@ -8,7 +8,7 @@ namespace ds {
 	class HexGrid {
 
 	public:
-		HexGrid() : _qMax(0), _rMax(0), _items(0), _layout(layout_pointy, v2(1.0f, 1.0f), v2(1, 1)) {
+		HexGrid() : _qMax(0), _rMax(0), _items(0), _layout(layout_pointy, ds::vec2(1.0f, 1.0f), ds::vec2(1, 1)) {
 		}
 
 		~HexGrid() {
@@ -72,14 +72,14 @@ namespace ds {
 			return cnt;
 		}
 
-		v2 to_screen(const Hex& h) {
+		ds::vec2 to_screen(const Hex& h) {
 			return hex_math::hex_to_pixel(_layout, h);
 		}
 		// -------------------------------------------------------
 		// convert from mouse pos
 		// -------------------------------------------------------
 		Hex convertFromMousePos() {
-			v2 mp = renderer::getMousePosition();
+			ds::vec2 mp = renderer::getMousePosition();
 			return hex_math::hex_round(hex_math::pixel_to_hex(_layout, mp));
 		}
 		// -------------------------------------------------------
@@ -107,7 +107,7 @@ namespace ds {
 		// select
 		// -------------------------------------------------------
 		int select(int x, int y) {
-			v2 mp = renderer::getMousePosition();
+			ds::vec2 mp = renderer::getMousePosition();
 			Hex h = hex_math::hex_round(hex_math::pixel_to_hex(_layout, mp));
 			int q_offset = h.r >> 1;
 			int selected = -1;
@@ -147,7 +147,7 @@ namespace ds {
 		// -------------------------------------------------------
 		// set origin
 		// -------------------------------------------------------
-		void setOrigin(const v2& origin) {
+		void setOrigin(const ds::vec2& origin) {
 			_layout.origin = origin;
 		}
 

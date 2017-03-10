@@ -2,11 +2,11 @@
 
 
 
-void Grid::create(v3* positions, int numCells, RID shaderID, RID textureID) {
+void Grid::create(ds::vec3* positions, int numCells, RID shaderID, RID textureID) {
 	RID blendState = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 
 	float uvMax = static_cast<float>(numCells);
-	v2 uvs[] = { v2(0.0f,uvMax),v2(0.0f,0.0f),v2(uvMax,0.0f),v2(uvMax,uvMax) };
+	ds::vec2 uvs[] = { ds::vec2(0.0f,uvMax),ds::vec2(0.0f,0.0f),ds::vec2(uvMax,0.0f),ds::vec2(uvMax,uvMax) };
 	for (int i = 0; i < 4; ++i) {
 		_vertices[i].p = positions[i];
 		_vertices[i].uv = uvs[i];
@@ -35,8 +35,8 @@ void Grid::create(v3* positions, int numCells, RID shaderID, RID textureID) {
 }
 
 void Grid::render() {
-	_constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
-	matrix world = mat_identity();
-	_constantBuffer.worldMatrix = mat_Transpose(world);
+	_constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix());
+	ds::matrix world = ds::matIdentity();
+	_constantBuffer.worldMatrix = ds::matTranspose(world);
 	ds::submit(drawCmd, _gridStates);
 }

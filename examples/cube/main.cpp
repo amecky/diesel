@@ -8,22 +8,22 @@
 // Vertex
 // ---------------------------------------------------------------
 struct Vertex {
-	v3 p;
+	ds::vec3 p;
 	ds::Color color;
 
 	Vertex() : p(0.0f), color(1.0f, 1.0f, 1.0f, 1.0f) {}
-	Vertex(const v3& pv, const ds::Color& c) : p(pv), color(c) {}
+	Vertex(const ds::vec3& pv, const ds::Color& c) : p(pv), color(c) {}
 };
 
-const v3 CUBE_VERTICES[8] = {
-	v3(-0.5f,-0.5f,-0.5f),
-	v3(-0.5f, 0.5f,-0.5f),
-	v3( 0.5f, 0.5f,-0.5f),
-	v3( 0.5f,-0.5f,-0.5f),
-	v3(-0.5f,-0.5f, 0.5f),
-	v3(-0.5f, 0.5f, 0.5f),
-	v3( 0.5f, 0.5f, 0.5f),
-	v3( 0.5f,-0.5f, 0.5f)
+const ds::vec3 CUBE_VERTICES[8] = {
+	ds::vec3(-0.5f,-0.5f,-0.5f),
+	ds::vec3(-0.5f, 0.5f,-0.5f),
+	ds::vec3( 0.5f, 0.5f,-0.5f),
+	ds::vec3( 0.5f,-0.5f,-0.5f),
+	ds::vec3(-0.5f,-0.5f, 0.5f),
+	ds::vec3(-0.5f, 0.5f, 0.5f),
+	ds::vec3( 0.5f, 0.5f, 0.5f),
+	ds::vec3( 0.5f,-0.5f, 0.5f)
 };
 
 const int CUBE_PLANES[6][4] = {
@@ -55,8 +55,8 @@ void addPlane(int side, const ds::Color& color, Vertex* vertices, uint32_t* indi
 // the cube constant buffer used by the vertex shader
 // ---------------------------------------------------------------
 struct CubeConstantBuffer {
-	matrix viewProjectionMatrix;
-	matrix worldMatrix;
+	ds::matrix viewprojectionMatrix;
+	ds::matrix worldMatrix;
 };
 
 // ---------------------------------------------------------------
@@ -105,7 +105,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v);
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 
-	v3 vp = v3(0.0f, 2.0f, -6.0f);
+	ds::vec3 vp = ds::vec3(0.0f, 2.0f, -6.0f);
 	ds::setViewPosition(vp);
 
 
@@ -123,14 +123,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::begin();
 		// move cube
 		t += static_cast<float>(ds::getElapsedSeconds());		
-		v3 cp = v3(cos(t), 0.0f, sin(t));
-		matrix bY = mat_RotationY(t);
+		ds::vec3 cp = ds::vec3(cos(t), 0.0f, sin(t));
+		ds::matrix bY = ds::matRotationY(t);
 		float scale = 0.7f + sin(t) * 0.3f;
-		matrix s = mat_Scale(v3(scale));
-		matrix w = bY * s * mat_Translate(cp);
+		ds::matrix s = ds::matScale(ds::vec3(scale));
+		ds::matrix w = bY * s * ds::matTranslate(cp);
 		
-		constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
-		constantBuffer.worldMatrix = mat_Transpose(w);
+		constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix());
+		constantBuffer.worldMatrix = ds::matTranspose(w);
 
 		ds::submit(drawCmd, sg);
 

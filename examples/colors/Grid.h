@@ -10,8 +10,8 @@ namespace ds {
 template<class T>
 struct DroppedCell {
 
-	v2 from;
-	v2 to;
+	ds::vec2 from;
+	ds::vec2 to;
 	T data;
 };
 // ------------------------------------------------
@@ -21,13 +21,13 @@ template<class T>
 class Grid {
 
 struct GridNode {
-	v2 v2;
+	ds::vec2 v;
     T data;
     bool used;
 
-	GridNode() : v2(-1, -1), used(false) {}
+	GridNode() : v(-1, -1), used(false) {}
 
-	GridNode(const GridNode& other) : v2(other.v2), data(other.data), used(other.used) {}
+	GridNode(const GridNode& other) : v(other.v), data(other.data), used(other.used) {}
 
 };
 
@@ -40,11 +40,11 @@ public:
     void clear(const T& t);
     const T& get(int x,int y) const;
 	T& get(int x,int y);
-	const T& get(const v2& p) const;
-	T& get(const v2& p);
+	const T& get(const ds::vec2& p) const;
+	T& get(const ds::vec2& p);
     void set(int x,int y,const T& t);
     bool remove(int x,int y);    
-    void remove(const std::vector<v2>& v2s,bool shift);  
+    void remove(const std::vector<ds::vec2>& vs,bool shift);  
     const int width() const {
         return m_Width;
     }
@@ -54,8 +54,8 @@ public:
 	bool isValid(int x, int y) const {
 		return getIndex(x, y) != -1;
 	}
-	void findMatchingNeighbours(int x, int y, std::vector<v2>& entries);
-	void findMatchingNeighbours(int x, int y, const T& node, std::vector<v2>& entries);
+	void findMatchingNeighbours(int x, int y, std::vector<ds::vec2>& entries);
+	void findMatchingNeighbours(int x, int y, const T& node, std::vector<ds::vec2>& entries);
     void fillRow(int row,const T& t);
     void fillColumn(int column,const T& t);
     void copyRow(int oldRow,int newRow);
@@ -70,8 +70,8 @@ public:
     void dropRow(int x);
     void dropCell(int x,int y);
 	void dropCells(std::vector<DroppedCell<T>>& droppedCells);
-	void swap(const v2& first, const v2& second);
-	bool isValid(const v2& p) const {
+	void swap(const ds::vec2& first, const ds::vec2& second);
+	bool isValid(const ds::vec2& p) const {
 		return getIndex(p) != -1;
 	}
 	int getMaxColumn() const;
@@ -79,7 +79,7 @@ protected:
     virtual bool isMatch(const T& first,const T& right) = 0;
 private:
     const int getIndex(int x,int y) const;
-	const int getIndex(const v2& p) const;	
+	const int getIndex(const ds::vec2& p) const;	
 	void findMatching(int x, int y, GridNode* providedNode, std::vector<GridNode*>& gridNodes);
 	void simpleFindMatching(int x, int y, GridNode* providedNode, std::vector<GridNode*>& gridNodes);
     int m_Width;
@@ -99,7 +99,7 @@ Grid<T>::Grid(int width,int height) : m_Width(width) , m_Height(height) {
         for ( int y = 0; y < height; ++y ) {
             int index = getIndex(x,y);
             GridNode* node = &m_Data[index];
-			node->v2 = v2(x, y);
+			node->v = ds::vec2(x, y);
             node->used = false;
         }
     }
@@ -158,7 +158,7 @@ inline const T& Grid<T>::get(int x,int y) const {
 // Gets the object at given position
 // ------------------------------------------------
 template<class T>
-inline T& Grid<T>::get(const v2& p) {
+inline T& Grid<T>::get(const ds::vec2& p) {
 	int idx = getIndex(p);
 	return m_Data[idx].data;
 }
@@ -167,7 +167,7 @@ inline T& Grid<T>::get(const v2& p) {
 // Gets the object at given position
 // ------------------------------------------------
 template<class T>
-inline const T& Grid<T>::get(const v2& p) const {
+inline const T& Grid<T>::get(const ds::vec2& p) const {
 	int idx = getIndex(p);
 	return m_Data[idx].data;
 }
@@ -235,7 +235,7 @@ inline const int Grid<T>::getIndex(int x, int y) const {
 // Returns the index into std::vector if valid or -1
 // ------------------------------------------------
 template<class T>
-inline const int Grid<T>::getIndex(const v2& p) const {
+inline const int Grid<T>::getIndex(const ds::vec2& p) const {
 	return getIndex(p.x, p.y);
 }
 
@@ -243,7 +243,7 @@ inline const int Grid<T>::getIndex(const v2& p) const {
 // findMatchingNeighbours
 // ------------------------------------------------
 template<class T>
-inline void Grid<T>::findMatchingNeighbours(int x, int y, std::vector<v2>& entries) {
+inline void Grid<T>::findMatchingNeighbours(int x, int y, std::vector<ds::vec2>& entries) {
     int idx = getIndex(x,y);
 	std::vector<GridNode*> gridNodes;
     if ( idx != -1 ) {    
@@ -255,17 +255,17 @@ inline void Grid<T>::findMatchingNeighbours(int x, int y, std::vector<v2>& entri
     if ( !gridNodes.empty()) {
         for ( std::size_t i = 0; i < gridNodes.size(); ++i ) {
             GridNode* node = gridNodes[i];
-            entries.push_back(node->v2);
+            entries.push_back(node->v);
         }
     }
 }
 
 template<class T>
-inline void Grid<T>::findMatchingNeighbours(int x, int y, const T& node, std::vector<v2>& entries) {
+inline void Grid<T>::findMatchingNeighbours(int x, int y, const T& node, std::vector<ds::vec2>& entries) {
 	std::vector<GridNode*> gridNodes;
 	if ( !isFree(x,y)) {
 		GridNode tmp;
-		tmp.v2 = v2(x, y);
+		tmp.ds::vec2 = ds::vec2(x, y);
 		tmp.data = node;
 		tmp.used = true;
 		simpleFindMatching(x,y,&tmp,gridNodes);
@@ -273,7 +273,7 @@ inline void Grid<T>::findMatchingNeighbours(int x, int y, const T& node, std::ve
 	if ( !gridNodes.empty()) {
 		for ( std::size_t i = 0; i < gridNodes.size(); ++i ) {
 			GridNode* node = gridNodes[i];
-			entries.push_back(node->v2);
+			entries.push_back(node->v);
 		}
 	}
 }
@@ -310,7 +310,7 @@ inline void Grid<T>::findMatching(int x, int y, GridNode* providedNode, std::vec
             bool found = false;
             for ( size_t i = 0; i < gridNodes.size(); ++i ) {
                 GridNode* savedNode = gridNodes[i];
-                if ( savedNode->v2 == currentNode->v2 ) {
+                if ( savedNode->v == currentNode->v ) {
                     found = true;
                 }
             }
@@ -470,8 +470,8 @@ inline void Grid<T>::dropCells(std::vector<DroppedCell<T>>& droppedCells) {
 				if ( !isFree(x,sy)) {
 					DroppedCell<T> dc;
 					dc.data = get(x, sy);
-					dc.from = v2(x,sy);
-					dc.to = v2(x,y);
+					dc.from = ds::vec2(x,sy);
+					dc.to = ds::vec2(x,y);
 					droppedCells.push_back(dc);
 					set(x,y,get(x,sy));
 					if (!remove(x, sy)) {
@@ -512,12 +512,12 @@ bool Grid<T>::isRowEmpty(int row) const {
 }
 
 // ------------------------------------------------
-// Remove grid v2s
+// Remove grid ds::vec2s
 // ------------------------------------------------
 template<class T>
-inline void Grid<T>::remove(const std::vector<v2>& v2s,bool shift) {
-    for ( std::size_t i = 0; i < v2s.size(); ++i ) {
-        v2 gp = v2s[i];
+inline void Grid<T>::remove(const std::vector<ds::vec2>& vs,bool shift) {
+    for ( std::size_t i = 0; i < vs.size(); ++i ) {
+        ds::vec2 gp = vs[i];
 		if (!remove(gp.x, gp.y)) {
 			//LOG << "cannot remove cell at " << gp.x << " " << gp.y;
 		}
@@ -533,7 +533,7 @@ inline void Grid<T>::remove(const std::vector<v2>& v2s,bool shift) {
 }
 
 template<class T>
-inline void Grid<T>::swap(const v2& first, const v2& second) {
+inline void Grid<T>::swap(const ds::vec2& first, const ds::vec2& second) {
 	int fi = getIndex(first);
 	int si = getIndex(second);
 	GridNode n = m_Data[fi];

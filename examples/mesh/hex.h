@@ -42,9 +42,9 @@ const Orientation layout_flat = Orientation(3.0 / 2.0, 0.0, sqrt(3.0) / 2.0, sqr
 
 struct Layout {
 	Orientation orientation;
-	v2 size;
-	v2 origin;
-	Layout(Orientation orientation_, v2 size_, v2 origin_)
+	ds::vec2 size;
+	ds::vec2 origin;
+	Layout(Orientation orientation_, ds::vec2 size_, ds::vec2 origin_)
 		: orientation(orientation_), size(size_), origin(origin_) {}
 };
 
@@ -54,11 +54,11 @@ bool operator != (Hex a, Hex b);
 
 namespace hex_math {
 
-	v2 to_pixel(const Hex& hex, float size);
+	ds::vec2 to_pixel(const Hex& hex, float size);
 
-	v2 hex_to_pixel(const Layout& layout, const Hex& h);
+	ds::vec2 hex_to_pixel(const Layout& layout, const Hex& h);
 
-	FractionalHex pixel_to_hex(const Layout& layout, const v2& p);
+	FractionalHex pixel_to_hex(const Layout& layout, const ds::vec2& p);
 
 	Hex hex_round(const FractionalHex& h);
 

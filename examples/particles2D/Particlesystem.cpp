@@ -6,11 +6,11 @@
 Particlesystem::Particlesystem(ParticlesystemDescriptor descriptor) : _descriptor(descriptor) {
 	_array.initialize(descriptor.maxParticles);
 	_vertices = new ParticleVertex[descriptor.maxParticles];
-	_constantBuffer.screenDimension = v4(1024.0f, 768.0f, 128.0f, 128.0f);
-	_constantBuffer.screenCenter = v4(512.0f, 384.0f, 0.0f, 0.0f);
-	matrix viewMatrix = mat_identity();
-	matrix projectionMatrix = mat_OrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
-	_viewProjectionMatrix = viewMatrix * projectionMatrix;
+	_constantBuffer.screenDimension = ds::vec4(1024.0f, 768.0f, 128.0f, 128.0f);
+	_constantBuffer.screenCenter = ds::vec4(512.0f, 384.0f, 0.0f, 0.0f);
+	ds::matrix viewMatrix = ds::matIdentity();
+	ds::matrix projectionMatrix = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
+	_viewprojectionMatrix = viewMatrix * projectionMatrix;
 	
 
 	RID blendState = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
@@ -57,7 +57,7 @@ Particlesystem::Particlesystem(ParticlesystemDescriptor descriptor) : _descripto
 // -------------------------------------------------------
 // add particle based on ParticleDescriptor
 // -------------------------------------------------------
-void Particlesystem::add(const v2& pos, ParticleDescriptor descriptor) {
+void Particlesystem::add(const ds::vec2& pos, ParticleDescriptor descriptor) {
 	int start = _array.countAlive;
 	if ((start + 1) < _array.count) {	
 		_array.colors[start] = descriptor.color;
@@ -65,10 +65,10 @@ void Particlesystem::add(const v2& pos, ParticleDescriptor descriptor) {
 		_array.grow[start] = descriptor.growth;
 		_array.rotations[start] = descriptor.rotation;
 		_array.rotationSpeeds[start] = descriptor.rotationSpeed;
-		_array.timers[start] = v3(0.0f, descriptor.ttl, 1);
-		_array.velocities[start] = v3(descriptor.velocity);
+		_array.timers[start] = ds::vec3(0.0f, descriptor.ttl, 1);
+		_array.velocities[start] = ds::vec3(descriptor.velocity);
 		_array.frictions[start] = descriptor.friction;
-		_array.positions[start] = v3(pos);
+		_array.positions[start] = ds::vec3(pos);
 		if (descriptor.alphaFading) {
 			_array.decays[start] = 1.0f;
 		}
@@ -84,7 +84,7 @@ void Particlesystem::add(const v2& pos, ParticleDescriptor descriptor) {
 // -------------------------------------------------------
 void Particlesystem::tick(float dt) {
 	for (int i = 0; i < _array.countAlive; ++i) {
-		v3 t = _array.timers[i];
+		ds::vec3 t = _array.timers[i];
 		t.x += dt;
 		t.z = t.x / t.y;
 		_array.timers[i] = t;
@@ -116,11 +116,11 @@ void Particlesystem::tick(float dt) {
 // -------------------------------------------------------
 void Particlesystem::render() {
 	ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
-	matrix w = mat_identity();
-	_constantBuffer.wvp = mat_Transpose(_viewProjectionMatrix);
+	ds::matrix w = ds::matIdentity();
+	_constantBuffer.wvp = ds::matTranspose(_viewprojectionMatrix);
 	for (int i = 0; i < _array.countAlive; ++i) {
-		v4 t = v4(0.0f, 0.0f, 1.0f, 1.0f);
-		_vertices[i] = ParticleVertex(_array.positions[i], _descriptor.particleDimension, v3(_array.scales[i].x, _array.scales[i].y, _array.rotations[i]), _array.colors[i]);
+		ds::vec4 t = ds::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+		_vertices[i] = ParticleVertex(_array.positions[i], _descriptor.particleDimension, ds::vec3(_array.scales[i].x, _array.scales[i].y, _array.rotations[i]), _array.colors[i]);
 	}
 	ds::mapBufferData(_vertexBuffer, _vertices, _array.countAlive * sizeof(ParticleVertex));
 

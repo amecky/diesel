@@ -1,7 +1,7 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include "..\common\stb_image.h"
 #include "..\common\SpriteBuffer.h"
 #include "Board.h"
 #include "GameSettings.h"
@@ -85,8 +85,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 		spriteBuffer.begin();
 
-		spriteBuffer.add(v2(512, 734), textureID, v4(0, 720, 1024, 68));
-		spriteBuffer.add(v2(512, 16), textureID, v4(0, 800, 1024, 68));
+		spriteBuffer.add(ds::vec2(512, 734), textureID, ds::vec4(0, 720, 1024, 68));
+		spriteBuffer.add(ds::vec2(512, 16), textureID, ds::vec4(0, 800, 1024, 68));
 
 		board->render();
 

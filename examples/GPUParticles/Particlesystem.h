@@ -7,13 +7,13 @@
 // ---------------------------------------------------------------
 struct ParticleVertex {
 
-	v3 position;
-	v3 velocity;
-	v2 ttl;
-	v4 size;
+	ds::vec3 position;
+	ds::vec3 velocity;
+	ds::vec2 ttl;
+	ds::vec4 size;
 
 	ParticleVertex() : position(0, 0, 0) , velocity(0.0f) , ttl(0.0f) , size(1.0f) {}
-	ParticleVertex(const v3& p, const v3& v, const v2& t, const v4& s) : position(p), velocity(v), ttl(t) , size(s) {}
+	ParticleVertex(const ds::vec3& p, const ds::vec3& v, const ds::vec2& t, const ds::vec4& s) : position(p), velocity(v), ttl(t) , size(s) {}
 };
 
 // ---------------------------------------------------------------
@@ -22,9 +22,9 @@ struct ParticleVertex {
 struct ParticleConstantBuffer {
 	ds::Color startColor;
 	ds::Color endColor;
-	matrix wvp;
-	matrix world;
-	v3 eyePos;
+	ds::matrix wvp;
+	ds::matrix world;
+	ds::vec3 eyePos;
 	float padding;
 };
 
@@ -33,10 +33,10 @@ struct ParticleConstantBuffer {
 // -------------------------------------------------------
 struct ParticleArray {
 
-	v3* positions;
-	v3* velocities;
-	v3* timers;
-	v4* sizes;
+	ds::vec3* positions;
+	ds::vec3* velocities;
+	ds::vec3* timers;
+	ds::vec4* sizes;
 	char* buffer;
 
 	uint32_t count;
@@ -51,12 +51,12 @@ struct ParticleArray {
 	}
 
 	void initialize(unsigned int maxParticles) {
-		int size = maxParticles * (sizeof(v3) + sizeof(v3) + sizeof(v3) + sizeof(v4));
+		int size = maxParticles * (sizeof(ds::vec3) + sizeof(ds::vec3) + sizeof(ds::vec3) + sizeof(ds::vec4));
 		buffer = new char[size];
-		positions = (v3*)(buffer);
-		velocities = (v3*)(positions + maxParticles);
-		timers = (v3*)(velocities + maxParticles);
-		sizes = (v4*)(timers + maxParticles);
+		positions = (ds::vec3*)(buffer);
+		velocities = (ds::vec3*)(positions + maxParticles);
+		timers = (ds::vec3*)(velocities + maxParticles);
+		sizes = (ds::vec4*)(timers + maxParticles);
 		count = maxParticles;
 		countAlive = 0;
 	}
@@ -91,7 +91,7 @@ struct ParticleArray {
 struct ParticlesystemDescriptor {
 	uint16_t maxParticles;
 	RID texture;
-	v2 particleDimension;
+	ds::vec2 particleDimension;
 	ds::Color startColor;
 	ds::Color endColor;
 };
@@ -101,9 +101,9 @@ struct ParticlesystemDescriptor {
 // -------------------------------------------------------
 struct ParticleDescriptor {
 	float ttl;
-	v2 minScale;
-	v2 maxScale;
-	v3 velocity;
+	ds::vec2 minScale;
+	ds::vec2 maxScale;
+	ds::vec3 velocity;
 	float friction;	
 };
 
@@ -114,7 +114,7 @@ class Particlesystem {
 
 public:
 	Particlesystem(ParticlesystemDescriptor descriptor);
-	void add(const v3& pos, ParticleDescriptor descriptor);
+	void add(const ds::vec3& pos, ParticleDescriptor descriptor);
 	void tick(float dt);
 	void render();
 private:
@@ -122,7 +122,7 @@ private:
 	ParticleConstantBuffer _constantBuffer;
 	ParticleArray _array;
 	ParticleVertex* _vertices;
-	//matrix _viewProjectionMatrix;
+	//ds::matrix _viewprojectionMatrix;
 	ds::DrawItem* _drawItem;
 	RID _vertexBuffer;
 };

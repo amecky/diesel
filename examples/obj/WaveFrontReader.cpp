@@ -8,9 +8,9 @@ int WaveFrontReader::load(const char * fileName, ObjVertex* objVertices, int max
 		return -1;
 	}
 	char cmd[256] = { 0 };
-	std::vector<v3> vertices;
-	std::vector<v2> textures;
-	std::vector<v3> normals;
+	std::vector<ds::vec3> vertices;
+	std::vector<ds::vec2> textures;
+	std::vector<ds::vec3> normals;
 	int cnt = 0;
 	for (;; ) {
 		file >> cmd;
@@ -23,19 +23,19 @@ int WaveFrontReader::load(const char * fileName, ObjVertex* objVertices, int max
 		else if (strcmp(cmd, "v") == 0) {
 			float x, y, z;
 			file >> x >> y >> z;
-			v3 v(x, y, z);
+			ds::vec3 v(x, y, z);
 			vertices.push_back(v);
 		}
 		else if (strcmp(cmd, "vt") == 0) {
 			float u,v;
 			file >> u >> v;
-			v2 uv(u, v);
+			ds::vec2 uv(u, v);
 			textures.push_back(uv);
 		}
 		else if (strcmp(cmd, "vn") == 0) {
 			float x, y, z;
 			file >> x >> y >> z;
-			v3 v(x, y, z);
+			ds::vec3 v(x, y, z);
 			normals.push_back(v);
 		}
 		else if (strcmp(cmd, "f") == 0) {

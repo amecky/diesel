@@ -46,11 +46,11 @@ namespace tweening {
 
 	float interpolate(TweeningType type, float start, float end, float t, float duration);
 
-	v2 interpolate(TweeningType type,const v2& start,const v2& end,float t,float duration);
+	ds::vec2 interpolate(TweeningType type,const ds::vec2& start,const ds::vec2& end,float t,float duration);
 
-	v3 interpolate(TweeningType type, const v3& start, const v3& end, float t, float duration);
+	ds::vec3 interpolate(TweeningType type, const ds::vec3& start, const ds::vec3& end, float t, float duration);
 
-	v4 interpolate(TweeningType type, const v4& start, const v4& end, float t, float duration);
+	ds::vec4 interpolate(TweeningType type, const ds::vec4& start, const ds::vec4& end, float t, float duration);
 
 	ds::Color interpolate(TweeningType type, const ds::Color& start, const ds::Color& end, float t, float duration);
 

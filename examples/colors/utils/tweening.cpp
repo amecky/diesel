@@ -179,22 +179,22 @@ namespace tweening {
 	// -------------------------------------------------------
 	// Vector2f interpolate
 	// -------------------------------------------------------
-	v2 interpolate(TweeningType type, const v2& start, const v2& end, float t, float duration) {
-		return v2(interpolate(type,start.x,end.x,t,duration),interpolate(type,start.y,end.y,t,duration));
+	ds::vec2 interpolate(TweeningType type, const ds::vec2& start, const ds::vec2& end, float t, float duration) {
+		return ds::vec2(interpolate(type,start.x,end.x,t,duration),interpolate(type,start.y,end.y,t,duration));
 	}
 
 	// -------------------------------------------------------
-	// v3 interpolate
+	// ds::vec3 interpolate
 	// -------------------------------------------------------
-	v3 interpolate(TweeningType type, const v3& start, const v3& end, float t, float duration) {
-		return v3(interpolate(type, start.x, end.x, t, duration), interpolate(type, start.y, end.y, t, duration), interpolate(type, start.z, end.z, t, duration));
+	ds::vec3 interpolate(TweeningType type, const ds::vec3& start, const ds::vec3& end, float t, float duration) {
+		return ds::vec3(interpolate(type, start.x, end.x, t, duration), interpolate(type, start.y, end.y, t, duration), interpolate(type, start.z, end.z, t, duration));
 	}
 
 	// -------------------------------------------------------
-	// v4 interpolate
+	// ds::vec4 interpolate
 	// -------------------------------------------------------
-	v4 interpolate(TweeningType type, const v4& start, const v4& end, float t, float duration) {
-		return v4(interpolate(type, start.x, end.x, t, duration), interpolate(type, start.y, end.y, t, duration), interpolate(type, start.z, end.z, t, duration), interpolate(type, start.w, end.w, t, duration));
+	ds::vec4 interpolate(TweeningType type, const ds::vec4& start, const ds::vec4& end, float t, float duration) {
+		return ds::vec4(interpolate(type, start.x, end.x, t, duration), interpolate(type, start.y, end.y, t, duration), interpolate(type, start.z, end.z, t, duration), interpolate(type, start.w, end.w, t, duration));
 	}
 
 	// -------------------------------------------------------
@@ -240,7 +240,7 @@ namespace tweening {
 	// -------------------------------------------------------
 	/*
 	void draw(TweeningType type, const ds::Texture& texture, float step, float delta) {
-		v2 p(100, 100);
+		ds::vec2 p(100, 100);
 		float t = 0.0f;
 		int num = 1.0f / step;
 		for (int i = 0; i < num; ++i) {

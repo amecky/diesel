@@ -18,7 +18,7 @@ enum TileState {
 
 struct MyEntry {
 
-	v4 texture;
+	ds::vec4 texture;
 	int color;
 	bool hidden;
 	float scale;
@@ -30,10 +30,10 @@ struct MovingCell {
 
 	int x;
 	int y;
-	v2 start;
-	v2 end;
-	v2 current;
-	v4 texture;
+	ds::vec2 start;
+	ds::vec2 end;
+	ds::vec2 current;
+	ds::vec4 texture;
 };
 
 class ColorGrid : public ds::Grid<MyEntry> {
@@ -60,7 +60,7 @@ enum BoardMode {
 };
 
 //typedef std::vector<ds::Sprite> Highlights;
-typedef std::vector<v2> Points;
+typedef std::vector<ds::vec2> Points;
 typedef std::vector<ds::DroppedCell<MyEntry>> DroppedCells;
 typedef std::vector<MovingCell> MovingCells;
 
@@ -69,7 +69,7 @@ public:
 	virtual ~Board();
 	void fill(int maxColors);
 	int select();
-	void move(const v2& mousePos);
+	void move(const ds::vec2& mousePos);
 	int getMovesLeft() {
 		return 100;
 	}
@@ -90,7 +90,7 @@ private:
 	BoardMode m_Mode;
 	float m_Timer;
 	int m_CellCounter;
-	v4 m_GridTex[3];
+	ds::vec4 m_GridTex[3];
 	int m_Counter;
 	GameSettings* _settings;
 	int _flashCount;

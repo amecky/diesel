@@ -9,7 +9,6 @@
     <FxCompile Include="Obj_ps.hlsl" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="stb_image.h" />
     <ClInclude Include="WaveFrontReader.h" />
   </ItemGroup>
 </Project>

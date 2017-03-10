@@ -1,18 +1,18 @@
 #include "Camera.h"
 
 FPSCamera::FPSCamera(float screenWidth, float screenHeight)  {
-	_projectionMatrix = mat_PerspectiveFovLH(ds::PI * 0.25f, screenWidth / screenHeight, 0.01f, 100.0f);
-	_position = v3(0, 2, -4);
+	_projectionMatrix = ds::matPerspectiveFovLH(ds::PI * 0.25f, screenWidth / screenHeight, 0.01f, 100.0f);
+	_position = ds::vec3(0, 2, -4);
 	_lastMousePos = ds::getMousePosition();
-	_target = v3(0, 0, 1);
-	_up = v3(0, 1, 0);
-	_right = v3(1, 0, 0);
+	_target = ds::vec3(0, 0, 1);
+	_up = ds::vec3(0, 1, 0);
+	_right = ds::vec3(1, 0, 0);
 	_speed = 10.0f;
 	_yaw = 0.0f;
 	_pitch = 0.0f;
-	_viewMatrix = mat_LookAtLH(_position, _target, _up);
+	_viewMatrix = ds::matLookAtLH(_position, _target, _up);
 	ds::setProjectionMatrix(_projectionMatrix);
-	_viewProjectionMatrix = _viewMatrix * _projectionMatrix;
+	_viewprojectionMatrix = _viewMatrix * _projectionMatrix;
 	buildView();
 }
 
@@ -20,13 +20,13 @@ FPSCamera::~FPSCamera() {
 
 }
 
-void FPSCamera::setPosition(const v3& pos, const v3& target) {
+void FPSCamera::setPosition(const ds::vec3& pos, const ds::vec3& target) {
 	_position = pos;
 	_target = target;
 	buildView();
 }
 
-void FPSCamera::setPosition(const v3& pos) {
+void FPSCamera::setPosition(const ds::vec3& pos) {
 	_position = pos;		
 	buildView();
 }
@@ -42,39 +42,39 @@ void FPSCamera::strafe(float unit) {
 }
 
 void FPSCamera::up(float unit) {
-	v3 tmp = _up * unit;
+	ds::vec3 tmp = _up * unit;
 	_position = _position + tmp;
 	buildView();
 }
 
 void FPSCamera::setPitch(float angle) {
-	matrix R = mat_Rotation(_right,angle);
-	_up = mat_TransformNormal(_up, R);
-	_target = mat_TransformNormal(_target, R);
+	ds::matrix R = ds::matRotation(_right,angle);
+	_up = ds::matTransformNormal(_up, R);
+	_target = ds::matTransformNormal(_target, R);
 	buildView();
 }
 
 void FPSCamera::resetYaw(float angle) {
 	_yaw = angle;
-	matrix R = mat_RotationZ(_yaw);
-	_right = R * v3(1, 0, 0);
-	_target = R * v3(0, 0, 1);
+	ds::matrix R = ds::matRotationZ(_yaw);
+	_right = R * ds::vec3(1, 0, 0);
+	_target = R * ds::vec3(0, 0, 1);
 	buildView();
 }
 
 void FPSCamera::setYaw(float angle) {
-	matrix R = mat_RotationY(angle);
-	_right = mat_TransformNormal(_right, R);
-	_up = mat_TransformNormal(_up, R);
-	_target = mat_TransformNormal(_target, R);
+	ds::matrix R = ds::matRotationY(angle);
+	_right = ds::matTransformNormal(_right, R);
+	_up = ds::matTransformNormal(_up, R);
+	_target = ds::matTransformNormal(_target, R);
 	buildView();
 }
 	
 void FPSCamera::resetPitch(float angle) {
 	_pitch = angle;
-	matrix R = mat_RotationY(_pitch);
-	_right = R * v3(1, 0, 0);
-	_target = R * v3(0, 0, 1);
+	ds::matrix R = ds::matRotationY(_pitch);
+	_right = R * ds::vec3(1, 0, 0);
+	_target = R * ds::vec3(0, 0, 1);
 	buildView();
 }
 
@@ -97,7 +97,7 @@ void FPSCamera::update(float elapsedTime) {
 	if (ds::isKeyPressed('E')) {
 		up(-5.0f*elapsedTime);
 	}
-	v2 mp = ds::getMousePosition();
+	ds::vec2 mp = ds::getMousePosition();
 	if (ds::isMouseButtonPressed(0)) {
 		// Make each pixel correspond to a quarter of a degree.
 		float dx = DEGTORAD(0.25f*(mp.x - _lastMousePos.x));
@@ -111,10 +111,10 @@ void FPSCamera::update(float elapsedTime) {
 }
 
 void FPSCamera::buildView() {
-	v3 R = _right;
-	v3 U = _up;
-	v3 L = _target;
-	v3 P = _position;
+	ds::vec3 R = _right;
+	ds::vec3 U = _up;
+	ds::vec3 L = _target;
+	ds::vec3 P = _position;
 		
 	L = normalize(L);
 	U = normalize(cross(L, R));
@@ -148,7 +148,7 @@ void FPSCamera::buildView() {
 	_viewMatrix(2, 3) = 0.0f;
 	_viewMatrix(3, 3) = 1.0f;
 
-	_viewProjectionMatrix = _viewMatrix * _projectionMatrix;
+	_viewprojectionMatrix = _viewMatrix * _projectionMatrix;
 
 	ds::setViewMatrix(_viewMatrix);
 }

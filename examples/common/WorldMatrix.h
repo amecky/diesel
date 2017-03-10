@@ -1,35 +1,35 @@
 #pragma once
 #include "..\..\diesel.h"
 
-class WorldMatrix {
+class worldMatrix {
 
 public:
-	WorldMatrix();
-	~WorldMatrix() {}
+	worldMatrix();
+	~worldMatrix() {}
 	void reset() {
-		_position = v3(0.0f);
-		_scale = v3(1.0f);
-		_rotation = v3(0.0f);
+		_position = ds::vec3(0.0f);
+		_scale = ds::vec3(1.0f);
+		_rotation = ds::vec3(0.0f);
 		computeMatrix();
 	}
-	const matrix& getMatrix() const {
+	const ds::matrix& getMatrix() const {
 		return _finalMatrix;
 	}
-	const matrix& getTransposedMatrix() const {
+	const ds::matrix& getTransposedMatrix() const {
 		return _transposedFinalMatrix;
 	}
-	void setRotation(const v3& r) {
+	void setRotation(const ds::vec3& r) {
 		_rotation = r;
 		computeMatrix();
 	}
-	void rotateBy(const v3& r) {
+	void rotateBy(const ds::vec3& r) {
 		_rotation += r;
 		computeMatrix();
 	}
-	void setScale(const v3& s) {
+	void setScale(const ds::vec3& s) {
 		_scale = s;
 	}
-	void scaleBy(const v3& s) {
+	void scaleBy(const ds::vec3& s) {
 		_scale += s;
 		computeMatrix();
 	}
@@ -39,24 +39,24 @@ public:
 		_scale.z += s;
 		computeMatrix();
 	}
-	void setPosition(const v3& p) {
+	void setPosition(const ds::vec3& p) {
 		_position = p;
 		computeMatrix();
 	}
-	void moveBy(const v3& p) {
+	void moveBy(const ds::vec3& p) {
 		_position += p;
 		computeMatrix();
 	}
 private:
 	void computeMatrix();
-	v3 _position;
-	v3 _scale;
-	v3 _rotation;
-	matrix _world;
-	matrix _rotationX;
-	matrix _rotationY;
-	matrix _rotationZ;
-	matrix _scaleMatrix;
-	matrix _finalMatrix;
-	matrix _transposedFinalMatrix;
+	ds::vec3 _position;
+	ds::vec3 _scale;
+	ds::vec3 _rotation;
+	ds::matrix _world;
+	ds::matrix _rotationX;
+	ds::matrix _rotationY;
+	ds::matrix _rotationZ;
+	ds::matrix _scaleMatrix;
+	ds::matrix _finalMatrix;
+	ds::matrix _transposedFinalMatrix;
 };

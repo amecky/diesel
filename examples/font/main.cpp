@@ -2,7 +2,7 @@
 #include "..\..\diesel.h"
 #include "HieroFont.h"
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include "..\common\stb_image.h"
 
 /*
 	Bitmap font demo. The font is generated using Hiero: https://github.com/libgdx/libgdx/wiki/Hiero
@@ -40,12 +40,12 @@ struct Rect {
 // ---------------------------------------------------------------
 struct Sprite {
 
-	v2 position;
-	v2 scale;
+	ds::vec2 position;
+	ds::vec2 scale;
 	float rotation;
 	Rect texture;
 	ds::Color color;
-	v2 velocity;
+	ds::vec2 velocity;
 
 	Sprite() : position(0, 0), scale(1, 1), rotation(0.0f), color(ds::Color(255, 255, 255, 255)) , texture(0,0,0,0) , velocity(0.0f,0.0f) {}
 
@@ -56,24 +56,24 @@ struct Sprite {
 // ---------------------------------------------------------------
 struct SpriteVertex {
 
-	v3 position;
-	v4 texture;
-	v3 size;
+	ds::vec3 position;
+	ds::vec4 texture;
+	ds::vec3 size;
 	ds::Color color;
 
 	SpriteVertex() : position(0, 0, 0) {}
-	SpriteVertex(const v3& p, const v4& t, const ds::Color& c) : position(p), texture(t), color(c) {}
-	SpriteVertex(const v2& p, const v4& t, const ds::Color& c) : position(p, 1.0f), texture(t), color(c) {}
-	SpriteVertex(const v2& p, const v4& t, const v3& s, const ds::Color& c) : position(p, 1.0f), texture(t), size(s), color(c) {}
+	SpriteVertex(const ds::vec3& p, const ds::vec4& t, const ds::Color& c) : position(p), texture(t), color(c) {}
+	SpriteVertex(const ds::vec2& p, const ds::vec4& t, const ds::Color& c) : position(p, 1.0f), texture(t), color(c) {}
+	SpriteVertex(const ds::vec2& p, const ds::vec4& t, const ds::vec3& s, const ds::Color& c) : position(p, 1.0f), texture(t), size(s), color(c) {}
 };
 
 // ---------------------------------------------------------------
 // the sprite constant buffer
 // ---------------------------------------------------------------
 struct SpriteConstantBuffer {
-	v4 screenDimension;
-	v4 screenCenter;
-	matrix wvp;
+	ds::vec4 screenDimension;
+	ds::vec4 screenCenter;
+	ds::matrix wvp;
 };
 
 const int MAX_SPRITES = 256;
@@ -83,26 +83,26 @@ int numSprites;
 // ---------------------------------------------------------------
 // create sprite
 // ---------------------------------------------------------------
-void add(const v2& p, const Rect& r) {
+void add(const ds::vec2& p, const Rect& r) {
 	if ((numSprites + 1) < MAX_SPRITES) {
 		float angle = 0.0f;
 		Sprite& s = sprites[numSprites++];
 		s.position = p;
 		s.color = ds::Color(1.0f, 1.0f, 1.0f, 1.0f);
-		s.scale = v2(1.0f, 1.0f);
+		s.scale = ds::vec2(1.0f, 1.0f);
 		s.rotation = angle;
 		s.texture = r;
 		float vel = ds::random(100.0f,150.0f);
 		float vx = cos(angle) * vel;
 		float vy = sin(angle) * vel;
-		s.velocity = v2(vx,vy);
+		s.velocity = ds::vec2(vx,vy);
 	}
 }
 
 // ---------------------------------------------------------------
 // add text
 // ---------------------------------------------------------------
-void addText(const HieroFont& font, const v2& pos, const char* text) {
+void addText(const HieroFont& font, const ds::vec2& pos, const char* text) {
 	float xpos = pos.x;
 	float ypos = pos.y;
 	const char* current = text;
@@ -111,7 +111,7 @@ void addText(const HieroFont& font, const v2& pos, const char* text) {
 		float dimX = item.width;
 		float dimY = item.height;
 		float th = item.height + item.yoffset;
-		add(v2(xpos + dimX * 0.5f, ypos - th - item.yoffset * 0.5f), Rect(item.y, item.x, item.width, item.height));
+		add(ds::vec2(xpos + dimX * 0.5f, ypos - th - item.yoffset * 0.5f), Rect(item.y, item.x, item.width, item.height));
 		xpos += item.xadvance + 4;
 		++current;
 	}
@@ -141,12 +141,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	SpriteVertex vertices[256];
 	int numVertices = 0;
 
-	//addText(font, v2(300.0f, 500.0f), "More text is here");
-	//addText(font, v2(600.0f, 100.0f), "Here is also some text");
+	//addText(font, ds::vec2(300.0f, 500.0f), "More text is here");
+	//addText(font, ds::vec2(600.0f, 100.0f), "Here is also some text");
 
 	SpriteConstantBuffer constantBuffer;
-	constantBuffer.screenDimension = v4(1024.0f, 768.0f, 256.0f, 256.0f);
-	constantBuffer.screenCenter = v4(512.0f, 384.0f, 0.0f, 0.0f);
+	constantBuffer.screenDimension = ds::vec4(1024.0f, 768.0f, 256.0f, 256.0f);
+	constantBuffer.screenCenter = ds::vec4(512.0f, 384.0f, 0.0f, 0.0f);
 	float t = 0.0f;
 
 	// prepare application
@@ -190,9 +190,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::POINT);
 
 	// create orthographic view
-	matrix viewMatrix = mat_identity();
-	matrix projectionMatrix = mat_OrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
-	matrix viewProjectionMatrix = viewMatrix * projectionMatrix;
+	ds::matrix viewMatrix = ds::matIdentity();
+	ds::matrix projectionMatrix = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
+	ds::matrix viewprojectionMatrix = viewMatrix * projectionMatrix;
 
 	ds::setViewMatrix(viewMatrix);
 	ds::setProjectionMatrix(projectionMatrix);
@@ -228,7 +228,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				messages[currentMessage].timer = 0.0f;
 				numSprites = 0;
 				// FIXME: center text
-				addText(font, v2(100.0f,384.0f),messages[currentMessage].text);
+				addText(font, ds::vec2(100.0f,384.0f),messages[currentMessage].text);
 			}
 		}
 		ds::Color textColor = ds::Color(192, 0, 0, 255);
@@ -243,17 +243,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		}
 		// disbale depth buffer
 		ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
-		matrix w = mat_identity();
-		constantBuffer.wvp = mat_Transpose(viewProjectionMatrix);
+		ds::matrix w = ds::matIdentity();
+		constantBuffer.wvp = ds::matTranspose(viewprojectionMatrix);
 		numVertices = 0;
 		for (int i = 0; i < numSprites; ++i) {
 			const Sprite& sprite = sprites[i];
-			v4 t;
+			ds::vec4 t;
 			t.x = sprite.texture.left;
 			t.y = sprite.texture.top;
 			t.z = sprite.texture.width;
 			t.w = sprite.texture.height;
-			vertices[numVertices++] = SpriteVertex(sprite.position, t, v3(sprite.scale.x, sprite.scale.y, sprite.rotation), textColor);
+			vertices[numVertices++] = SpriteVertex(sprite.position, t, ds::vec3(sprite.scale.x, sprite.scale.y, sprite.rotation), textColor);
 		}
 		ds::mapBufferData(vertexBufferID, vertices, numVertices * sizeof(SpriteVertex));
 		drawCmd.size = numSprites;

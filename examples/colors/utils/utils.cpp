@@ -5,13 +5,13 @@
 
 namespace font {
 
-	void renderText(const v2& pos, const char* txt, SpriteBuffer* buffer, RID textureID) {
+	void renderText(const ds::vec2& pos, const char* txt, SpriteBuffer* buffer, RID textureID) {
 		int l = strlen(txt);
-		v2 p = pos;
+		ds::vec2 p = pos;
 		for (int i = 0; i < l; ++i) {
 			int idx = (int)txt[i] - 32;
 			if (idx >= 0 && idx < 127) {
-				const v4& r = FONT_RECTS[idx];
+				const ds::vec4& r = FONT_RECTS[idx];
 				buffer->add(p, textureID, r);
 				p.x += r.z + 6.0f;
 			}
@@ -22,7 +22,7 @@ namespace font {
 namespace input {
 
 	bool convertMouse2Grid(int* gridX, int* gridY) {
-		v2 mousePos = ds::getMousePosition();
+		ds::vec2 mousePos = ds::getMousePosition();
 		float fy = (mousePos.y - static_cast<float>(STARTY)) / static_cast<float>(CELL_SIZE);
 		float fx = (mousePos.x - static_cast<float>(STARTX - HALF_CELL_SIZE)) / static_cast<float>(CELL_SIZE);
 		if (fx >= 0.0f && fy >= 0.0f) {

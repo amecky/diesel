@@ -6,9 +6,9 @@
 #include "utils\utils.h"
 
 Board::Board(SpriteBuffer* buffer, RID textureID, GameSettings* settings) : _buffer(buffer) , _textureID(textureID) , _settings(settings) {
-	m_GridTex[0] = v4(420, 200, 430, 486);
-	m_GridTex[1] = v4(450, 200, 320, 486);
-	m_GridTex[2] = v4(860, 200, 110, 486);
+	m_GridTex[0] = ds::vec4(420, 200, 430, 486);
+	m_GridTex[1] = ds::vec4(450, 200, 320, 486);
+	m_GridTex[2] = ds::vec4(860, 200, 110, 486);
 }
 
 Board::~Board(void) {}
@@ -28,11 +28,11 @@ void Board::fill(int maxColors) {
 		for ( int y = 0; y < MAX_Y; ++y ) {		
 			int cid = ds::random(0, maxColors);
 			int offset = offset = cid * CELL_SIZE;
-			v2 p = grid::convertFromGrid(x, y);
+			ds::vec2 p = grid::convertFromGrid(x, y);
 			MyEntry& e = m_Grid.get(x, y);
 			e.color = cid;
 			e.hidden = false;
-			e.texture = v4(offset, 680.0f, CELL_SIZE, CELL_SIZE);
+			e.texture = ds::vec4(offset, 680.0f, CELL_SIZE, CELL_SIZE);
 			e.scale = 1.0f;
 			e.state = TS_NORMAL;
 			e.timer = 0.0f;
@@ -52,9 +52,9 @@ void Board::fill(int maxColors) {
 // Draw
 // -------------------------------------------------------
 void Board::render() {
-	_buffer->add(v2(295, 362), _textureID, m_GridTex[0]);
-	_buffer->add(v2(670, 362), _textureID, m_GridTex[1]);
-	_buffer->add(v2(885, 362), _textureID, m_GridTex[2]);
+	_buffer->add(ds::vec2(295, 362), _textureID, m_GridTex[0]);
+	_buffer->add(ds::vec2(670, 362), _textureID, m_GridTex[1]);
+	_buffer->add(ds::vec2(885, 362), _textureID, m_GridTex[2]);
 	// pieces
 	for (int x = 0; x < MAX_X; ++x) {
 		for (int y = 0; y < MAX_Y; ++y) {
@@ -62,13 +62,13 @@ void Board::render() {
 				MyEntry& e = m_Grid.get(x, y);
 				if (m_Mode == BM_FILLING) {
 					float norm = m_Timer / _settings->tweeningTTL;
-					v2 wp = grid::convertFromGrid(x, y);
-					v2 sp = wp;
+					ds::vec2 wp = grid::convertFromGrid(x, y);
+					ds::vec2 sp = wp;
 					sp.y += _settings->tweeningYAdd + y * _settings->tweeningYOffset;
 					_buffer->add(tweening::interpolate(&tweening::linear, sp, wp, m_Timer,_settings->tweeningTTL),_textureID, e.texture);
 				}
 				else if (!e.hidden) {
-					_buffer->add(grid::convertFromGrid(x, y),_textureID,e.texture,v2(e.scale));
+					_buffer->add(grid::convertFromGrid(x, y),_textureID,e.texture,ds::vec2(e.scale));
 				}
 			}
 		}
@@ -140,7 +140,7 @@ void Board::update(float elapsed) {
 		}
 	}
 	else if (m_Mode == BM_READY) {
-		v2 mousePos = ds::getMousePosition();
+		ds::vec2 mousePos = ds::getMousePosition();
 		int mx = -1;
 		int my = -1;
 		if ( input::convertMouse2Grid(&mx,&my)) {
@@ -192,8 +192,8 @@ void Board::update(float elapsed) {
 // -------------------------------------------------------
 // move
 // -------------------------------------------------------
-void Board::move(const v2& mousePos) {
-	v2 converted = grid::convertMousePosToGridPos(mousePos);
+void Board::move(const ds::vec2& mousePos) {
+	ds::vec2 converted = grid::convertMousePosToGridPos(mousePos);
 	if ( converted.x > 0 && converted.y > 0) {
 		//LOG << "move grid pos " << converted.x << " " << converted.y;
 		m_Grid.shiftColumns(converted.x);
@@ -222,7 +222,7 @@ int Board::select() {
 				m_Mode = BM_FLASHING;
 				ret = m_Points.size();				
 				for ( size_t i = 0; i < m_Points.size(); ++i ) {
-					v2* gp = &m_Points[i];
+					ds::vec2* gp = &m_Points[i];
 					MyEntry& c = m_Grid.get(gp->x, gp->y);
 					c.state = TS_SHRINKING;
 					c.timer = 0.0f;

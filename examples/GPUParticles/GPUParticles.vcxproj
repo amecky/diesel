@@ -134,7 +134,6 @@
   <ItemGroup>
     <ClInclude Include="..\common\Grid.h" />
     <ClInclude Include="Particlesystem.h" />
-    <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="GPUParticles_gs.hlsl">

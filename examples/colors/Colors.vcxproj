@@ -142,7 +142,6 @@
     <ClInclude Include="GameSettings.h" />
     <ClInclude Include="Grid.h" />
     <ClInclude Include="Map.h" />
-    <ClInclude Include="stb_image.h" />
     <ClInclude Include="utils\HUD.h" />
     <ClInclude Include="utils\tweening.h" />
     <ClInclude Include="utils\utils.h" />

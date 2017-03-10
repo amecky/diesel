@@ -5,8 +5,6 @@
     <ClCompile Include="HieroFont.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="stb_image.h" />
-    <ClInclude Include="stb_truetype.h" />
     <ClInclude Include="HieroFont.h" />
   </ItemGroup>
   <ItemGroup>

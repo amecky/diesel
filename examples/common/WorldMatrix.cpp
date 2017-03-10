@@ -1,18 +1,18 @@
-#include "WorldMatrix.h"
+#include "worldMatrix.h"
 
-WorldMatrix::WorldMatrix() {
-	_position = v3(0.0f);
-	_scale = v3(1.0f);
-	_rotation = v3(0.0f);
+worldMatrix::worldMatrix() {
+	_position = ds::vec3(0.0f);
+	_scale = ds::vec3(1.0f);
+	_rotation = ds::vec3(0.0f);
 	computeMatrix();
 }
 
-void WorldMatrix::computeMatrix() {
-	_world = mat_Translate(_position);
-	_rotationX = mat_RotationX(_rotation.x);
-	_rotationY = mat_RotationY(_rotation.y);
-	_rotationZ = mat_RotationZ(_rotation.z);
-	_scaleMatrix = mat_Scale(_scale);
+void worldMatrix::computeMatrix() {
+	_world = ds::matTranslate(_position);
+	_rotationX = ds::matRotationX(_rotation.x);
+	_rotationY = ds::matRotationY(_rotation.y);
+	_rotationZ = ds::matRotationZ(_rotation.z);
+	_scaleMatrix = ds::matScale(_scale);
 	_finalMatrix = _rotationZ * _rotationY * _rotationX * _scaleMatrix * _world;
-	_transposedFinalMatrix = mat_Transpose(_finalMatrix);
+	_transposedFinalMatrix = ds::matTranspose(_finalMatrix);
 }

@@ -14,22 +14,22 @@ const Hex HEX_DIRECTIONS[] = {
 
 namespace hex_math {
 
-	v2 to_pixel(const Hex& hex, float size) {
+	ds::vec2 to_pixel(const Hex& hex, float size) {
 		float x = size * 3.0f / 2.0f * hex.q;
 		float y = size * sqrt(3.0f) * (hex.r + hex.q / 2.0f);
-		return v2(x, y);
+		return ds::vec2(x, y);
 	}
 
-	v2 hex_to_pixel(const Layout& layout, const Hex& h) {
+	ds::vec2 hex_to_pixel(const Layout& layout, const Hex& h) {
 		const Orientation& M = layout.orientation;
 		double x = (M.f0 * h.q + M.f1 * h.r) * layout.size.x;
 		double y = (M.f2 * h.q + M.f3 * h.r) * layout.size.y;
-		return v2(x + layout.origin.x, y + layout.origin.y);
+		return ds::vec2(x + layout.origin.x, y + layout.origin.y);
 	}
 
-	FractionalHex pixel_to_hex(const Layout& layout, const v2& p) {
+	FractionalHex pixel_to_hex(const Layout& layout, const ds::vec2& p) {
 		const Orientation& M = layout.orientation;
-		v2 pt = v2((p.x - layout.origin.x) / layout.size.x, (p.y - layout.origin.y) / layout.size.y);
+		ds::vec2 pt = ds::vec2((p.x - layout.origin.x) / layout.size.x, (p.y - layout.origin.y) / layout.size.y);
 		float q = M.b0 * pt.x + M.b1 * pt.y;
 		float r = M.b2 * pt.x + M.b3 * pt.y;
 		return FractionalHex(q, r, -q - r);

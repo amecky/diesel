@@ -49,13 +49,13 @@ Particlesystem::Particlesystem(ParticlesystemDescriptor descriptor) : _descripto
 // -------------------------------------------------------
 // add particle based on ParticleDescriptor
 // -------------------------------------------------------
-void Particlesystem::add(const v3& pos, ParticleDescriptor descriptor) {
+void Particlesystem::add(const ds::vec3& pos, ParticleDescriptor descriptor) {
 	int start = _array.countAlive;
 	if ((start + 1) < _array.count) {	
-		_array.timers[start] = v3(0.0f,0.0f,descriptor.ttl);
-		_array.velocities[start] = v3(descriptor.velocity);
+		_array.timers[start] = ds::vec3(0.0f,0.0f,descriptor.ttl);
+		_array.velocities[start] = ds::vec3(descriptor.velocity);
 		_array.positions[start] = pos;
-		_array.sizes[start] = v4(descriptor.minScale.x, descriptor.minScale.y, descriptor.maxScale.x, descriptor.maxScale.y);
+		_array.sizes[start] = ds::vec4(descriptor.minScale.x, descriptor.minScale.y, descriptor.maxScale.x, descriptor.maxScale.y);
 		_array.wake(start);
 	}
 }
@@ -65,7 +65,7 @@ void Particlesystem::add(const v3& pos, ParticleDescriptor descriptor) {
 // -------------------------------------------------------
 void Particlesystem::tick(float dt) {
 	for (int i = 0; i < _array.countAlive; ++i) {
-		v3 t = _array.timers[i];
+		ds::vec3 t = _array.timers[i];
 		t.x += dt;
 		t.y = t.x / t.z;
 		_array.timers[i] = t;
@@ -81,15 +81,15 @@ void Particlesystem::tick(float dt) {
 void Particlesystem::render() {
 
 	// prepare constant buffers
-	matrix w = mat_identity();
-	_constantBuffer.wvp = mat_Transpose(ds::getViewProjectionMatrix());
+	ds::matrix w = ds::matIdentity();
+	_constantBuffer.wvp = ds::matTranspose(ds::getViewProjectionMatrix());
 	_constantBuffer.startColor = _descriptor.startColor;
 	_constantBuffer.endColor = _descriptor.endColor;
 	_constantBuffer.eyePos = ds::getViewPosition();
 	_constantBuffer.padding = 0.0f;
-	_constantBuffer.world = mat_Transpose(w);
+	_constantBuffer.world = ds::matTranspose(w);
 	for (int i = 0; i < _array.countAlive; ++i) {
-		_vertices[i] = ParticleVertex(_array.positions[i], _array.velocities[i], v2(_array.timers[i].x, _array.timers[i].y), _array.sizes[i]);
+		_vertices[i] = ParticleVertex(_array.positions[i], _array.velocities[i], ds::vec2(_array.timers[i].x, _array.timers[i].y), _array.sizes[i]);
 	}
 	ds::mapBufferData(_vertexBuffer, _vertices, _array.countAlive * sizeof(ParticleVertex));
 

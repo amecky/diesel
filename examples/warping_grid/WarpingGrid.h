@@ -3,12 +3,12 @@
 #include <vector>
 
 struct GridVertex {
-	v3 position;
-	v2 texture;
+	ds::vec3 position;
+	ds::vec2 texture;
 	ds::Color color;
 
 	GridVertex() : position(0.0f), texture(0.0f), color(1.0f, 1.0f, 1.0f, 1.0f) {}
-	GridVertex(const v3& p, const v2& t, const ds::Color& c) : position(p), texture(t), color(c) {}
+	GridVertex(const ds::vec3& p, const ds::vec2& t, const ds::Color& c) : position(p), texture(t), color(c) {}
 };
 
 //const int GRID_DIM_X = 41;
@@ -16,12 +16,12 @@ struct GridVertex {
 //const float GRID_SIZE = 30.0f;
 
 struct GridPoint {
-	v2 pos;
-	v2 old_pos;
-	v2 velocity;
+	ds::vec2 pos;
+	ds::vec2 old_pos;
+	ds::vec2 velocity;
 	float invMass;
 	float damping;
-	v2 acceleration;
+	ds::vec2 acceleration;
 	bool movable;
 	float timer;
 	ds::Color color;
@@ -29,8 +29,8 @@ struct GridPoint {
 };
 
 struct Spring {
-	v2 start;
-	v2 end;
+	ds::vec2 start;
+	ds::vec2 end;
 	float targetLength;
 	float stiffness;
 	float damping;
@@ -54,15 +54,15 @@ public:
 	void createGrid(const WarpingGridData& data);
 	void tick(float dt);
 	int mapData(GridVertex* vertices,int maxVertices);
-	void applyForce(int x,int y,const v2& f);
-	void applyForce(const v2& pos, float force, float radius);
-	void applyNegativeForce(const v2& pos, float force, float radius);
-	void applyForce(const v2& pos, float force, float innerRadius, float outerRadius);
-	void applyNegativeForce(const v2& pos, float force, float innerRadius, float outerRadius);
+	void applyForce(int x,int y,const ds::vec2& f);
+	void applyForce(const ds::vec2& pos, float force, float radius);
+	void applyNegativeForce(const ds::vec2& pos, float force, float radius);
+	void applyForce(const ds::vec2& pos, float force, float innerRadius, float outerRadius);
+	void applyNegativeForce(const ds::vec2& pos, float force, float innerRadius, float outerRadius);
 private:
-	void addSpring(v2 start, v2 end, float stiffness, float damping);
-	const GridPoint& get(const v2& gp) const;
-	GridPoint& get(const v2& gp);
+	void addSpring(ds::vec2 start, ds::vec2 end, float stiffness, float damping);
+	const GridPoint& get(const ds::vec2& gp) const;
+	GridPoint& get(const ds::vec2& gp);
 
 	WarpingGridData _data;
 	int _width;

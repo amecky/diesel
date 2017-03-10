@@ -132,8 +132,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HieroFont.h" />
-    <ClInclude Include="stb_image.h" />
-    <ClInclude Include="stb_truetype.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Font_gs.hlsl">

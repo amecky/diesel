@@ -9,33 +9,33 @@ const int WIDTH = 14;
 const int TOTAL = HEIGHT * WIDTH;
 
 struct GridItem {
-	v3 pos;
+	ds::vec3 pos;
 	float timer;
 	ds::Color color;
 };
 
 struct CubeConstantBuffer {
-	matrix viewProjectionMatrix;
-	matrix worldMatrix;
+	ds::matrix viewprojectionMatrix;
+	ds::matrix worldMatrix;
 };
 
 struct LightBuffer {
 	ds::Color ambientColor;
 	ds::Color diffuseColor;
-	v3 lightDirection;
+	ds::vec3 lightDirection;
 	float padding;
 };
 
 struct InstanceData {
-	v3 pos;
+	ds::vec3 pos;
 	ds::Color color;
 };
 // ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
-	v3 rotation(ds::PI * 0.5f, 0.0f, 0.0f);
-	matrix rotX = mat_RotationX(rotation.x);
+	ds::vec3 rotation(ds::PI * 0.5f, 0.0f, 0.0f);
+	ds::matrix rotX = ds::matRotationX(rotation.x);
 	ObjVertex vertices[512];
 	WaveFrontReader reader;
 	int num = reader.load("hex.obj", &rotX);
@@ -84,7 +84,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	lightBuffer.ambientColor = ds::Color(0.15f, 0.15f, 0.15f, 1.0f);
 	lightBuffer.diffuseColor = ds::Color(64,0,0,255);
 	lightBuffer.padding = 0.0f;
-	v3 lightPos = v3(0.0f, -0.5f, 1.0f);
+	ds::vec3 lightPos = ds::vec3(0.0f, -0.5f, 1.0f);
 	lightBuffer.lightDirection = normalize(lightPos);
 	
 	RID rid = ds::createInstanceDeclaration(decl, 4, instDecl, 2, shaderID);
@@ -93,21 +93,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, num, sizeof(ObjVertex), vertices);
 	RID idid = ds::createVertexBuffer(ds::BufferType::DYNAMIC, 512, sizeof(InstanceData));
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
-	v3 vp = v3(0.0f, 3.0f, -6.0f);
+	ds::vec3 vp = ds::vec3(0.0f, 3.0f, -6.0f);
 	ds::setViewPosition(vp);
 
-	v3 scale(1.0f, 1.0f, 1.0f);
+	ds::vec3 scale(1.0f, 1.0f, 1.0f);
 	
-	v3 pos(0.0f, 0.0f, 0.0f);
+	ds::vec3 pos(0.0f, 0.0f, 0.0f);
 
 	FPSCamera camera(1024, 768);
-	camera.setPosition(v3(0, 2, -12));
+	camera.setPosition(ds::vec3(0, 2, -12));
 
 	ds::HexGrid<int> grid;
 	grid.resize(20, 20);
 
 	float t = 0.0f;
-	Layout l(layout_pointy,v2(0.5f),v2(-6.0f,-1.0f));
+	Layout l(layout_pointy,ds::vec2(0.5f),ds::vec2(-6.0f,-1.0f));
 
 	GridItem items[WIDTH * HEIGHT];
 
@@ -116,7 +116,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		int w = 0;
 		for (int q = -q_offset; q < WIDTH - q_offset; q++) {
 			Hex h = Hex(q, r);
-			v2 p = hex_math::hex_to_pixel(l, h);
+			ds::vec2 p = hex_math::hex_to_pixel(l, h);
 			GridItem& item = items[w + r * WIDTH];
 			item.pos = p;
 			item.timer = ds::random(0.0f, ds::PI);
@@ -144,14 +144,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		for (int y = 0; y < TOTAL; ++y) {
 			GridItem& item = items[y];
 			item.timer += ds::getElapsedSeconds();
-			instances[y] = { v3(item.pos.x, item.pos.y, sin(item.timer) * 0.4f), item.color };
+			instances[y] = { ds::vec3(item.pos.x, item.pos.y, sin(item.timer) * 0.4f), item.color };
 		}
 		ds::mapBufferData(idid, instances, sizeof(InstanceData) * TOTAL);
 		camera.update(static_cast<float>(ds::getElapsedSeconds()));
-		matrix vpm = camera.getViewProjectionMatrix();
-		constantBuffer.viewProjectionMatrix = mat_Transpose(vpm);
-		matrix world = mat_identity();
-		constantBuffer.worldMatrix = mat_Transpose(world);
+		ds::matrix vpm = camera.getViewprojectionMatrix();
+		constantBuffer.viewprojectionMatrix = ds::matTranspose(vpm);
+		ds::matrix world = ds::matIdentity();
+		constantBuffer.worldMatrix = ds::matTranspose(world);
 		ds::submit(drawItem);
 		ds::end();
 	}

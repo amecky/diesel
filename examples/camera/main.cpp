@@ -11,17 +11,17 @@
 // ---------------------------------------------------------------
 struct Vertex {
 
-	v3 p;
-	v2 uv;
+	ds::vec3 p;
+	ds::vec2 uv;
 
 	Vertex() : p(0.0f), uv(0.0f) {}
-	Vertex(const v3& pv, float u, float v) : p(pv), uv(u, v) {}
-	Vertex(const v3& pv, const v2& uvv) : p(pv), uv(uvv) {}
+	Vertex(const ds::vec3& pv, float u, float v) : p(pv), uv(u, v) {}
+	Vertex(const ds::vec3& pv, const ds::vec2& uvv) : p(pv), uv(uvv) {}
 };
 
 struct CubeConstantBuffer {
-	matrix viewProjectionMatrix;
-	matrix worldMatrix;
+	ds::matrix viewprojectionMatrix;
+	ds::matrix worldMatrix;
 };
 
 // ---------------------------------------------------------------
@@ -41,9 +41,9 @@ RID loadImage(const char* name) {
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
 
 
-	v3 positions[24];
-	v2 uvs[24];
-	matrix m = mat_identity();
+	ds::vec3 positions[24];
+	ds::vec2 uvs[24];
+	ds::matrix m = ds::matIdentity();
 	geometry::buildCube(m, positions, uvs);
 
 	Vertex v[24];
@@ -73,11 +73,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID gridShader = ds::createShader(gridDesc, 2);
 
 	Grid grid;
-	v3 gridPositions[] = {
-		v3(-4.0f, -1.0f, -3.5f),
-		v3(-4.0f, -1.0f,  4.5f),
-		v3(4.0f, -1.0f,  4.5f),
-		v3(4.0f, -1.0f, -3.5f)
+	ds::vec3 gridPositions[] = {
+		ds::vec3(-4.0f, -1.0f, -3.5f),
+		ds::vec3(-4.0f, -1.0f,  4.5f),
+		ds::vec3(4.0f, -1.0f,  4.5f),
+		ds::vec3(4.0f, -1.0f, -3.5f)
 	};
 	grid.create(gridPositions, 4, gridShader, textureID);
 
@@ -91,13 +91,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID indexBuffer = ds::createQuadIndexBuffer(256);
 	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v);
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::WRAP, ds::TextureFilters::LINEAR);
-	v3 vp = v3(0.0f, 2.0f, -6.0f);
+	ds::vec3 vp = ds::vec3(0.0f, 2.0f, -6.0f);
 	ds::setViewPosition(vp);
-	v3 scale(1.0f, 1.0f, 1.0f);
-	v3 rotation(0.0f, 0.0f, 0.0f);
-	v3 pos(0.0f, 0.0f, 0.0f);
+	ds::vec3 scale(1.0f, 1.0f, 1.0f);
+	ds::vec3 rotation(0.0f, 0.0f, 0.0f);
+	ds::vec3 pos(0.0f, 0.0f, 0.0f);
 	FPSCamera camera(1024, 768);
-	camera.setPosition(v3(0, 2, -12));
+	camera.setPosition(ds::vec3(0, 2, -12));
 
 	ds::StateGroup* sg = ds::createStateGroup();
 	sg->bindLayout(rid);
@@ -117,17 +117,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 		unsigned int stride = sizeof(Vertex);
 		unsigned int offset = 0;
-		constantBuffer.viewProjectionMatrix = mat_Transpose(camera.getViewProjectionMatrix());
+		constantBuffer.viewprojectionMatrix = ds::matTranspose(camera.getViewprojectionMatrix());
 		// spinning cube
-		matrix world = mat_identity();
+		ds::matrix world = ds::matIdentity();
 		rotation.y += 2.0f  * static_cast<float>(ds::getElapsedSeconds());
 		rotation.x += 1.0f  * static_cast<float>(ds::getElapsedSeconds());
-		matrix rotY = mat_RotationY(rotation.y);
-		matrix rotX = mat_RotationX(rotation.x);
-		matrix rotZ = mat_RotationZ(rotation.z);
-		matrix s = mat_Scale(scale);
-		matrix w = rotZ * rotY * rotX * s * world;
-		constantBuffer.worldMatrix = mat_Transpose(w);
+		ds::matrix rotY = ds::matRotationY(rotation.y);
+		ds::matrix rotX = ds::matRotationX(rotation.x);
+		ds::matrix rotZ = ds::matRotationZ(rotation.z);
+		ds::matrix s = ds::matScale(scale);
+		ds::matrix w = rotZ * rotY * rotX * s * world;
+		constantBuffer.worldMatrix = ds::matTranspose(w);
 		//ds::setTexture(cubeTextureID, ds::ShaderType::PIXEL);
 		ds::submit(drawCmd, sg);
 

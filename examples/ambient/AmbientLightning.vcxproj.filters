@@ -4,9 +4,6 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="stb_image.h" />
-  </ItemGroup>
-  <ItemGroup>
     <FxCompile Include="AmbientLightning_ps.hlsl" />
     <FxCompile Include="AmbientLightning_vs.hlsl" />
   </ItemGroup>

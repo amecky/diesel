@@ -1,10 +1,10 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include "..\common\stb_image.h"
 #include "..\common\Grid.h"
 #include "..\common\Geometry.h"
-#include "..\common\WorldMatrix.h"
+#include "..\common\worldMatrix.h"
 #include "..\common\Camera.h"
 
 // ---------------------------------------------------------------
@@ -12,22 +12,22 @@
 // ---------------------------------------------------------------
 struct Vertex {
 
-	v3 p;
-	v2 uv;
-	v3 n;
-	v3 t;
+	ds::vec3 p;
+	ds::vec2 uv;
+	ds::vec3 n;
+	ds::vec3 t;
 
 	Vertex() : p(0.0f), uv(0.0f) , n(0.0f) , t(0.0f) {}
-	Vertex(const v3& pv, const v2& uvv, const v3& nv,const v3& tv) : p(pv), uv(uvv) , n(nv), t(tv) {}
+	Vertex(const ds::vec3& pv, const ds::vec2& uvv, const ds::vec3& nv,const ds::vec3& tv) : p(pv), uv(uvv) , n(nv), t(tv) {}
 };
 
 // ---------------------------------------------------------------
 // the cube constant buffer
 // ---------------------------------------------------------------
 struct CubeConstantBuffer {
-	matrix viewProjectionMatrix;
-	matrix worldMatrix;
-	v3 eyePos;
+	ds::matrix viewprojectionMatrix;
+	ds::matrix worldMatrix;
+	ds::vec3 eyePos;
 	float padding;
 };
 
@@ -45,7 +45,7 @@ RID loadImage(const char* name,ds::TextureFormat format) {
 void saveObj(Vertex* vertices, int num) {
 	std::vector<int> vertIndices;
 	std::vector<int> uvIndices;
-	std::vector<v3> vertCache;
+	std::vector<ds::vec3> vertCache;
 	for (int i = 0; i < num; ++i) {
 		bool found = false;
 		for (int j = 0; j < vertCache.size(); ++j) {
@@ -59,7 +59,7 @@ void saveObj(Vertex* vertices, int num) {
 			vertIndices.push_back(vertCache.size());
 		}
 	}
-	std::vector<v2> uvCache;
+	std::vector<ds::vec2> uvCache;
 	for (int i = 0; i < num; ++i) {
 		bool found = false;
 		for (int j = 0; j < uvCache.size(); ++j) {
@@ -77,11 +77,11 @@ void saveObj(Vertex* vertices, int num) {
 	FILE* fp = fopen("test.txt","w");
 	if (fp) {
 		for (int i = 0; i < vertCache.size(); ++i) {
-			const v3& p = vertCache[i];
+			const ds::vec3& p = vertCache[i];
 			fprintf(fp, "v %g %g %g\n", p.x, p.y, p.z);
 		}
 		for (int i = 0; i < uvCache.size(); ++i) {
-			const v2& p = uvCache[i];
+			const ds::vec2& p = uvCache[i];
 			fprintf(fp, "vt %g %g\n", p.x, p.y);
 		}
 		int faces = vertIndices.size() / 4;
@@ -93,28 +93,28 @@ void saveObj(Vertex* vertices, int num) {
 	}
 }
 
-void calculateTangents(v3* positions, v2* uvs, v3* tangents, int num) {
+void calculateTangents(ds::vec3* positions, ds::vec2* uvs, ds::vec3* tangents, int num) {
 	int steps = num / 4;
 	for (int i = 0; i < steps; ++i) {
 		// Shortcuts for vertices
-		v3& vp0 = positions[i * 4 + 0];
-		v3& vp1 = positions[i * 4 + 1];
-		v3& vp2 = positions[i * 4 + 2];
+		ds::vec3& vp0 = positions[i * 4 + 0];
+		ds::vec3& vp1 = positions[i * 4 + 1];
+		ds::vec3& vp2 = positions[i * 4 + 2];
 
 		// Shortcuts for UVs
-		v2 uv0 = uvs[i * 4 + 0];
-		v2 uv1 = uvs[i * 4 + 1];
-		v2 uv2 = uvs[i * 4 + 2];
+		ds::vec2 uv0 = uvs[i * 4 + 0];
+		ds::vec2 uv1 = uvs[i * 4 + 1];
+		ds::vec2 uv2 = uvs[i * 4 + 2];
 
 		// Edges of the triangle : postion delta
-		v3 deltaPos1 = vp1 - vp0;
-		v3 deltaPos2 = vp2 - vp0;
+		ds::vec3 deltaPos1 = vp1 - vp0;
+		ds::vec3 deltaPos2 = vp2 - vp0;
 
 		// UV delta
-		v2 deltaUV1 = uv1 - uv0;
-		v2 deltaUV2 = uv2 - uv0;
+		ds::vec2 deltaUV1 = uv1 - uv0;
+		ds::vec2 deltaUV2 = uv2 - uv0;
 		float r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
-		v3 tangent = normalize((deltaPos1 * deltaUV2.y - deltaPos2 * deltaUV1.y)*r);
+		ds::vec3 tangent = normalize((deltaPos1 * deltaUV2.y - deltaPos2 * deltaUV1.y)*r);
 		tangents[i * 4] = tangent;
 		tangents[i * 4 + 1] = tangent;
 		tangents[i * 4 + 2] = tangent;
@@ -126,11 +126,11 @@ void calculateTangents(v3* positions, v2* uvs, v3* tangents, int num) {
 // ---------------------------------------------------------------
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
 
-	v3 positions[24];
-	v3 normals[24];
-	v3 tangents[24];
-	v2 uvs[24];
-	matrix m = mat_identity();
+	ds::vec3 positions[24];
+	ds::vec3 normals[24];
+	ds::vec3 tangents[24];
+	ds::vec2 uvs[24];
+	ds::matrix m = ds::matIdentity();
 	geometry::buildCube(m, positions, uvs, normals);
 	calculateTangents(positions, uvs, tangents, 24);
 	Vertex v[24];
@@ -169,11 +169,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID gridShader = ds::createShader(gridDesc, 2);
 
 	Grid grid;
-	v3 gridPositions[] = {
-		v3(-4.0f, -1.0f, -3.5f),
-		v3(-4.0f, -1.0f,  4.5f),
-		v3(4.0f, -1.0f,  4.5f),
-		v3(4.0f, -1.0f, -3.5f)
+	ds::vec3 gridPositions[] = {
+		ds::vec3(-4.0f, -1.0f, -3.5f),
+		ds::vec3(-4.0f, -1.0f,  4.5f),
+		ds::vec3(4.0f, -1.0f,  4.5f),
+		ds::vec3(4.0f, -1.0f, -3.5f)
 	};
 	grid.create(gridPositions, 2, textureShader, textureID);
 
@@ -189,13 +189,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID indexBuffer = ds::createQuadIndexBuffer(256);
 	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v);
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
-	v3 vp = v3(0.0f, 2.0f, -6.0f);
+	ds::vec3 vp = ds::vec3(0.0f, 2.0f, -6.0f);
 	ds::setViewPosition(vp);
 
-	WorldMatrix wm;
+	worldMatrix wm;
 
 	FPSCamera camera(1024, 768);
-	camera.setPosition(v3(0, 2, -12));
+	camera.setPosition(ds::vec3(0, 2, -12));
 
 	ds::StateGroup* sg = ds::createStateGroup();
 	sg->bindLayout(rid);
@@ -214,14 +214,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::begin();
 
 		camera.update(static_cast<float>(ds::getElapsedSeconds()));
-		matrix vpm = camera.getViewProjectionMatrix();
+		ds::matrix vpm = camera.getViewprojectionMatrix();
 
 		grid.render();
 			
-		constantBuffer.viewProjectionMatrix = mat_Transpose(vpm);
+		constantBuffer.viewprojectionMatrix = ds::matTranspose(vpm);
 
-		//wm.rotateBy(v3(static_cast<float>(ds::getElapsedSeconds()), 2.0f  * static_cast<float>(ds::getElapsedSeconds()), 0.0f));
-		wm.rotateBy(v3(0.0f, 1.0f  * static_cast<float>(ds::getElapsedSeconds()), 0.0f));
+		//wm.rotateBy(ds::vec3(static_cast<float>(ds::getElapsedSeconds()), 2.0f  * static_cast<float>(ds::getElapsedSeconds()), 0.0f));
+		wm.rotateBy(ds::vec3(0.0f, 1.0f  * static_cast<float>(ds::getElapsedSeconds()), 0.0f));
 		constantBuffer.worldMatrix = wm.getTransposedMatrix();
 		constantBuffer.eyePos = camera.getPosition();
 		constantBuffer.padding = 0.0f;

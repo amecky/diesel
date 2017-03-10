@@ -3,8 +3,8 @@
 #include "WarpingGrid.h"
 
 struct CubeConstantBuffer {
-	matrix viewProjectionMatrix;
-	matrix worldMatrix;
+	ds::matrix viewprojectionMatrix;
+	ds::matrix worldMatrix;
 };
 
 RID vertexBufferID;
@@ -76,16 +76,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	GridVertex* vertices = new GridVertex[NUM];
 
-	matrix viewMatrix = mat_identity();
-	matrix projectionMatrix = mat_OrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
-	matrix viewProjectionMatrix = viewMatrix * projectionMatrix;
+	ds::matrix viewMatrix = ds::matIdentity();
+	ds::matrix projectionMatrix = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
+	ds::matrix viewprojectionMatrix = viewMatrix * projectionMatrix;
 
 	ds::setViewMatrix(viewMatrix);
 	ds::setProjectionMatrix(projectionMatrix);
 
 	CubeConstantBuffer constantBuffer;
-	constantBuffer.viewProjectionMatrix = mat_Transpose(viewProjectionMatrix);
-	constantBuffer.worldMatrix = mat_Transpose(mat_identity());
+	constantBuffer.viewprojectionMatrix = ds::matTranspose(viewprojectionMatrix);
+	constantBuffer.worldMatrix = ds::matTranspose(ds::matIdentity());
 
 	ds::StateGroup* stateGroup = createStateGroup(NUM, &constantBuffer);
 	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST, 0 };

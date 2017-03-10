@@ -5,7 +5,7 @@ class SpriteBuffer;
 
 namespace font {
 
-	void renderText(const v2& pos, const char* txt, SpriteBuffer* buffer, RID textureID);
+	void renderText(const ds::vec2& pos, const char* txt, SpriteBuffer* buffer, RID textureID);
 }
 
 namespace input {

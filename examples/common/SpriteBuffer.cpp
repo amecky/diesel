@@ -34,16 +34,16 @@ SpriteBuffer::SpriteBuffer(int maxSprites) : _max(maxSprites) {
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::POINT);
 
 	// create orthographic view
-	matrix viewMatrix = mat_identity();
+	ds::matrix viewMatrix = ds::matIdentity();
 	// FIXME: get screen size
-	matrix projectionMatrix = mat_OrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
-	matrix viewProjectionMatrix = viewMatrix * projectionMatrix;
+	ds::matrix projectionMatrix = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
+	ds::matrix viewprojectionMatrix = viewMatrix * projectionMatrix;
 
 	ds::setViewMatrix(viewMatrix);
 	ds::setProjectionMatrix(projectionMatrix);
-	_constantBuffer.wvp = mat_Transpose(viewProjectionMatrix);
-	_constantBuffer.screenDimension = v4(1024.0f, 768.0f, 1024.0f, 1024.f);
-	_constantBuffer.screenCenter = v4(512.0f, 364.0f, 0.0f, 0.0f);
+	_constantBuffer.wvp = ds::matTranspose(viewprojectionMatrix);
+	_constantBuffer.screenDimension = ds::vec4(1024.0f, 768.0f, 1024.0f, 1024.f);
+	_constantBuffer.screenCenter = ds::vec4(512.0f, 364.0f, 0.0f, 0.0f);
 
 	ds::StateGroup* sg = ds::createStateGroup();
 	sg->bindLayout(vertexDeclId);
@@ -67,7 +67,7 @@ void SpriteBuffer::begin() {
 	_currentTexture = NO_RID;
 }
 
-void SpriteBuffer::add(const v2& position, RID textureID, const v4& rect, const v2& scale, float rotation, const ds::Color& clr) {
+void SpriteBuffer::add(const ds::vec2& position, RID textureID, const ds::vec4& rect, const ds::vec2& scale, float rotation, const ds::Color& clr) {
 	if ((_current + 1) >= _max) {
 		flush();
 	}
@@ -75,14 +75,14 @@ void SpriteBuffer::add(const v2& position, RID textureID, const v4& rect, const 
 		_currentTexture = textureID;
 		flush();
 	}
-	_vertices[_current++] = SpriteBufferVertex(position, rect, v3(scale.x, scale.y, rotation), clr);
+	_vertices[_current++] = SpriteBufferVertex(position, rect, ds::vec3(scale.x, scale.y, rotation), clr);
 }
 
 void SpriteBuffer::flush() {
 	if (_current > 0) {
 		_item->groups[0]->bindTexture(_currentTexture, ds::ShaderType::PIXEL, 0);
 		// FIXME: get texture size and set it here
-		_constantBuffer.screenDimension = v4(1024.0f, 768.0f, 1024.0f, 1024.f);
+		_constantBuffer.screenDimension = ds::vec4(1024.0f, 768.0f, 1024.0f, 1024.f);
 		ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
 		ds::mapBufferData(_vertexBufferID, _vertices, _current * sizeof(SpriteBufferVertex));
 		_item->command.size = _current;

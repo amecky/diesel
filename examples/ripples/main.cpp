@@ -22,12 +22,12 @@ struct Rect {
 // ---------------------------------------------------------------
 struct Sprite {
 
-	v2 position;
-	v2 scale;
+	ds::vec2 position;
+	ds::vec2 scale;
 	float rotation;
 	Rect texture;
 	ds::Color color;
-	v2 velocity;
+	ds::vec2 velocity;
 	float timer;
 
 	Sprite() : position(0, 0), scale(1, 1), rotation(0.0f), color(ds::Color(255, 255, 255, 255)) , texture(0,0,0,0) , velocity(0.0f,0.0f) , timer(0.0f) {}
@@ -39,30 +39,30 @@ struct Sprite {
 // ---------------------------------------------------------------
 struct SpriteVertex {
 
-	v3 position;
-	v4 texture;
-	v3 size;
+	ds::vec3 position;
+	ds::vec4 texture;
+	ds::vec3 size;
 	ds::Color color;
 
 	SpriteVertex() : position(0, 0, 0) {}
-	SpriteVertex(const v3& p, const v4& t, const ds::Color& c) : position(p), texture(t), color(c) {}
-	SpriteVertex(const v2& p, const v4& t, const ds::Color& c) : position(p, 1.0f), texture(t), color(c) {}
-	SpriteVertex(const v2& p, const v4& t, const v3& s, const ds::Color& c) : position(p, 1.0f), texture(t), size(s), color(c) {}
+	SpriteVertex(const ds::vec3& p, const ds::vec4& t, const ds::Color& c) : position(p), texture(t), color(c) {}
+	SpriteVertex(const ds::vec2& p, const ds::vec4& t, const ds::Color& c) : position(p, 1.0f), texture(t), color(c) {}
+	SpriteVertex(const ds::vec2& p, const ds::vec4& t, const ds::vec3& s, const ds::Color& c) : position(p, 1.0f), texture(t), size(s), color(c) {}
 };
 
 // ---------------------------------------------------------------
 // the sprite constant buffer
 // ---------------------------------------------------------------
 struct SpriteConstantBuffer {
-	v4 screenDimension;
-	v4 screenCenter;
-	matrix wvp;
+	ds::vec4 screenDimension;
+	ds::vec4 screenCenter;
+	ds::matrix wvp;
 };
 
 // ---------------------------------------------------------------
-// get angle between two v2 vectors
+// get angle between two ds::vec2 vectors
 // ---------------------------------------------------------------
-float getAngle(const v2& u, const v2& v) {
+float getAngle(const ds::vec2& u, const ds::vec2& v) {
 	double x = v.x - u.x;
 	double y = v.y - u.y;
 	double ang = atan2(y, x);
@@ -72,19 +72,19 @@ float getAngle(const v2& u, const v2& v) {
 // ---------------------------------------------------------------
 // create sprite
 // ---------------------------------------------------------------
-int add(const v2& p, const Rect& r, Sprite* sprites, int index) {
+int add(const ds::vec2& p, const Rect& r, Sprite* sprites, int index) {
 	if ((index + 1) < 64) {
 		float angle = ds::random(0.0f, ds::PI * 2.0f);
 		Sprite& s = sprites[index];
 		s.position = p;
 		s.color = ds::Color(1.0f, 1.0f, 1.0f, 1.0f);
-		s.scale = v2(1.0f, 1.0f);
+		s.scale = ds::vec2(1.0f, 1.0f);
 		s.rotation = angle;
 		s.texture = r;
 		float vel = ds::random(100.0f,250.0f);
 		float vx = cos(angle) * vel;
 		float vy = sin(angle) * vel;
-		s.velocity = v2(vx,vy);
+		s.velocity = ds::vec2(vx,vy);
 		s.timer = ds::random(0.0f, 1.0f);
 		return index + 1;
 	}
@@ -113,9 +113,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	SpriteVertex vertices[64];
 
 	SpriteVertex backgroundVertex;
-	backgroundVertex.position = v3(512, 384, 0);
-	backgroundVertex.texture = v4(0, 200, 1024, 768);
-	backgroundVertex.size = v3(1.0f,1.0f,0.0f);
+	backgroundVertex.position = ds::vec3(512, 384, 0);
+	backgroundVertex.texture = ds::vec4(0, 200, 1024, 768);
+	backgroundVertex.size = ds::vec3(1.0f,1.0f,0.0f);
 	backgroundVertex.color = ds::Color(1.0f, 1.0f, 1.0f, 1.0f);
 	
 	// create some sprites
@@ -124,12 +124,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		float y = ds::random(200.0f, 500.0f);
 		int r = ds::random(0.0, 1.9f);
 		int c = ds::random(0.0, 1.9f);
-		numSprites = add(v2(x, y), Rect(0,0,64,64), sprites, numSprites);
+		numSprites = add(ds::vec2(x, y), Rect(0,0,64,64), sprites, numSprites);
 	}
 
 	SpriteConstantBuffer constantBuffer;
-	constantBuffer.screenDimension = v4(1024.0f, 768.0f, 64.0f, 64.0f);
-	constantBuffer.screenCenter = v4(512.0f, 384.0f, 0.0f, 0.0f);
+	constantBuffer.screenDimension = ds::vec4(1024.0f, 768.0f, 64.0f, 64.0f);
+	constantBuffer.screenCenter = ds::vec4(512.0f, 384.0f, 0.0f, 0.0f);
 
 	float t = 0.0f;
 
@@ -179,13 +179,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 
 	// create orthographic view
-	matrix viewMatrix = mat_identity();
-	matrix projectionMatrix = mat_OrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
-	matrix viewProjectionMatrix = viewMatrix * projectionMatrix;
+	ds::matrix viewMatrix = ds::matIdentity();
+	ds::matrix projectionMatrix = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
+	ds::matrix viewprojectionMatrix = viewMatrix * projectionMatrix;
 
-	ds::setViewMatrix(viewMatrix);
-	ds::setProjectionMatrix(projectionMatrix);
-	constantBuffer.wvp = mat_Transpose(viewProjectionMatrix);
+	ds::setviewMatrix(viewMatrix);
+	ds::setprojectionMatrix(projectionMatrix);
+	constantBuffer.wvp = ds::matTranspose(viewprojectionMatrix);
 
 	ds::StateGroup* sg = ds::createStateGroup();
 	sg->bindLayout(vertexDeclId);
@@ -221,12 +221,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			Sprite& s = sprites[i];
 			s.timer += static_cast<float>(ds::getElapsedSeconds());
 			float norm = s.timer / 2.0f;
-			s.scale = v2(sin(norm * ds::TWO_PI) * 4.0f);
+			s.scale = ds::vec2(sin(norm * ds::TWO_PI) * 4.0f);
 			if (norm >= 1.0f) {
 				s.timer = 0.1f;
 				float x = ds::random(100.0f, 900.0f);
 				float y = ds::random(100.0f, 600.0f);
-				s.position = v2(x, y);
+				s.position = ds::vec2(x, y);
 			}
 			s.rotation = 0.0f;
 
@@ -240,12 +240,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		
 		for (int i = 0; i < numSprites; ++i) {
 			const Sprite& sprite = sprites[i];
-			v4 t;
+			ds::vec4 t;
 			t.x = sprite.texture.left;
 			t.y = sprite.texture.top;
 			t.z = sprite.texture.width;
 			t.w = sprite.texture.height;
-			vertices[i] = SpriteVertex(sprite.position, t, v3(sprite.scale.x, sprite.scale.y, sprite.rotation), sprite.color);
+			vertices[i] = SpriteVertex(sprite.position, t, ds::vec3(sprite.scale.x, sprite.scale.y, sprite.rotation), sprite.color);
 		}
 		ds::mapBufferData(vertexBufferID, vertices, numSprites * sizeof(SpriteVertex));
 		drawCmd.size = numSprites;

@@ -1,30 +1,30 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include "..\common\stb_image.h"
 #include "..\common\Grid.h"
 #include "..\common\Geometry.h"
-#include "..\common\WorldMatrix.h"
+#include "..\common\worldMatrix.h"
 
 // ---------------------------------------------------------------
 // Vertex
 // ---------------------------------------------------------------
 struct Vertex {
 
-	v3 p;
-	v2 uv;
+	ds::vec3 p;
+	ds::vec2 uv;
 
 	Vertex() : p(0.0f), uv(0.0f) {}
-	Vertex(const v3& pv, float u, float v) : p(pv) , uv(u,v) {}
-	Vertex(const v3& pv, const v2& uvv) : p(pv), uv(uvv) {}
+	Vertex(const ds::vec3& pv, float u, float v) : p(pv) , uv(u,v) {}
+	Vertex(const ds::vec3& pv, const ds::vec2& uvv) : p(pv), uv(uvv) {}
 };
 
 // ---------------------------------------------------------------
 // the cube constant buffer
 // ---------------------------------------------------------------
 struct CubeConstantBuffer {
-	matrix viewProjectionMatrix;
-	matrix worldMatrix;
+	ds::matrix viewprojectionMatrix;
+	ds::matrix worldMatrix;
 };
 
 // ---------------------------------------------------------------
@@ -41,7 +41,7 @@ RID loadImage(const char* name) {
 void saveObj(Vertex* vertices, int num) {
 	std::vector<int> vertIndices;
 	std::vector<int> uvIndices;
-	std::vector<v3> vertCache;
+	std::vector<ds::vec3> vertCache;
 	for (int i = 0; i < num; ++i) {
 		bool found = false;
 		for (int j = 0; j < vertCache.size(); ++j) {
@@ -55,7 +55,7 @@ void saveObj(Vertex* vertices, int num) {
 			vertIndices.push_back(vertCache.size());
 		}
 	}
-	std::vector<v2> uvCache;
+	std::vector<ds::vec2> uvCache;
 	for (int i = 0; i < num; ++i) {
 		bool found = false;
 		for (int j = 0; j < uvCache.size(); ++j) {
@@ -73,11 +73,11 @@ void saveObj(Vertex* vertices, int num) {
 	FILE* fp = fopen("test.txt","w");
 	if (fp) {
 		for (int i = 0; i < vertCache.size(); ++i) {
-			const v3& p = vertCache[i];
+			const ds::vec3& p = vertCache[i];
 			fprintf(fp, "v %g %g %g\n", p.x, p.y, p.z);
 		}
 		for (int i = 0; i < uvCache.size(); ++i) {
-			const v2& p = uvCache[i];
+			const ds::vec2& p = uvCache[i];
 			fprintf(fp, "vt %g %g\n", p.x, p.y);
 		}
 		int faces = vertIndices.size() / 4;
@@ -94,9 +94,9 @@ void saveObj(Vertex* vertices, int num) {
 // ---------------------------------------------------------------
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
 
-	v3 positions[24];
-	v2 uvs[24];
-	matrix m = mat_identity();
+	ds::vec3 positions[24];
+	ds::vec2 uvs[24];
+	ds::matrix m = ds::matIdentity();
 	geometry::buildCube(m, positions, uvs);
 
 	Vertex v[24];
@@ -104,15 +104,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		v[i] = Vertex(positions[i], uvs[i]);
 	}
 
-	v3 CP[] = { v3(-2,0,-1),v3(-2,0,3),v3(2,0,-1),v3(2,0,3) };
+	ds::vec3 CP[] = { ds::vec3(-2,0,-1),ds::vec3(-2,0,3),ds::vec3(2,0,-1),ds::vec3(2,0,3) };
 	const int numCubes = 4;
 	const int totalCubeVertices = numCubes * 24;
 	Vertex sv[totalCubeVertices];
 	int cnt = 0;
 	for(int j = 0; j < numCubes; ++j) {
-		matrix m = mat_Translate(CP[j]);
-		matrix s = mat_Scale(v3(0.5f,2.0f,0.5f));
-		matrix w = s * m;
+		ds::matrix m = ds::matTranslate(CP[j]);
+		ds::matrix s = ds::matScale(ds::vec3(0.5f,2.0f,0.5f));
+		ds::matrix w = s * m;
 		geometry::buildCube(w, positions, uvs);
 		for (int i = 0; i < 24; ++i) {
 			sv[cnt++] = Vertex(positions[i], uvs[i]);
@@ -141,11 +141,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID gridShader = ds::createShader(desc, 2);
 
 	Grid grid;
-	v3 gridPositions[] = {
-		v3(-4.0f, -1.0f, -3.5f),
-		v3(-4.0f, -1.0f,  4.5f),
-		v3(4.0f, -1.0f,  4.5f),
-		v3(4.0f, -1.0f, -3.5f)
+	ds::vec3 gridPositions[] = {
+		ds::vec3(-4.0f, -1.0f, -3.5f),
+		ds::vec3(-4.0f, -1.0f,  4.5f),
+		ds::vec3(4.0f, -1.0f,  4.5f),
+		ds::vec3(4.0f, -1.0f, -3.5f)
 	};
 	grid.create(gridPositions, 2, gridShader, textureID);
 
@@ -160,10 +160,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v);
 	RID staticCubes = ds::createVertexBuffer(ds::BufferType::STATIC, totalCubeVertices, sizeof(Vertex), sv);
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
-	v3 vp = v3(0.0f, 2.0f, -6.0f);
+	ds::vec3 vp = ds::vec3(0.0f, 2.0f, -6.0f);
 	ds::setViewPosition(vp);
 
-	WorldMatrix wm;
+	worldMatrix wm;
 
 	ds::StateGroup* basicGroup = ds::createStateGroup();
 	basicGroup->bindLayout(rid);
@@ -194,14 +194,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 		grid.render();
 		
-		constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
+		constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix());
 
 		// spinning cube
-		matrix world = mat_identity();
-		constantBuffer.worldMatrix = mat_Transpose(world);
+		ds::matrix world = ds::matIdentity();
+		constantBuffer.worldMatrix = ds::matTranspose(world);
 		ds::submit(staticItem);
 
-		wm.rotateBy(v3(static_cast<float>(ds::getElapsedSeconds()), 2.0f  * static_cast<float>(ds::getElapsedSeconds()), 0.0f));
+		wm.rotateBy(ds::vec3(static_cast<float>(ds::getElapsedSeconds()), 2.0f  * static_cast<float>(ds::getElapsedSeconds()), 0.0f));
 		constantBuffer.worldMatrix = wm.getTransposedMatrix();
 		ds::submit(cubeItem);
 		

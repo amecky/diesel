@@ -1,26 +1,26 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include "..\common\stb_image.h"
 
 struct Vertex {
-	v3 p;
-	v2 t;
-	v3 n;
+	ds::vec3 p;
+	ds::vec2 t;
+	ds::vec3 n;
 
 	Vertex() : p(0.0f), n(0.0f), t(0.0f) {}
-	Vertex(const v3& pv, const v3& nv, const v2& tv) :p(pv), n(nv), t(tv) {}
+	Vertex(const ds::vec3& pv, const ds::vec3& nv, const ds::vec2& tv) :p(pv), n(nv), t(tv) {}
 };
 
-const v3 CUBE_VERTICES[8] = {
-	v3(-0.5f,-0.5f,-0.5f),
-	v3(-0.5f, 0.5f,-0.5f),
-	v3( 0.5f, 0.5f,-0.5f),
-	v3( 0.5f,-0.5f,-0.5f),
-	v3(-0.5f,-0.5f, 0.5f),
-	v3(-0.5f, 0.5f, 0.5f),
-	v3( 0.5f, 0.5f, 0.5f),
-	v3( 0.5f,-0.5f, 0.5f)
+const ds::vec3 CUBE_VERTICES[8] = {
+	ds::vec3(-0.5f,-0.5f,-0.5f),
+	ds::vec3(-0.5f, 0.5f,-0.5f),
+	ds::vec3( 0.5f, 0.5f,-0.5f),
+	ds::vec3( 0.5f,-0.5f,-0.5f),
+	ds::vec3(-0.5f,-0.5f, 0.5f),
+	ds::vec3(-0.5f, 0.5f, 0.5f),
+	ds::vec3( 0.5f, 0.5f, 0.5f),
+	ds::vec3( 0.5f,-0.5f, 0.5f)
 };
 
 const int CUBE_PLANES[6][4] = {
@@ -32,32 +32,32 @@ const int CUBE_PLANES[6][4] = {
 	{ 7, 6, 5, 4 }, // back
 };
 
-void addPlane(int index, int side, Vertex* vertices, const matrix& world) {
+void addPlane(int index, int side, Vertex* vertices, const ds::matrix& world) {
 	int idx = index * 4;
 	float u[4] = { 0.0f,0.0f,1.0f,1.0f };
 	float v[4] = { 1.0f,0.0f,0.0f,1.0f };
 	for (int i = 0; i < 4; ++i) {
 		int p = idx + i;
-		v3 pos = world * CUBE_VERTICES[CUBE_PLANES[side][i]];
-		vertices[p] = Vertex(pos, v3(0.0f), v2(u[i],v[i]));
+		ds::vec3 pos = world * CUBE_VERTICES[CUBE_PLANES[side][i]];
+		vertices[p] = Vertex(pos, ds::vec3(0.0f), ds::vec2(u[i],v[i]));
 	}	
-	v3 d0 = vertices[idx + 1].p - vertices[idx].p;
-	v3 d1 = vertices[idx + 2].p - vertices[idx].p;
-	v3 c = cross(d0, d1);
+	ds::vec3 d0 = vertices[idx + 1].p - vertices[idx].p;
+	ds::vec3 d1 = vertices[idx + 2].p - vertices[idx].p;
+	ds::vec3 c = cross(d0, d1);
 	for (int i = 0; i < 4; ++i) {
 		vertices[idx + i].n = c;
 	}
 }
 
 struct CubeConstantBuffer {
-	matrix viewProjectionMatrix;
-	matrix worldMatrix;
+	ds::matrix viewprojectionMatrix;
+	ds::matrix worldMatrix;
 };
 
 struct LightBuffer {
 	ds::Color ambientColor;
 	ds::Color diffuseColor;
-	v3 lightDirection;
+	ds::vec3 lightDirection;
 	float padding;
 };
 
@@ -70,7 +70,7 @@ RID loadImage(const char* name) {
 }
 
 int main(const char** args) {
-	matrix w = mat_identity();
+	ds::matrix w = ds::matIdentity();
 	Vertex v[24];
 	addPlane(0, 0, v, w);
 	addPlane(1, 1, v, w);
@@ -79,8 +79,8 @@ int main(const char** args) {
 	addPlane(4, 4, v, w);
 	addPlane(5, 5, v, w);
 
-	matrix s = mat_Scale(v3(0.2f,0.2f,0.2f));
-	matrix lw = s * w;
+	ds::matrix s = ds::matScale(ds::vec3(0.2f,0.2f,0.2f));
+	ds::matrix lw = s * w;
 	Vertex lv[24];
 	addPlane(0, 0, lv, lw);
 	addPlane(1, 1, lv, lw);
@@ -90,17 +90,17 @@ int main(const char** args) {
 	addPlane(5, 5, lv, lw);
 
 	Vertex floorVertices[4];
-	floorVertices[0] = Vertex(v3(-3.0f, -1.0f, -2.5f), v3(0.0f,1.0f,0.0f),v2(0.0f, 1.0f));
-	floorVertices[1] = Vertex(v3(-3.0f, -1.0f, 3.5f), v3(0.0f, 1.0f, 0.0f), v2(0.0f, 0.0f));
-	floorVertices[2] = Vertex(v3(3.0f, -1.0f, 3.5f), v3(0.0f, 1.0f, 0.0f), v2(1.0f, 0.0f));
-	floorVertices[3] = Vertex(v3(3.0f, -1.0f, -2.5f), v3(0.0f, 1.0f, 0.0f), v2(1.0f, 1.0f));
+	floorVertices[0] = Vertex(ds::vec3(-3.0f, -1.0f, -2.5f), ds::vec3(0.0f,1.0f,0.0f),ds::vec2(0.0f, 1.0f));
+	floorVertices[1] = Vertex(ds::vec3(-3.0f, -1.0f, 3.5f), ds::vec3(0.0f, 1.0f, 0.0f), ds::vec2(0.0f, 0.0f));
+	floorVertices[2] = Vertex(ds::vec3(3.0f, -1.0f, 3.5f), ds::vec3(0.0f, 1.0f, 0.0f), ds::vec2(1.0f, 0.0f));
+	floorVertices[3] = Vertex(ds::vec3(3.0f, -1.0f, -2.5f), ds::vec3(0.0f, 1.0f, 0.0f), ds::vec2(1.0f, 1.0f));
 
 	CubeConstantBuffer constantBuffer;
 	LightBuffer lightBuffer;
 	lightBuffer.ambientColor = ds::Color(0.15f, 0.15f, 0.15f,1.0f);
 	lightBuffer.diffuseColor = ds::Color(1.0f, 1.0f, 1.0f, 1.0f);
 	lightBuffer.padding = 0.0f;
-	v3 lightPos = v3(1.0f, -0.5f, 1.0f);
+	ds::vec3 lightPos = ds::vec3(1.0f, -0.5f, 1.0f);
 	lightBuffer.lightDirection = normalize(lightPos);
 
 	float t = 0.0f;
@@ -139,11 +139,11 @@ int main(const char** args) {
 	RID floorBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 4, sizeof(Vertex), floorVertices);
 	RID bulbID = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), lv);
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
-	v3 vp = v3(0.0f, 2.0f, -6.0f);
+	ds::vec3 vp = ds::vec3(0.0f, 2.0f, -6.0f);
 	ds::setViewPosition(vp);
-	v3 scale(1.0f, 1.0f, 1.0f);
-	v3 rotation(0.0f, 0.0f, 0.0f);
-	v3 pos(0.0f, 0.0f, 0.0f);
+	ds::vec3 scale(1.0f, 1.0f, 1.0f);
+	ds::vec3 rotation(0.0f, 0.0f, 0.0f);
+	ds::vec3 pos(0.0f, 0.0f, 0.0f);
 
 	ds::StateGroup* basicGroup = ds::createStateGroup();
 	basicGroup->bindLayout(rid);
@@ -183,33 +183,33 @@ int main(const char** args) {
 
 		t += static_cast<float>(ds::getElapsedSeconds());
 
-		constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
+		constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix());
 			
 		// floor
-		matrix world = mat_identity();
-		constantBuffer.worldMatrix = mat_Transpose(world);
+		ds::matrix world = ds::matIdentity();
+		constantBuffer.worldMatrix = ds::matTranspose(world);
 		ds::submit(floorItem);
 		
 		// draw the light as small cube
 		lightPos.x = cos(t);
 		lightPos.z = sin(t);
 		lightBuffer.lightDirection = lightPos;
-		v3 lp = v3(-lightPos.x, -lightPos.y, -lightPos.z);
-		matrix bY = mat_RotationY(t);
-		w = bY * mat_Translate(lp);		
-		constantBuffer.worldMatrix = mat_Transpose(w);
+		ds::vec3 lp = ds::vec3(-lightPos.x, -lightPos.y, -lightPos.z);
+		ds::matrix bY = ds::matRotationY(t);
+		w = bY * ds::matTranslate(lp);		
+		constantBuffer.worldMatrix = ds::matTranspose(w);
 		ds::submit(bulbItem);
 		
 		// spinning cube
-		world = mat_identity();
+		world = ds::matIdentity();
 		rotation.y += 2.0f  * static_cast<float>(ds::getElapsedSeconds());
 		rotation.x += 1.0f  * static_cast<float>(ds::getElapsedSeconds());
-		matrix rotY = mat_RotationY(rotation.y);
-		matrix rotX = mat_RotationX(rotation.x);
-		matrix rotZ = mat_RotationZ(rotation.z);
-		matrix s = mat_Scale(scale);
-		matrix w = rotZ * rotY * rotX * s * world;
-		constantBuffer.worldMatrix = mat_Transpose(w);
+		ds::matrix rotY = ds::matRotationY(rotation.y);
+		ds::matrix rotX = ds::matRotationX(rotation.x);
+		ds::matrix rotZ = ds::matRotationZ(rotation.z);
+		ds::matrix s = ds::matScale(scale);
+		ds::matrix w = rotZ * rotY * rotX * s * world;
+		constantBuffer.worldMatrix = ds::matTranspose(w);
 		ds::submit(cubeItem);
 
 		ds::end();

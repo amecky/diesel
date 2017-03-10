@@ -16,7 +16,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="stb_image.h" />
     <ClInclude Include="Grid.h" />
     <ClInclude Include="Map.h" />
     <ClInclude Include="Board.h" />

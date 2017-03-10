@@ -14,15 +14,15 @@ inline uint32_t fnv1a(const char* text, uint32_t hash = FNV_Seed) {
 	return hash;
 }
 
-int WaveFrontReader::load(const char * fileName, matrix* world) {
+int WaveFrontReader::load(const char * fileName, ds::matrix* world) {
 	std::ifstream file(fileName);
 	if (!file) {
 		return -1;
 	}
 	char cmd[256] = { 0 };
-	std::vector<v3> vertices;
-	std::vector<v2> textures;
-	std::vector<v3> normals;
+	std::vector<ds::vec3> vertices;
+	std::vector<ds::vec2> textures;
+	std::vector<ds::vec3> normals;
 	bool hasNormals = false;
 	bool hasUV = false;
 	int cnt = 0;
@@ -48,20 +48,20 @@ int WaveFrontReader::load(const char * fileName, matrix* world) {
 		else if (strcmp(cmd, "v") == 0) {
 			float x, y, z;
 			file >> x >> y >> z;
-			v3 v(x, y, z);
+			ds::vec3 v(x, y, z);
 			vertices.push_back(v);
 		}
 		else if (strcmp(cmd, "vt") == 0) {
 			float u,v;
 			file >> u >> v;
-			v2 uv(u, v);
+			ds::vec2 uv(u, v);
 			textures.push_back(uv);
 			hasUV = true;
 		}
 		else if (strcmp(cmd, "vn") == 0) {
 			float x, y, z;
 			file >> x >> y >> z;
-			v3 v(x, y, z);
+			ds::vec3 v(x, y, z);
 			normals.push_back(v);
 			hasNormals = true;
 		}
@@ -103,7 +103,7 @@ int WaveFrontReader::load(const char * fileName, matrix* world) {
 		}
 
 	}	
-	v3 e(0.0f);
+	ds::vec3 e(0.0f);
 	for (size_t i = 0; i < _vertices.size(); ++i) {
 		e.x += std::abs(_vertices[i].position.x);
 		e.y += std::abs(_vertices[i].position.y);

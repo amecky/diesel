@@ -1,35 +1,35 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include "..\common\stb_image.h"
 // ---------------------------------------------------------------
 // Vertex
 // ---------------------------------------------------------------
 struct Vertex {
 
-	v3 p;
-	v2 uv;
+	ds::vec3 p;
+	ds::vec2 uv;
 
 	Vertex() : p(0.0f), uv(0.0f) {}
-	Vertex(const v3& pv, float u, float v) : p(pv), uv(u, v) {}
+	Vertex(const ds::vec3& pv, float u, float v) : p(pv), uv(u, v) {}
 };
 
 struct CubeConstantBuffer {
-	matrix viewProjectionMatrix;
-	matrix worldMatrix;
+	ds::matrix viewprojectionMatrix;
+	ds::matrix worldMatrix;
 };
 
 struct PostProcessBuffer {
-	v4 data;
+	ds::vec4 data;
 };
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
 	
 	Vertex vertices[4] = {
-		Vertex(v3(-0.2f,-0.2f,0.0f),1.0f,0.0f),
-		Vertex(v3(-0.2f,0.2f,0.0f),0.0f,0.0f),
-		Vertex(v3(0.2f,0.2f,0.0f),0.0f,1.0f),
-		Vertex(v3(0.2f,-0.2f,0.0f),1.0f,1.0f),
+		Vertex(ds::vec3(-0.2f,-0.2f,0.0f),1.0f,0.0f),
+		Vertex(ds::vec3(-0.2f,0.2f,0.0f),0.0f,0.0f),
+		Vertex(ds::vec3(0.2f,0.2f,0.0f),0.0f,1.0f),
+		Vertex(ds::vec3(0.2f,-0.2f,0.0f),1.0f,1.0f),
 	};
 
 	ds::RenderSettings rs;
@@ -82,7 +82,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	CubeConstantBuffer constantBuffer;
 		
 	RID rasterizerStateID = ds::createRasterizerState(ds::CullMode::BACK, ds::FillMode::SOLID, true, false, 0.0f, 0.0f);
-	v3 vp = v3(0.0f, 0.0f, -1.0f);
+	ds::vec3 vp = ds::vec3(0.0f, 0.0f, -1.0f);
 	ds::setViewPosition(vp);
 
 	ds::StateGroup* staticGroup = ds::createStateGroup();
@@ -108,7 +108,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ppGroup->bindShader(shaderID);
 	ppGroup->bindSamplerState(ssid, ds::ShaderType::PIXEL);
 	//ppGroup->bindRasterizerState(rasterizerStateID);
-	ppBuffer.data = v4(abs(sin(t*0.5f)), 0.0f, 0.0f, 0.0f);
+	ppBuffer.data = ds::vec4(abs(sin(t*0.5f)), 0.0f, 0.0f, 0.0f);
 	ppGroup->bindConstantBuffer(ppCBID,ds::ShaderType::PIXEL, &ppBuffer);
 
 	ds::DrawCommand ppCmd = { 3, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::TRIANGLE_LIST };
@@ -118,11 +118,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::begin();
 		t += static_cast<float>(ds::getElapsedSeconds());
 		ds::setRenderTarget(rtID);
-		constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
-		constantBuffer.worldMatrix = mat_Transpose(mat_identity());
+		constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix());
+		constantBuffer.worldMatrix = ds::matTranspose(ds::matIdentity());
 		ds::submit(staticItem);
 		ds::restoreBackBuffer();
-		ppBuffer.data = v4(abs(sin(t*0.5f)), 0.0f, 0.0f, 0.0f);
+		ppBuffer.data = ds::vec4(abs(sin(t*0.5f)), 0.0f, 0.0f, 0.0f);
 		ds::submit(ppItem);		
 		ds::end();
 	}

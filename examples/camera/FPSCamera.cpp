@@ -6,17 +6,17 @@
 
 
 	FPSCamera::FPSCamera(float screenWidth, float screenHeight)  {
-		_projectionMatrix = mat_PerspectiveFovLH(ds::PI * 0.25f, screenWidth / screenHeight, 0.01f, 100.0f);
-		_position = v3(3, 3, -12);
+		_projectionMatrix = ds::matPerspectiveFovLH(ds::PI * 0.25f, screenWidth / screenHeight, 0.01f, 100.0f);
+		_position = ds::vec3(3, 3, -12);
 		_lastMousePos = ds::getMousePosition();
-		_target = v3(0.0f, 0.0f, 1.0f);
-		_up = v3(0.0f, 1.0f, 0.0f);
-		_right = v3(1.0f, 0.0f, 0.0f);
+		_target = ds::vec3(0.0f, 0.0f, 1.0f);
+		_up = ds::vec3(0.0f, 1.0f, 0.0f);
+		_right = ds::vec3(1.0f, 0.0f, 0.0f);
 		_speed = 10.0f;
 		_yaw = 0.0f;
 		_pitch = 0.0f;
-		_viewMatrix = mat_LookAtLH(_position, _target, _up);
-		_viewProjectionMatrix = _viewMatrix * _projectionMatrix;
+		_viewMatrix = ds::matLookAtLH(_position, _target, _up);
+		_viewprojectionMatrix = _viewMatrix * _projectionMatrix;
 		buildView();
 	}
 
@@ -24,11 +24,11 @@
 
 	}
 
-	void FPSCamera::setPosition(const v3& pos, const v3& target) {
+	void FPSCamera::setPosition(const ds::vec3& pos, const ds::vec3& target) {
 		_position = pos;
 		_target = target;
-		_viewMatrix =mat_LookAtLH(_position, _target, _up);
-		_viewProjectionMatrix = _viewMatrix * _projectionMatrix;
+		_viewMatrix =ds::matLookAtLH(_position, _target, _up);
+		_viewprojectionMatrix = _viewMatrix * _projectionMatrix;
 		buildView();
 	}
 
@@ -43,49 +43,49 @@
 	}
 
 	void FPSCamera::up(float unit) {
-		v3 tmp = _up * unit;
+		ds::vec3 tmp = _up * unit;
 		_position = _position + tmp;
 		buildView();
 	}
 
 	void FPSCamera::setPitch(float angle) {		
 
-		matrix R = mat_Rotation(_right, angle);
-		_up = mat_TransformNormal(_up, R);
-		_target = mat_TransformNormal(_target, R);
+		ds::matrix R = ds::matRotation(_right, angle);
+		_up = ds::matTransformNormal(_up, R);
+		_target = ds::matTransformNormal(_target, R);
 		buildView();
 	}
 
 	void FPSCamera::resetYaw(float angle) {
 
 		_yaw = angle;
-		matrix R = mat_RotationZ(_yaw);
-		_right = R * v3(1, 0, 0);
-		_target = R * v3(0, 0, 1);
+		ds::matrix R = ds::matRotationZ(_yaw);
+		_right = R * ds::vec3(1, 0, 0);
+		_target = R * ds::vec3(0, 0, 1);
 		buildView();
 	}
 
 	void FPSCamera::setYaw(float angle) {
 		_yaw += angle;
-		matrix R = mat_RotationZ(_yaw);
-		_right = R * v3(1, 0, 0);
-		_target = R * v3(0, 0, 1);
+		ds::matrix R = ds::matRotationZ(_yaw);
+		_right = R * ds::vec3(1, 0, 0);
+		_target = R * ds::vec3(0, 0, 1);
 		buildView();
 	}
 	/*
 	void FPSCamera::setPitch(float angle) {
 		_pitch -= angle;
-		matrix R = mat_RotationX(_pitch);
-		_right = R * v3(1, 0, 0);
-		_target = R * v3(0, 0, 1);
+		ds::matrix R = ds::matRotationX(_pitch);
+		_right = R * ds::vec3(1, 0, 0);
+		_target = R * ds::vec3(0, 0, 1);
 		buildView();
 	}
 	*/
 	void FPSCamera::resetPitch(float angle) {
 		_pitch = angle;
-		matrix R = mat_RotationY(_pitch);
-		_right = R * v3(1, 0, 0);
-		_target = R * v3(0, 0, 1);
+		ds::matrix R = ds::matRotationY(_pitch);
+		_right = R * ds::vec3(1, 0, 0);
+		_target = R * ds::vec3(0, 0, 1);
 		buildView();
 	}
 
@@ -108,7 +108,7 @@
 		if (ds::isKeyPressed('E')) {
 			up(-5.0f*elapsedTime);
 		}
-		v2 mp = ds::getMousePosition();
+		ds::vec2 mp = ds::getMousePosition();
 		if (ds::isMouseButtonPressed(0)) {
 			
 			// Make each pixel correspond to a quarter of a degree.
@@ -125,10 +125,10 @@
 
 	void FPSCamera::buildView() {
 
-		v3 R = _right;
-		v3 U = _up;
-		v3 L = _target;
-		v3 P = _position;
+		ds::vec3 R = _right;
+		ds::vec3 U = _up;
+		ds::vec3 L = _target;
+		ds::vec3 P = _position;
 
 		// Keep camera's axes orthogonal to each other and of unit length.
 		L = normalize(L);
@@ -137,7 +137,7 @@
 		// U, L already ortho-normal, so no need to normalize cross product.
 		R = cross(U, L);
 
-		// Fill in the view matrix entries.
+		// Fill in the view ds::matrix entries.
 		float x = -dot(P, R);
 		float y = -dot(P, U);
 		float z = -dot(P, L);
@@ -174,5 +174,5 @@
 			x, y, z, 1
 		};
 		//_viewMatrix = FPSViewRH(_position, _pitch, _yaw);
-		_viewProjectionMatrix = _viewMatrix * _projectionMatrix;
+		_viewprojectionMatrix = _viewMatrix * _projectionMatrix;
 	}

@@ -2,11 +2,11 @@
 #include "..\..\diesel.h"
 
 struct ObjVertex {
-	v3 position;
-	v2 texture;
+	ds::vec3 position;
+	ds::vec2 texture;
 
 	ObjVertex() : position(0.0f), texture(0.0f) {}
-	ObjVertex(const v3& p, const v2& t) : position(p), texture(t) {}
+	ObjVertex(const ds::vec3& p, const ds::vec2& t) : position(p), texture(t) {}
 };
 
 class WaveFrontReader {

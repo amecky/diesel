@@ -1,7 +1,7 @@
 //#include "..\..\diesel.h"
 #include <Windows.h>
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include "..\common\stb_image.h"
 #define DS_IMPLEMENTATION
 #include "Particlesystem.h"
 #include "..\common\Grid.h"
@@ -33,7 +33,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	ParticlesystemDescriptor descriptor;
 	descriptor.maxParticles = 1024;
-	descriptor.particleDimension = v2(32, 32);
+	descriptor.particleDimension = ds::vec2(32, 32);
 	// load image using stb_image
 	descriptor.texture = loadImage("particles.png");
 	
@@ -45,10 +45,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	ParticleDescriptor particleDescriptor;
 	particleDescriptor.ttl = 0.4f;
-	particleDescriptor.velocity = v2(20.0f, 0.0f);
+	particleDescriptor.velocity = ds::vec2(20.0f, 0.0f);
 	particleDescriptor.friction = 0.5f;
-	particleDescriptor.maxScale = v2(0.02f,0.02f);
-	particleDescriptor.minScale = v2(0.05f, 0.05f);
+	particleDescriptor.maxScale = ds::vec2(0.02f,0.02f);
+	particleDescriptor.minScale = ds::vec2(0.05f, 0.05f);
 	
 	int emitter = 64;
 	float radius = 0.05f;
@@ -64,15 +64,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID gridShader = ds::createShader(desc, 2);
 
 	Grid grid;
-	v3 gridPositions[] = {
-		v3(-4.0f, -1.0f, -3.5f),
-		v3(-4.0f, -1.0f,  4.5f),
-		v3(4.0f, -1.0f,  4.5f),
-		v3(4.0f, -1.0f, -3.5f)
+	ds::vec3 gridPositions[] = {
+		ds::vec3(-4.0f, -1.0f, -3.5f),
+		ds::vec3(-4.0f, -1.0f,  4.5f),
+		ds::vec3(4.0f, -1.0f,  4.5f),
+		ds::vec3(4.0f, -1.0f, -3.5f)
 	};
 	grid.create(gridPositions, 2, gridShader, textureID);
 
-	ds::setViewPosition(v3(0, 2, -5));
+	ds::setViewPosition(ds::vec3(0, 2, -5));
 
 	float dt = 1.0f / 60.0f;
 	float frequency = 200.0f * dt;
@@ -90,8 +90,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				float y = 0.0f;
 				float z = sin(angle) * radius;
 				particleDescriptor.ttl = ds::random(0.6f, 1.2f);
-				particleDescriptor.velocity = v3(ds::random(-0.4f,0.4f), ds::random(1.2f, 2.6f), ds::random(-0.4f, 0.4f));
-				system.add(v3(x, y, z), particleDescriptor);
+				particleDescriptor.velocity = ds::vec3(ds::random(-0.4f,0.4f), ds::random(1.2f, 2.6f), ds::random(-0.4f, 0.4f));
+				system.add(ds::vec3(x, y, z), particleDescriptor);
 			}
 			t -= dt;
 		}
