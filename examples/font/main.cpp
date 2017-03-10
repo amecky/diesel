@@ -141,7 +141,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	SpriteVertex vertices[256];
 	int numVertices = 0;
 
-	//addText(font, v2(100.0f, 300.0f), "Hello world. This good year");
 	//addText(font, v2(300.0f, 500.0f), "More text is here");
 	//addText(font, v2(600.0f, 100.0f), "Here is also some text");
 
