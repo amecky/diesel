@@ -2,7 +2,6 @@
 #include "..\..\diesel.h"
 #include <vector>
 #include <map>
-#include "math.h"
 
 struct ObjVertex {
 	v3 position;
@@ -17,7 +16,7 @@ struct ObjVertex {
 class WaveFrontReader {
 
 public:
-	int load(const char* fileName, float* world = 0);
+	int load(const char* fileName, matrix* world = 0);
 	size_t size() const {
 		return _vertices.size();
 	}

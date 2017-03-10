@@ -1,7 +1,6 @@
 #pragma once
 #include <cmath>
 #include "..\..\diesel.h"
-#include "..\common\math.h"
 
 struct Hex {
 

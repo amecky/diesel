@@ -130,11 +130,13 @@
   <ItemGroup>
     <ClCompile Include="..\common\Geometry.cpp" />
     <ClCompile Include="..\common\Grid.cpp" />
+    <ClCompile Include="..\common\WorldMatrix.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\common\Geometry.h" />
     <ClInclude Include="..\common\Grid.h" />
+    <ClInclude Include="..\common\WorldMatrix.h" />
     <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

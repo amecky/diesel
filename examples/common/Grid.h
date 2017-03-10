@@ -1,5 +1,4 @@
 #include "..\..\diesel.h"
-#include "math.h"
 
 struct GridVertex {
 
@@ -14,8 +13,8 @@ struct GridVertex {
 // the cube constant buffer
 // ---------------------------------------------------------------
 struct GridConstantBuffer {
-	float viewProjectionMatrix[16];
-	float worldMatrix[16];
+	matrix viewProjectionMatrix;
+	matrix worldMatrix;
 };
 
 class Grid {

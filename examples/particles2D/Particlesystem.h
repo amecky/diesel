@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include "..\..\diesel.h"
-#include "..\common\math.h"
+
 // ---------------------------------------------------------------
 // The sprite vertex
 // ---------------------------------------------------------------
@@ -20,9 +20,9 @@ struct ParticleVertex {
 // the sprite constant buffer
 // ---------------------------------------------------------------
 struct ParticleConstantBuffer {
-	float screenDimension[4];
-	float screenCenter[4];
-	float wvp[16];
+	v4 screenDimension;
+	v4 screenCenter;
+	matrix wvp;
 };
 
 // -------------------------------------------------------
@@ -139,7 +139,7 @@ private:
 	ParticleConstantBuffer _constantBuffer;
 	ParticleArray _array;
 	ParticleVertex* _vertices;
-	float _viewProjectionMatrix[16];
+	matrix _viewProjectionMatrix;
 	ds::DrawItem* _drawItem;
 	RID _vertexBuffer;
 };

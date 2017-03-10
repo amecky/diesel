@@ -2,7 +2,6 @@
 #include "..\..\diesel.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-#include "..\common\math.h"
 
 struct Vertex {
 	v3 p;
@@ -33,15 +32,14 @@ const int CUBE_PLANES[6][4] = {
 	{ 7, 6, 5, 4 }, // back
 };
 
-void addPlane(int index, int side, Vertex* vertices, const float* world) {
+void addPlane(int index, int side, Vertex* vertices, const matrix& world) {
 	int idx = index * 4;
-	float pos[3];
 	float u[4] = { 0.0f,0.0f,1.0f,1.0f };
 	float v[4] = { 1.0f,0.0f,0.0f,1.0f };
 	for (int i = 0; i < 4; ++i) {
 		int p = idx + i;
-		ds::matVec3Multiply(pos, world, CUBE_VERTICES[CUBE_PLANES[side][i]]());
-		vertices[p] = Vertex(v3(pos[0],pos[1],pos[2]), v3(0.0f), v2(u[i],v[i]));
+		v3 pos = world * CUBE_VERTICES[CUBE_PLANES[side][i]];
+		vertices[p] = Vertex(pos, v3(0.0f), v2(u[i],v[i]));
 	}	
 	v3 d0 = vertices[idx + 1].p - vertices[idx].p;
 	v3 d1 = vertices[idx + 2].p - vertices[idx].p;
@@ -52,14 +50,14 @@ void addPlane(int index, int side, Vertex* vertices, const float* world) {
 }
 
 struct CubeConstantBuffer {
-	float viewProjectionMatrix[16];
-	float worldMatrix[16];
+	matrix viewProjectionMatrix;
+	matrix worldMatrix;
 };
 
 struct LightBuffer {
-	float ambientColor[4];
-	float diffuseColor[4];
-	float lightDirection[3];
+	ds::Color ambientColor;
+	ds::Color diffuseColor;
+	v3 lightDirection;
 	float padding;
 };
 
@@ -72,8 +70,7 @@ RID loadImage(const char* name) {
 }
 
 int main(const char** args) {
-	float w[16];
-	ds::matIdentity(w);
+	matrix w = mat_identity();
 	Vertex v[24];
 	addPlane(0, 0, v, w);
 	addPlane(1, 1, v, w);
@@ -82,10 +79,8 @@ int main(const char** args) {
 	addPlane(4, 4, v, w);
 	addPlane(5, 5, v, w);
 
-	float s[16];
-	ds::matScale(s,0.2f,0.2f,0.2f);
-	float lw[16];
-	ds::matMultiply(lw, s, w);
+	matrix s = mat_Scale(v3(0.2f,0.2f,0.2f));
+	matrix lw = s * w;
 	Vertex lv[24];
 	addPlane(0, 0, lv, lw);
 	addPlane(1, 1, lv, lw);
@@ -102,11 +97,11 @@ int main(const char** args) {
 
 	CubeConstantBuffer constantBuffer;
 	LightBuffer lightBuffer;
-	ds::vec4(lightBuffer.ambientColor,0.15f, 0.15f, 0.15f,1.0f);
-	ds::vec4(lightBuffer.diffuseColor,1.0f, 1.0f, 1.0f, 1.0f);
+	lightBuffer.ambientColor = ds::Color(0.15f, 0.15f, 0.15f,1.0f);
+	lightBuffer.diffuseColor = ds::Color(1.0f, 1.0f, 1.0f, 1.0f);
 	lightBuffer.padding = 0.0f;
-	float lightPos[3] = { 1.0f, -0.5f, 1.0f };
-	ds::vec3(lightBuffer.lightDirection,lightPos);
+	v3 lightPos = v3(1.0f, -0.5f, 1.0f);
+	lightBuffer.lightDirection = normalize(lightPos);
 
 	float t = 0.0f;
 	ds::RenderSettings rs;
@@ -144,11 +139,11 @@ int main(const char** args) {
 	RID floorBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 4, sizeof(Vertex), floorVertices);
 	RID bulbID = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), lv);
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
-	float vp[3] = { 0.0f, 2.0f, -6.0f };
+	v3 vp = v3(0.0f, 2.0f, -6.0f);
 	ds::setViewPosition(vp);
-	float scale[3] = { 1.0f, 1.0f, 1.0f };
-	float rotation[3] = { 0.0f, 0.0f, 0.0f };
-	float pos[3] = { 0.0f, 0.0f, 0.0f };
+	v3 scale(1.0f, 1.0f, 1.0f);
+	v3 rotation(0.0f, 0.0f, 0.0f);
+	v3 pos(0.0f, 0.0f, 0.0f);
 
 	ds::StateGroup* basicGroup = ds::createStateGroup();
 	basicGroup->bindLayout(rid);
@@ -183,39 +178,38 @@ int main(const char** args) {
 	ds::StateGroup* bulbStack[] = { basicGroup, bulbGroup };
 	ds::DrawItem* bulbItem = ds::compile(drawCmd, bulbStack, 2);
 
-	float world[16];
-	float vpm[16];
 	while (ds::isRunning()) {
 		ds::begin();
 
 		t += static_cast<float>(ds::getElapsedSeconds());
 
-		ds::getViewProjectionMatrix(vpm);
-		ds::matTranspose(constantBuffer.viewProjectionMatrix, vpm);
+		constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
 			
 		// floor
-		ds::matIdentity(world);
-		ds::matTranspose(constantBuffer.worldMatrix, world);
+		matrix world = mat_identity();
+		constantBuffer.worldMatrix = mat_Transpose(world);
 		ds::submit(floorItem);
 		
 		// draw the light as small cube
-		lightPos[0] = cos(t);
-		lightPos[2] = sin(t);
-		ds::vec3(lightBuffer.lightDirection, lightPos);
-		float lp[3] = { -lightPos[0], -lightPos[1], -lightPos[2] };
-		float by[16];
-		ds::matRotationY(by,t);
-		ds::matTranslate(world, lp);
-		ds::matMultiply(world, by, world);
-		ds::matTranspose(constantBuffer.worldMatrix, world);
+		lightPos.x = cos(t);
+		lightPos.z = sin(t);
+		lightBuffer.lightDirection = lightPos;
+		v3 lp = v3(-lightPos.x, -lightPos.y, -lightPos.z);
+		matrix bY = mat_RotationY(t);
+		w = bY * mat_Translate(lp);		
+		constantBuffer.worldMatrix = mat_Transpose(w);
 		ds::submit(bulbItem);
 		
 		// spinning cube
-		rotation[1] += 2.0f  * static_cast<float>(ds::getElapsedSeconds());
-		rotation[0] += 1.0f  * static_cast<float>(ds::getElapsedSeconds());
-		ds::matSRT(world, scale[0], scale[1], scale[2], rotation[0], rotation[1], rotation[2], pos[0], pos[1], pos[2]);
-		
-		ds::matTranspose(constantBuffer.worldMatrix, world);
+		world = mat_identity();
+		rotation.y += 2.0f  * static_cast<float>(ds::getElapsedSeconds());
+		rotation.x += 1.0f  * static_cast<float>(ds::getElapsedSeconds());
+		matrix rotY = mat_RotationY(rotation.y);
+		matrix rotX = mat_RotationX(rotation.x);
+		matrix rotZ = mat_RotationZ(rotation.z);
+		matrix s = mat_Scale(scale);
+		matrix w = rotZ * rotY * rotX * s * world;
+		constantBuffer.worldMatrix = mat_Transpose(w);
 		ds::submit(cubeItem);
 
 		ds::end();

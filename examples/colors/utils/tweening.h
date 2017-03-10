@@ -1,6 +1,5 @@
 #pragma once
 #include "..\..\..\diesel.h"
-#include "..\..\common\math.h"
 
 // http://gizma.com/easing/
 namespace tweening {

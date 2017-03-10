@@ -1,32 +1,14 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
 #include "WarpingGrid.h"
-//#include "..\common\math.h"
 
 struct CubeConstantBuffer {
-	float viewProjectionMatrix[16];
-	float worldMatrix[16];
+	matrix viewProjectionMatrix;
+	matrix worldMatrix;
 };
 
 RID vertexBufferID;
 
-
-// ---------------------------------------------------------------
-// initialize renderer
-// ---------------------------------------------------------------
-void initialize() {
-	ds::RenderSettings rs;
-	rs.width = 1024;
-	rs.height = 768;
-	rs.title = "Geometry wars - Warping grid";
-	rs.clearColor = ds::Color(0.0f, 0.0f, 0.0f, 1.0f);
-	rs.multisampling = 4;
-	ds::init(rs);
-}
-
-// ---------------------------------------------------------------
-// create the stage group
-// ---------------------------------------------------------------
 ds::StateGroup* createStateGroup(int numVertices,CubeConstantBuffer* buffer) {
 
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
@@ -69,8 +51,15 @@ ds::StateGroup* createStateGroup(int numVertices,CubeConstantBuffer* buffer) {
 // main method
 // ---------------------------------------------------------------
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
-	
-	initialize();
+	// prepare application
+	ds::RenderSettings rs;
+	rs.width = 1024;
+	rs.height = 768;
+	rs.title = "Geometry wars - Warping grid";
+	rs.clearColor = ds::Color(0.0f, 0.0f, 0.0f, 1.0f);
+	rs.multisampling = 4;
+	ds::init(rs);
+
 	
 	WarpingGridData gridData;
 	gridData.width = 41;
@@ -87,41 +76,34 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	GridVertex* vertices = new GridVertex[NUM];
 
-	float viewMatrix[16];
-	ds::matIdentity(viewMatrix);
-	float projectionMatrix[16];
-	ds::matOrthoLH(projectionMatrix, 1024.0f, 768.0f, 0.1f, 1.0f);
-	float viewProjectionMatrix[16];
-	ds::matMultiply(viewProjectionMatrix, viewMatrix, projectionMatrix);
+	matrix viewMatrix = mat_identity();
+	matrix projectionMatrix = mat_OrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
+	matrix viewProjectionMatrix = viewMatrix * projectionMatrix;
 
-	//ds::setViewMatrix(viewMatrix);
-	//ds::setProjectionMatrix(projectionMatrix);
+	ds::setViewMatrix(viewMatrix);
+	ds::setProjectionMatrix(projectionMatrix);
 
 	CubeConstantBuffer constantBuffer;
-	ds::matTranspose(constantBuffer.viewProjectionMatrix, viewProjectionMatrix);
-	float worldMatrix[16];
-	ds::matIdentity(worldMatrix);
-	ds::matTranspose(constantBuffer.worldMatrix, worldMatrix);
+	constantBuffer.viewProjectionMatrix = mat_Transpose(viewProjectionMatrix);
+	constantBuffer.worldMatrix = mat_Transpose(mat_identity());
 
 	ds::StateGroup* stateGroup = createStateGroup(NUM, &constantBuffer);
 	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST, 0 };
 
 	ds::DrawItem* item = ds::compile(drawCmd, stateGroup);
 
+	
+
 	while (ds::isRunning()) {
 
 		ds::begin();
 
 		if (ds::isMouseButtonPressed(0)) {
-			float mp[2];
-			ds::getMousePosition(mp);
-			grid.applyForce(v2(mp[0],mp[1]), 0.025f,80.0f,120.0f);
+			grid.applyForce(ds::getMousePosition(), 0.025f,80.0f,120.0f);
 		}
 
 		if (ds::isMouseButtonPressed(1)) {
-			float mp[2];
-			ds::getMousePosition(mp);
-			grid.applyNegativeForce(v2(mp[0], mp[1]), 0.025f, 80.0f, 120.0f);
+			grid.applyNegativeForce(ds::getMousePosition(), 0.025f, 80.0f, 120.0f);
 		}
 
 		grid.tick(static_cast<float>(ds::getElapsedSeconds()));

@@ -3,7 +3,6 @@
 #include "..\..\diesel.h"
 #include <vector>
 #include "Constants.h"
-#include "..\common\math.h"
 
 class SpriteBuffer;
 struct GameSettings;

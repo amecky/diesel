@@ -6,13 +6,12 @@
 Particlesystem::Particlesystem(ParticlesystemDescriptor descriptor) : _descriptor(descriptor) {
 	_array.initialize(descriptor.maxParticles);
 	_vertices = new ParticleVertex[descriptor.maxParticles];
-	ds::vec4(_constantBuffer.screenDimension, 1024.0f, 768.0f, 128.0f, 128.0f);
-	ds::vec4(_constantBuffer.screenCenter,512.0f, 384.0f, 0.0f, 0.0f);
-	float viewMatrix[16];
-	ds::matIdentity(viewMatrix);
-	float projectionMatrix[16];
-	ds::matOrthoLH(projectionMatrix,1024.0f, 768.0f, 0.1f, 1.0f);
-	ds::matMultiply(_viewProjectionMatrix, viewMatrix, projectionMatrix);
+	_constantBuffer.screenDimension = v4(1024.0f, 768.0f, 128.0f, 128.0f);
+	_constantBuffer.screenCenter = v4(512.0f, 384.0f, 0.0f, 0.0f);
+	matrix viewMatrix = mat_identity();
+	matrix projectionMatrix = mat_OrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
+	_viewProjectionMatrix = viewMatrix * projectionMatrix;
+	
 
 	RID blendState = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 
@@ -117,9 +116,8 @@ void Particlesystem::tick(float dt) {
 // -------------------------------------------------------
 void Particlesystem::render() {
 	ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
-	float world[16];
-	ds::matIdentity(world);
-	ds::matTranspose(_constantBuffer.wvp, world);
+	matrix w = mat_identity();
+	_constantBuffer.wvp = mat_Transpose(_viewProjectionMatrix);
 	for (int i = 0; i < _array.countAlive; ++i) {
 		v4 t = v4(0.0f, 0.0f, 1.0f, 1.0f);
 		_vertices[i] = ParticleVertex(_array.positions[i], _descriptor.particleDimension, v3(_array.scales[i].x, _array.scales[i].y, _array.rotations[i]), _array.colors[i]);

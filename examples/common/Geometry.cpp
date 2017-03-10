@@ -23,24 +23,14 @@ const int CUBE_PLANES[6][4] = {
 
 namespace geometry {
 
-	v3 matVec3Multiply(const float* m, const v3& v) {
-		float tmp[4] = { v.x,v.y,v.z,1.0f };
-		ds::matVec4Multiply(tmp, m, tmp);
-		v3 ret(0.0f);
-		for (int i = 0; i < 3; ++i) {
-			ret.data[i] = tmp[i];
-		}
-		return ret;
-	}
-
-	void buildCube(const float* m, v3* positions, v2* uvs, v3* normals) {
+	void buildCube(const matrix& m, v3* positions, v2* uvs, v3* normals) {
 		for (int side = 0; side < 6; ++side) {
 			int idx = side * 4;
 			float u[4] = { 0.0f,0.0f,1.0f,1.0f };
 			float v[4] = { 1.0f,0.0f,0.0f,1.0f };
 			for (int i = 0; i < 4; ++i) {
 				int p = idx + i;
-				positions[p] = matVec3Multiply(m, CUBE_VERTICES[CUBE_PLANES[side][i]]);
+				positions[p] = m * CUBE_VERTICES[CUBE_PLANES[side][i]];
 				if (uvs != 0) {
 					uvs[p] = v2(u[i], v[i]);
 				}
@@ -56,7 +46,7 @@ namespace geometry {
 		}
 	}
 
-	void buildCylinder(const float* m, int segments, v3* positions, v2* uvs, v3* normals) {
+	void buildCylinder(const matrix& m, int segments, v3* positions, v2* uvs, v3* normals) {
 		float du = 1.0f / static_cast<float>(segments);
 		float su = 0.0f;
 		float steps = ds::TWO_PI / static_cast<float>(segments);
@@ -71,11 +61,10 @@ namespace geometry {
 			angle += steps;
 			float sx = radius * cos(angle);
 			float sz = radius * sin(angle);
-			float p1[3] = {  };
-			positions[cnt++] = matVec3Multiply(m, v3(fx, 0.5f, fz));
-			positions[cnt++] = matVec3Multiply(m, v3(sx, 0.5f, sz));
-			positions[cnt++] = matVec3Multiply(m, v3(sx, -0.5f, sz));
-			positions[cnt++] = matVec3Multiply(m, v3(fx, -0.5f, fz));
+			positions[cnt++] = m * v3(fx, 0.5f, fz);
+			positions[cnt++] = m * v3(sx, 0.5f, sz);
+			positions[cnt++] = m * v3(sx, -0.5f, sz);
+			positions[cnt++] = m * v3(fx, -0.5f, fz);
 			if (uvs != 0) {
 				for (int j = 0; j < 4; ++j) {
 					uvs[uvcnt++] = uvMap[j];

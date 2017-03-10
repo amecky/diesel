@@ -20,8 +20,8 @@ struct Vertex {
 };
 
 struct CubeConstantBuffer {
-	float viewProjectionMatrix[16];
-	float worldMatrix[16];
+	matrix viewProjectionMatrix;
+	matrix worldMatrix;
 };
 
 // ---------------------------------------------------------------
@@ -43,9 +43,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	v3 positions[24];
 	v2 uvs[24];
-
-	float m[16];
-	ds::matIdentity(m);
+	matrix m = mat_identity();
 	geometry::buildCube(m, positions, uvs);
 
 	Vertex v[24];
@@ -93,11 +91,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID indexBuffer = ds::createQuadIndexBuffer(256);
 	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v);
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::WRAP, ds::TextureFilters::LINEAR);
-	float vp[3] = { 0.0f, 2.0f, -6.0f };
+	v3 vp = v3(0.0f, 2.0f, -6.0f);
 	ds::setViewPosition(vp);
-	float scale[3] = { 1.0f, 1.0f, 1.0f };
-	float rotation[3] = { 0.0f, 0.0f, 0.0f };
-	float pos[3] = { 0.0f, 0.0f, 0.0f };
+	v3 scale(1.0f, 1.0f, 1.0f);
+	v3 rotation(0.0f, 0.0f, 0.0f);
+	v3 pos(0.0f, 0.0f, 0.0f);
 	FPSCamera camera(1024, 768);
 	camera.setPosition(v3(0, 2, -12));
 
@@ -111,9 +109,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	sg->bindIndexBuffer(indexBuffer);
 	ds::DrawCommand drawCmd = { 36, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
 
-	float vpm[16];
-	float world[16];
-
 	while (ds::isRunning()) {
 		ds::begin();
 
@@ -122,16 +117,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 		unsigned int stride = sizeof(Vertex);
 		unsigned int offset = 0;
-
-		camera.getViewProjectionMatrix(vpm);
-		ds::matTranspose(constantBuffer.viewProjectionMatrix, vpm);
+		constantBuffer.viewProjectionMatrix = mat_Transpose(camera.getViewProjectionMatrix());
 		// spinning cube
-		rotation[0] += 1.0f  * static_cast<float>(ds::getElapsedSeconds());
-		rotation[1] += 2.0f  * static_cast<float>(ds::getElapsedSeconds());
-
-		ds::matSRT(world, scale[0], scale[1], scale[2], rotation[0], rotation[1], rotation[2], pos[0], pos[1], pos[2]);
-		ds::matTranspose(constantBuffer.worldMatrix ,world);
-		
+		matrix world = mat_identity();
+		rotation.y += 2.0f  * static_cast<float>(ds::getElapsedSeconds());
+		rotation.x += 1.0f  * static_cast<float>(ds::getElapsedSeconds());
+		matrix rotY = mat_RotationY(rotation.y);
+		matrix rotX = mat_RotationX(rotation.x);
+		matrix rotZ = mat_RotationZ(rotation.z);
+		matrix s = mat_Scale(scale);
+		matrix w = rotZ * rotY * rotX * s * world;
+		constantBuffer.worldMatrix = mat_Transpose(w);
 		//ds::setTexture(cubeTextureID, ds::ShaderType::PIXEL);
 		ds::submit(drawCmd, sg);
 

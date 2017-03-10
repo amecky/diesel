@@ -15,31 +15,30 @@ struct GridItem {
 };
 
 struct CubeConstantBuffer {
-	float viewProjectionMatrix[16];
-	float worldMatrix[16];
+	matrix viewProjectionMatrix;
+	matrix worldMatrix;
 };
 
 struct LightBuffer {
-	float ambientColor[4];
-	float diffuseColor[4];
-	float lightDirection[3];
+	ds::Color ambientColor;
+	ds::Color diffuseColor;
+	v3 lightDirection;
 	float padding;
 };
 
 struct InstanceData {
-	float pos[3];
-	float color[4];
+	v3 pos;
+	ds::Color color;
 };
 // ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
 	v3 rotation(ds::PI * 0.5f, 0.0f, 0.0f);
-	float rotX[16];
-	ds::matRotationX(rotX, -ds::PI * 0.5f);
+	matrix rotX = mat_RotationX(rotation.x);
 	ObjVertex vertices[512];
 	WaveFrontReader reader;
-	int num = reader.load("hex.obj", rotX);
+	int num = reader.load("hex.obj", &rotX);
 	for (size_t i = 0; i < reader.size(); ++i) {
 		vertices[i] = reader.get(i);
 	}
@@ -82,11 +81,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	};
 
 	LightBuffer lightBuffer;
-	ds::vec4(lightBuffer.ambientColor,0.15f, 0.15f, 0.15f, 1.0f);
-	ds::vec4(lightBuffer.diffuseColor,0.25f,0.0f,0.0f,1.0f);
+	lightBuffer.ambientColor = ds::Color(0.15f, 0.15f, 0.15f, 1.0f);
+	lightBuffer.diffuseColor = ds::Color(64,0,0,255);
 	lightBuffer.padding = 0.0f;
-	float lightPos[3] = { 0.0f, -0.5f, 1.0f };
-	ds::vec3(lightBuffer.lightDirection,lightPos);
+	v3 lightPos = v3(0.0f, -0.5f, 1.0f);
+	lightBuffer.lightDirection = normalize(lightPos);
 	
 	RID rid = ds::createInstanceDeclaration(decl, 4, instDecl, 2, shaderID);
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
@@ -94,11 +93,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, num, sizeof(ObjVertex), vertices);
 	RID idid = ds::createVertexBuffer(ds::BufferType::DYNAMIC, 512, sizeof(InstanceData));
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
-	float vp[3] = { 0.0f, 0.0f, -6.0f };
+	v3 vp = v3(0.0f, 3.0f, -6.0f);
 	ds::setViewPosition(vp);
 
-	//FPSCamera camera(1024, 768);
-	//camera.setPosition(v3(0, 2, -12));
+	v3 scale(1.0f, 1.0f, 1.0f);
+	
+	v3 pos(0.0f, 0.0f, 0.0f);
+
+	FPSCamera camera(1024, 768);
+	camera.setPosition(v3(0, 2, -12));
 
 	ds::HexGrid<int> grid;
 	grid.resize(20, 20);
@@ -118,7 +121,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			item.pos = p;
 			item.timer = ds::random(0.0f, ds::PI);
 			//item.color = ds::Color(ds::random(0.6f, 1.0f), ds::random(0.6f, 1.0f), ds::random(0.6f, 1.0f), 1.0f);
-			item.color = ds::Color(1.0f, 1.0f, 1.0f, 1.0f);
+			item.color = ds::Color(255, 255, 255, 255);
 			++w;
 		}
 	}
@@ -136,25 +139,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	ds::DrawItem* drawItem = ds::compile(drawCmd, sg);
 
-	float vpm[16];
-	ds::getViewProjectionMatrix(vpm);
-	ds::matTranspose(constantBuffer.viewProjectionMatrix, vpm);
-	float world[16];
-	ds::matIdentity(world);
-	ds::matTranspose(constantBuffer.worldMatrix, world);
-
 	while (ds::isRunning()) {
 		ds::begin();
 		for (int y = 0; y < TOTAL; ++y) {
 			GridItem& item = items[y];
 			item.timer += ds::getElapsedSeconds();
-			ds::vec3(instances[y].pos, item.pos.x, item.pos.y, sin(item.timer) * 0.4f);
-			ds::vec4(instances[y].color, item.color);
+			instances[y] = { v3(item.pos.x, item.pos.y, sin(item.timer) * 0.4f), item.color };
 		}
 		ds::mapBufferData(idid, instances, sizeof(InstanceData) * TOTAL);
-		//camera.update(static_cast<float>(ds::getElapsedSeconds()));
-		//ds::getViewProjectionMatrix(vpm);
-		//ds::matTranspose(constantBuffer.viewProjectionMatrix, vpm);
+		camera.update(static_cast<float>(ds::getElapsedSeconds()));
+		matrix vpm = camera.getViewProjectionMatrix();
+		constantBuffer.viewProjectionMatrix = mat_Transpose(vpm);
+		matrix world = mat_identity();
+		constantBuffer.worldMatrix = mat_Transpose(world);
 		ds::submit(drawItem);
 		ds::end();
 	}

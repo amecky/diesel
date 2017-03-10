@@ -5,14 +5,6 @@
 #define DS_IMPLEMENTATION
 #include "Particlesystem.h"
 
-// row major order matrix
-struct matrix {
-	union {
-		float m[4][4];
-		float data[16];
-	};
-};
-
 // ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------

@@ -1,7 +1,6 @@
 #pragma once
 #include "..\..\diesel.h"
 #include <vector>
-#include "..\common\math.h"
 
 namespace ds {
 

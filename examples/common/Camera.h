@@ -1,7 +1,6 @@
 #pragma once
 #include "..\..\diesel.h"
 #include <cmath>
-#include "math.h"
 
 class FPSCamera {
 
@@ -40,20 +39,14 @@ public:
 		return _yaw;
 	}
 
-	void getViewProjectionMatrix(float* result) const {
-		for (int i = 0; i < 16; ++i) {
-			result[i] = _viewProjectionMatrix[i];
-		}
+	const matrix& getViewProjectionMatrix() const {
+		return _viewProjectionMatrix;
 	}
-	void getViewMatrix(float* result) const {
-		for (int i = 0; i < 16; ++i) {
-			result[i] = _viewMatrix[i];
-		}
+	const matrix& getViewMatrix() const {
+		return _viewMatrix;
 	}
-	void getProjectionMatrix(float* result) const {
-		for (int i = 0; i < 16; ++i) {
-			result[i] = _projectionMatrix[i];
-		}
+	const matrix& getProjectionMatrix() const {
+		return _projectionMatrix;
 	}
 private:
 	void buildView();
@@ -64,13 +57,13 @@ private:
 	// rotation around Z axis
 	float _yaw;	
 
-	float _position[3];
-	float _target[3];
-	float _up[3];
-	float _right[3];
+	v3 _position;
+	v3 _target;
+	v3 _up;
+	v3 _right;
 	float _speed;
-	float _lastMousePos[2];
-	float _viewMatrix[16];
-	float _projectionMatrix[16];
-	float _viewProjectionMatrix[16];
+	v2 _lastMousePos;
+	matrix _viewMatrix;
+	matrix _projectionMatrix;
+	matrix _viewProjectionMatrix;
 };

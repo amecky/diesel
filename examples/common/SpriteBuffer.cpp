@@ -3,6 +3,8 @@
 #include "Sprite_GS_Main.inc"
 #include "Sprite_PS_Main.inc"
 
+
+
 SpriteBuffer::SpriteBuffer(int maxSprites) : _max(maxSprites) {
 
 	_vertices = new SpriteBufferVertex[maxSprites];
@@ -32,17 +34,14 @@ SpriteBuffer::SpriteBuffer(int maxSprites) : _max(maxSprites) {
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::POINT);
 
 	// create orthographic view
-	float viewMatrix[16];
-	ds::matIdentity(viewMatrix);
+	matrix viewMatrix = mat_identity();
 	// FIXME: get screen size
-	float projectionMatrix[16];
-	ds::matOrthoLH(projectionMatrix, 1024.0f, 768.0f, 0.1f, 1.0f);
-	float viewProjectionMatrix[16];
-	ds::matMultiply(viewProjectionMatrix, viewMatrix, projectionMatrix);
+	matrix projectionMatrix = mat_OrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
+	matrix viewProjectionMatrix = viewMatrix * projectionMatrix;
 
 	ds::setViewMatrix(viewMatrix);
 	ds::setProjectionMatrix(projectionMatrix);
-	ds::matTranspose(_constantBuffer.wvp,viewProjectionMatrix);
+	_constantBuffer.wvp = mat_Transpose(viewProjectionMatrix);
 	_constantBuffer.screenDimension = v4(1024.0f, 768.0f, 1024.0f, 1024.f);
 	_constantBuffer.screenCenter = v4(512.0f, 364.0f, 0.0f, 0.0f);
 

@@ -35,11 +35,8 @@ void Grid::create(v3* positions, int numCells, RID shaderID, RID textureID) {
 }
 
 void Grid::render() {
-	float vpm[16];
-	ds::getViewProjectionMatrix(vpm);
-	ds::matTranspose(_constantBuffer.viewProjectionMatrix, vpm);
-	float world[16];
-	ds::matIdentity(world);
-	ds::matTranspose(_constantBuffer.worldMatrix, world);
+	_constantBuffer.viewProjectionMatrix = mat_Transpose(ds::getViewProjectionMatrix());
+	matrix world = mat_identity();
+	_constantBuffer.worldMatrix = mat_Transpose(world);
 	ds::submit(drawCmd, _gridStates);
 }
