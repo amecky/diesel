@@ -56,7 +56,8 @@ enum BoardMode {
 	BM_FILLING,
 	BM_FLASHING,
 	BM_MOVING,
-	BM_READY
+	BM_READY,
+	BM_CLEARING
 };
 
 //typedef std::vector<ds::Sprite> Highlights;
@@ -78,7 +79,10 @@ public:
 	void render();
 	void debug();
 	void debugContainer();
-	void rebuild();
+	bool isReady() const {
+		return m_Mode != BM_FILLING;
+	}
+	void clearBoard();
 private:
 	void drawGrid();
 	void drawFillGrid();

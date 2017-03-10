@@ -61,11 +61,11 @@ void Board::render() {
 			if (!m_Grid.isFree(x, y)) {
 				MyEntry& e = m_Grid.get(x, y);
 				if (m_Mode == BM_FILLING) {
-					float norm = m_Timer / _settings->tweeningTTL;
+					float norm = m_Timer / _settings->moveInTTL;
 					ds::vec2 wp = grid::convertFromGrid(x, y);
 					ds::vec2 sp = wp;
-					sp.y += _settings->tweeningYAdd + y * _settings->tweeningYOffset;
-					_buffer->add(tweening::interpolate(&tweening::linear, sp, wp, m_Timer,_settings->tweeningTTL),_textureID, e.texture);
+					sp.y += _settings->moveInYAdd + y * _settings->moveInYOffset;
+					_buffer->add(tweening::interpolate(&tweening::linear, sp, wp, m_Timer,_settings->moveInTTL),_textureID, e.texture);
 				}
 				else if (!e.hidden) {
 					_buffer->add(grid::convertFromGrid(x, y),_textureID,e.texture,ds::vec2(e.scale));
@@ -87,7 +87,7 @@ void Board::update(float elapsed) {
 	
 	if (m_Mode == BM_FILLING) {
 		m_Timer += elapsed;
-		if (m_Timer > _settings->tweeningTTL) {
+		if (m_Timer > _settings->moveInTTL) {
 			m_Mode = BM_READY;
 			m_Timer = 0.0f;
 		}
@@ -155,6 +155,20 @@ void Board::update(float elapsed) {
 			}
 		}
 	}
+
+	else if (m_Mode == BM_CLEARING) {
+		if (m_Timer < 1.0f) {
+			m_Timer += elapsed;
+			for (int x = 0; x < MAX_X; ++x) {
+				for (int y = 0; y < MAX_Y; ++y) {
+					if (!m_Grid.isFree(x, y)) {
+						MyEntry& e = m_Grid.get(x, y);
+						e.scale = 1.0f - m_Timer / 1.0f;
+					}
+				}
+			}
+		}
+	}
 	
 	for (int x = 0; x < MAX_X; ++x) {
 		for (int y = 0; y < MAX_Y; ++y) {
@@ -189,22 +203,21 @@ void Board::update(float elapsed) {
 	}
 }
 
+void Board::clearBoard() {
+	m_Mode = BM_CLEARING;
+	m_Timer = 0.0f;
+}
+
 // -------------------------------------------------------
 // move
 // -------------------------------------------------------
 void Board::move(const ds::vec2& mousePos) {
 	ds::vec2 converted = grid::convertMousePosToGridPos(mousePos);
 	if ( converted.x > 0 && converted.y > 0) {
-		//LOG << "move grid pos " << converted.x << " " << converted.y;
 		m_Grid.shiftColumns(converted.x);
 	}
 }
 
-void Board::rebuild() {
-	fill(4);
-	m_MovingCells.clear();
-	m_Mode = BM_FILLING;
-}
 // -------------------------------------------------------
 // Select
 // -------------------------------------------------------
