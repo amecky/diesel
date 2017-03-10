@@ -20,9 +20,9 @@ struct ParticleVertex {
 // the sprite constant buffer
 // ---------------------------------------------------------------
 struct ParticleConstantBuffer {
-	v4 screenDimension;
-	v4 screenCenter;
-	matrix wvp;
+	float screenDimension[4];
+	float screenCenter[4];
+	float wvp[16];
 };
 
 // -------------------------------------------------------
@@ -139,7 +139,7 @@ private:
 	ParticleConstantBuffer _constantBuffer;
 	ParticleArray _array;
 	ParticleVertex* _vertices;
-	matrix _viewProjectionMatrix;
+	float _viewProjectionMatrix[16];
 	ds::DrawItem* _drawItem;
 	RID _vertexBuffer;
 };

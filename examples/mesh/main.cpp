@@ -36,7 +36,7 @@ struct InstanceData {
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
 	v3 rotation(ds::PI * 0.5f, 0.0f, 0.0f);
 	float rotX[16];
-	ds::matRotationX(rotX, ds::PI);
+	ds::matRotationX(rotX, -ds::PI * 0.5f);
 	ObjVertex vertices[512];
 	WaveFrontReader reader;
 	int num = reader.load("hex.obj", rotX);
@@ -94,7 +94,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, num, sizeof(ObjVertex), vertices);
 	RID idid = ds::createVertexBuffer(ds::BufferType::DYNAMIC, 512, sizeof(InstanceData));
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
-	float vp[3] = { 0.0f, 3.0f, -6.0f };
+	float vp[3] = { 0.0f, 0.0f, -6.0f };
 	ds::setViewPosition(vp);
 
 	//FPSCamera camera(1024, 768);

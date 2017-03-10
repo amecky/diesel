@@ -70,6 +70,35 @@ namespace ds {
 	// ----------------------------------------------------------------------
 	// Math / Matrix
 	// ----------------------------------------------------------------------
+	struct vec2 {
+		union {
+			float x, y;
+			float data[2];
+		};
+	};
+
+	struct vec3 {
+		union {
+			float x, y, z;
+			float data[3];
+		};
+	};
+
+	struct vec4 {
+		union {
+			float x, y, z, w;
+			float data[4];
+		};
+	};
+	// row major order matrix
+	struct matrix {
+		union {
+			float m[4][4];
+			float data[16];
+		};
+	};
+
+	matrix matIdentity();
 
 	void matIdentity(float* result);
 
@@ -114,6 +143,14 @@ namespace ds {
 	void vec4(float* result, float x, float y, float z, float w);
 
 	void vec4(float* result, const float* v);
+
+	void mapFloat3(float* result, float x, float y, float z);
+
+	void mapFloat3(float* result, const float* v);
+
+	void mapFloat4(float* result, float x, float y, float z, float w);
+
+	void mapFloat4(float* result, const float* v);
 
 	// ----------------------------------------------------------------------
 	// Enums
@@ -2916,6 +2953,16 @@ namespace ds {
 		result[15] = 1.0f;
 	}
 
+	matrix matIdentity() {
+		matrix result;
+		memset(result.data, 0, sizeof(float) * 16);
+		result.data[0] = 1.0f;
+		result.data[5] = 1.0f;
+		result.data[10] = 1.0f;
+		result.data[15] = 1.0f;
+		return result;
+	}
+
 	void matOrthoLH(float* result, float w, float h, float zn, float zf) {
 		// msdn.microsoft.com/de-de/library/windows/desktop/bb204940(v=vs.85).aspx
 		matIdentity(result);
@@ -2971,8 +3018,8 @@ namespace ds {
 		float cx = cosf(angle);
 		matIdentity(result);
 		result[5] = cx;
-		result[6] = -sx;
-		result[9] = sx;
+		result[6] = sx;
+		result[9] = -sx;
 		result[10] = cx;
 	}
 
