@@ -1,21 +1,7 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-
-// ---------------------------------------------------------------
-// Rect
-// ---------------------------------------------------------------
-struct Rect {
-	float top;
-	float left;
-	float width;
-	float height;
-
-	Rect() : top(0.0f), left(0.0f), width(0.0f), height(0.0f) {}
-	Rect(float t, float l, float w, float h) : top(t), left(l), width(w), height(h) {}
-
-};
+#include "..\common\stb_image.h"
 
 // ---------------------------------------------------------------
 // The sprite
@@ -25,7 +11,7 @@ struct Sprite {
 	ds::vec2 position;
 	ds::vec2 scale;
 	float rotation;
-	Rect texture;
+	ds::vec4 texture;
 	ds::Color color;
 	ds::vec2 velocity;
 	float timer;
@@ -72,7 +58,7 @@ float getAngle(const ds::vec2& u, const ds::vec2& v) {
 // ---------------------------------------------------------------
 // create sprite
 // ---------------------------------------------------------------
-int add(const ds::vec2& p, const Rect& r, Sprite* sprites, int index) {
+int add(const ds::vec2& p, const ds::vec4& r, Sprite* sprites, int index) {
 	if ((index + 1) < 64) {
 		float angle = ds::random(0.0f, ds::PI * 2.0f);
 		Sprite& s = sprites[index];
@@ -124,7 +110,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		float y = ds::random(200.0f, 500.0f);
 		int r = ds::random(0.0, 1.9f);
 		int c = ds::random(0.0, 1.9f);
-		numSprites = add(ds::vec2(x, y), Rect(0,0,64,64), sprites, numSprites);
+		numSprites = add(ds::vec2(x, y), ds::vec4(0,0,64,64), sprites, numSprites);
 	}
 
 	SpriteConstantBuffer constantBuffer;
@@ -181,11 +167,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	// create orthographic view
 	ds::matrix viewMatrix = ds::matIdentity();
 	ds::matrix projectionMatrix = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
-	ds::matrix viewprojectionMatrix = viewMatrix * projectionMatrix;
+	ds::matrix viewProjectionMatrix = viewMatrix * projectionMatrix;
 
-	ds::setviewMatrix(viewMatrix);
-	ds::setprojectionMatrix(projectionMatrix);
-	constantBuffer.wvp = ds::matTranspose(viewprojectionMatrix);
+	ds::setViewMatrix(viewMatrix);
+	ds::setProjectionMatrix(projectionMatrix);
+	constantBuffer.wvp = ds::matTranspose(viewProjectionMatrix);
 
 	ds::StateGroup* sg = ds::createStateGroup();
 	sg->bindLayout(vertexDeclId);
@@ -240,12 +226,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		
 		for (int i = 0; i < numSprites; ++i) {
 			const Sprite& sprite = sprites[i];
-			ds::vec4 t;
-			t.x = sprite.texture.left;
-			t.y = sprite.texture.top;
-			t.z = sprite.texture.width;
-			t.w = sprite.texture.height;
-			vertices[i] = SpriteVertex(sprite.position, t, ds::vec3(sprite.scale.x, sprite.scale.y, sprite.rotation), sprite.color);
+			vertices[i] = SpriteVertex(sprite.position, sprite.texture, ds::vec3(sprite.scale.x, sprite.scale.y, sprite.rotation), sprite.color);
 		}
 		ds::mapBufferData(vertexBufferID, vertices, numSprites * sizeof(SpriteVertex));
 		drawCmd.size = numSprites;

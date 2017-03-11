@@ -17,6 +17,22 @@ namespace font {
 			}
 		}
 	}
+
+	ds::vec2 textSize(const char* txt) {
+		int l = strlen(txt);
+		ds::vec2 p(0.0f);
+		for (int i = 0; i < l; ++i) {
+			int idx = (int)txt[i] - 32;
+			if (idx >= 0 && idx < 127) {
+				const ds::vec4& r = FONT_RECTS[idx];
+				p.x += r.z + 6.0f;
+				if (r.w > p.y) {
+					p.y = r.w;
+				}
+			}
+		}
+		return p;
+	}
 }
 
 namespace input {

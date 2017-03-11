@@ -29,7 +29,7 @@
 vs_4_0
 dcl_input v0.xyz
 dcl_input v1.xyzw
-dcl_input ds::vec2.xyz
+dcl_input v2.xyz
 dcl_input v3.xyzw
 dcl_output_siv o0.xyzw, position
 dcl_output o1.xyzw
@@ -38,7 +38,7 @@ dcl_output o3.xyzw
 mov o0.xyz, v0.xyzx
 mov o0.w, l(1.000000)
 mov o1.xyzw, v1.xyzw
-mov o2.xyz, ds::vec2.xyzx
+mov o2.xyz, v2.xyzx
 mov o3.xyzw, v3.xyzw
 ret 
 // Approximately 0 instruction slots used

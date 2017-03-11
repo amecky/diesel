@@ -7,6 +7,7 @@
 #include "GameSettings.h"
 #include "utils\utils.h"
 #include "utils\HUD.h"
+#include "Dialog.h"
 
 enum GameMode {
 	GM_MENU,
@@ -27,6 +28,44 @@ void initialize() {
 }
 
 // ---------------------------------------------------------------
+// show game over menu
+// ---------------------------------------------------------------
+int showGameOverMenu() {
+	int ret = 0;
+	gui::begin();
+	ds::vec2 mp = ds::getMousePosition();
+	gui::Text(ds::vec2(400, 500), "Pieces left: 32");
+	gui::Text(ds::vec2(400, 450), "Time: 01:35");
+	gui::Text(ds::vec2(400, 400), "Score: 1234");
+	gui::Text(ds::vec2(400, 350), "Total score: 10456");
+	if (gui::Button(ds::vec2(512, 300), ds::vec4(0, 70, 260, 60))) {
+		ret = 1;
+	}
+	if (gui::Button(ds::vec2(512, 250), ds::vec4(270, 130, 260, 60))) {
+		ret = 2;
+	}
+	gui::end();
+	return ret;
+}
+
+// ---------------------------------------------------------------
+// show main menu
+// ---------------------------------------------------------------
+int showMainMenu() {
+	int ret = 0;
+	gui::begin();
+	ds::vec2 mp = ds::getMousePosition();
+	gui::FormattedText(ds::vec2(30, 720), "M: %g %g", mp.x, mp.y);
+	if (gui::Button(ds::vec2(512, 438), ds::vec4(0, 70, 260, 60))) {
+		ret = 1;
+	}
+	if (gui::Button(ds::vec2(512, 298), ds::vec4(270, 130, 260, 60))) {
+		ret = 2;
+	}
+	gui::end();
+	return ret;
+}
+// ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
@@ -46,10 +85,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	settings.moveInYAdd = 600;
 	settings.moveInYOffset = 60;
 	settings.flashTTL = 0.5f;
-	settings.droppingTTL = 1.0f;
+	settings.droppingTTL = 0.4f;
 
 	Board* board = new Board(&spriteBuffer,textureID, &settings);
-	board->fill(4);
 
 	HUD hud(&spriteBuffer, textureID);
 	hud.reset();
@@ -60,7 +98,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	int score = 0;
 
-	GameMode mode = GM_MENU;
+	GameMode mode = GM_GAMEOVER;
+
+	gui::init(&spriteBuffer, textureID);
 
 	while (ds::isRunning()) {
 
@@ -69,24 +109,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		}
 		if (ds::isKeyPressed('C')) {
 			board->clearBoard();
-		}
-
-		if (ds::isMouseButtonPressed(0) && !pressed) {
-			int points = board->select();
-			if (points > 0) {
-				score += points * 10;
-				hud.setNumber(score);
-			}
-			pressed = true;
-		}
-		if (!ds::isMouseButtonPressed(0) && pressed) {
-			pressed = false;
-		}
-
-		board->update(static_cast<float>(ds::getElapsedSeconds()));
-
-		if (board->isReady()) {
-			hud.tick(static_cast<float>(ds::getElapsedSeconds()));
+			mode = GM_GAMEOVER;
 		}
 
 		ds::begin();
@@ -95,13 +118,50 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 		spriteBuffer.add(ds::vec2(512, 714), textureID, ds::vec4(0, 720, 1024, 68));
 		spriteBuffer.add(ds::vec2(512, 16), textureID, ds::vec4(0, 800, 1024, 68));
-
 		board->render();
+
+		if (mode == GM_MENU) {
+			int ret = showMainMenu();
+			if (ret == 1) {
+				board->fill(4);
+				mode = GM_RUNNING;
+			}
+		}
+		else if (mode == GM_GAMEOVER) {
+			int ret = showGameOverMenu();
+			if (ret == 1) {
+				board->fill(4);
+				mode = GM_RUNNING;
+			}
+		}
+		else if (mode == GM_RUNNING) {
+			if (ds::isMouseButtonPressed(0) && !pressed) {
+				int points = board->select();
+				if (points > 0) {
+					score += points * 10;
+					hud.setNumber(score);
+				}
+				pressed = true;
+			}
+			if (!ds::isMouseButtonPressed(0) && pressed) {
+				pressed = false;
+			}
+
+			
+
+			if (board->isReady()) {
+				hud.tick(static_cast<float>(ds::getElapsedSeconds()));
+			}
+		}
+
+		if (mode == GM_RUNNING || mode == GM_GAMEOVER) {
+			board->update(static_cast<float>(ds::getElapsedSeconds()));
+		}
 
 		if (mode == GM_RUNNING) {
 			hud.render();
 		}
-
+		
 		spriteBuffer.flush();
 		
 		ds::end();

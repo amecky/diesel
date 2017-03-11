@@ -1948,7 +1948,7 @@ namespace ds {
 	// get mouse position
 	// ------------------------------------------------------
 	vec2 getMousePosition() {
-		vec2 mp;
+		vec2 mp(-1.0f,-1.0f);
 		tagPOINT p;
 		if (GetCursorPos(&p)) {
 			if (ScreenToClient(ds::_ctx->hwnd, &p)) {

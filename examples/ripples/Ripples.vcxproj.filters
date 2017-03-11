@@ -4,9 +4,6 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="stb_image.h" />
-  </ItemGroup>
-  <ItemGroup>
     <FxCompile Include="Sprites_vs.hlsl" />
     <FxCompile Include="Sprites_ps.hlsl" />
     <FxCompile Include="Sprites_gs.hlsl" />

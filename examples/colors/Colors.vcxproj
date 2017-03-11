@@ -129,6 +129,7 @@
   <ItemGroup>
     <ClCompile Include="..\common\SpriteBuffer.cpp" />
     <ClCompile Include="Board.cpp" />
+    <ClCompile Include="Dialog.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Map.cpp" />
     <ClCompile Include="utils\HUD.cpp" />
@@ -139,6 +140,7 @@
     <ClInclude Include="..\common\SpriteBuffer.h" />
     <ClInclude Include="Board.h" />
     <ClInclude Include="Constants.h" />
+    <ClInclude Include="Dialog.h" />
     <ClInclude Include="GameSettings.h" />
     <ClInclude Include="Grid.h" />
     <ClInclude Include="Map.h" />

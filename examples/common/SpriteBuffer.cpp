@@ -3,8 +3,6 @@
 #include "Sprite_GS_Main.inc"
 #include "Sprite_PS_Main.inc"
 
-
-
 SpriteBuffer::SpriteBuffer(int maxSprites) : _max(maxSprites) {
 
 	_vertices = new SpriteBufferVertex[maxSprites];
@@ -43,7 +41,6 @@ SpriteBuffer::SpriteBuffer(int maxSprites) : _max(maxSprites) {
 	ds::setProjectionMatrix(projectionMatrix);
 	_constantBuffer.wvp = ds::matTranspose(viewprojectionMatrix);
 	_constantBuffer.screenDimension = ds::vec4(1024.0f, 768.0f, 1024.0f, 1024.f);
-	_constantBuffer.screenCenter = ds::vec4(512.0f, 364.0f, 0.0f, 0.0f);
 
 	ds::StateGroup* sg = ds::createStateGroup();
 	sg->bindLayout(vertexDeclId);

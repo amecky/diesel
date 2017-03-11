@@ -14,6 +14,7 @@
     <ClCompile Include="utils\HUD.cpp">
       <Filter>utils</Filter>
     </ClCompile>
+    <ClCompile Include="Dialog.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Grid.h" />
@@ -31,6 +32,7 @@
     <ClInclude Include="utils\HUD.h">
       <Filter>utils</Filter>
     </ClInclude>
+    <ClInclude Include="Dialog.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\common\Sprite_GS_Main.inc" />

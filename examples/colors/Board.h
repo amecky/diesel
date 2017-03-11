@@ -84,9 +84,6 @@ public:
 	}
 	void clearBoard();
 private:
-	void drawGrid();
-	void drawFillGrid();
-
 	ColorGrid m_Grid;
 	Points m_Points;
 	DroppedCells m_DroppedCells;

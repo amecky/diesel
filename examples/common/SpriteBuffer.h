@@ -20,7 +20,6 @@ struct SpriteBufferVertex {
 
 struct SpriteBufferConstantBuffer {
 	ds::vec4 screenDimension;
-	ds::vec4 screenCenter;
 	ds::matrix wvp;
 };
 
