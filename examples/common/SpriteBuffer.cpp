@@ -79,7 +79,8 @@ void SpriteBuffer::flush() {
 	if (_current > 0) {
 		_item->groups[0]->bindTexture(_currentTexture, ds::ShaderType::PIXEL, 0);
 		// FIXME: get texture size and set it here
-		_constantBuffer.screenDimension = ds::vec4(1024.0f, 768.0f, 1024.0f, 1024.f);
+		ds::vec2 textureSize = ds::getTextureSize(_currentTexture);
+		_constantBuffer.screenDimension = ds::vec4(1024.0f, 768.0f, textureSize.x, textureSize.y);
 		ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
 		ds::mapBufferData(_vertexBufferID, _vertices, _current * sizeof(SpriteBufferVertex));
 		_item->command.size = _current;

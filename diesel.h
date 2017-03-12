@@ -599,7 +599,7 @@ namespace ds {
 		operator const float* () const {
 			return &values[0];
 		}
-
+		/*
 		uint32_t u32() {
 			uint32_t u = r * 255.0f;
 			u = (u << 8) + g * 255.0f;
@@ -607,6 +607,7 @@ namespace ds {
 			u = (u << 8) + a * 255.0f;
 			return u;
 		}
+		*/
 
 	} Color;
 
@@ -885,6 +886,8 @@ namespace ds {
 	RID createTexture(int width, int height, uint8_t channels, void* data, TextureFormat format);
 
 	void setTextureFromRenderTarget(RID rtID, ShaderType type, uint8_t slot);
+
+	ds::vec2 getTextureSize(RID rid);
 
 	// render target
 
@@ -1294,20 +1297,29 @@ namespace ds {
 		BufferType _type;
 	};
 
-	class ShaderResourceViewResource : public AbstractResource<ID3D11ShaderResourceView*> {
+	class ShaderResourceViewResource : public AbstractResource<InternalTexture*> {
 
 	public:
-		ShaderResourceViewResource(ID3D11ShaderResourceView* t) : AbstractResource(t) {}
+		ShaderResourceViewResource(InternalTexture* t) : AbstractResource(t) {
+			_size = ds::vec2(t->width, t->height);
+		}
 		virtual ~ShaderResourceViewResource() {}
 		void release() {
-			if (_data != 0) {
-				_data->Release();
+			if (_data->srv != 0) {
+				_data->srv->Release();
+				delete _data;
 				_data = 0;
 			}
+		}
+		const ds::vec2& getSize() const {
+			return _size;
+
 		}
 		const ResourceType getType() const {
 			return RT_SRV;
 		}
+	private:
+		ds::vec2 _size;
 	};
 
 	class BlendStateResource : public AbstractResource<ID3D11BlendState*> {
@@ -1986,6 +1998,21 @@ namespace ds {
 				update_input(raw);
 			}
 			return 0;
+			case WM_CHAR: {
+				char ascii = wParam;
+				_ctx->keyState[ascii] = 80;
+				return 0;
+			}
+			case WM_KEYDOWN: {
+				char ascii = wParam;
+				_ctx->keyState[ascii] = 80;
+				return 0;
+			}
+			case WM_KEYUP: {
+				char ascii = wParam;
+				_ctx->keyState[ascii] = 0;
+				return 0;
+			}
 			case WM_LBUTTONDOWN:
 				_ctx->mouseButtonState[0] = 80;
 				return 0;
@@ -2925,14 +2952,19 @@ namespace ds {
 
 		ASSERT_RESULT(_ctx->d3dDevice->CreateShaderResourceView(texture2D, &srvDesc, &srv), "Failed to create resource view");
 
-		InternalTexture tex;
-		tex.width = width;
-		tex.height = height;
-		tex.srv = srv;
-		ShaderResourceViewResource* res = new ShaderResourceViewResource(srv);
+		InternalTexture* tex = new InternalTexture;
+		tex->width = width;
+		tex->height = height;
+		tex->srv = srv;
+		ShaderResourceViewResource* res = new ShaderResourceViewResource(tex);
 		return addResource(res, RT_SRV);
 	}
 
+	ds::vec2 getTextureSize(RID rid) {
+		uint16_t ridx = getResourceIndex(rid, RT_SRV);
+		ShaderResourceViewResource* res = (ShaderResourceViewResource*)_ctx->_resources[ridx];
+		return res->getSize();
+	}
 	// ------------------------------------------------------
 	// set texture
 	// ------------------------------------------------------
@@ -2951,7 +2983,7 @@ namespace ds {
 		ID3D11ShaderResourceView* srv = 0;
 		if (ridx != NO_RID) {
 			ShaderResourceViewResource* res = (ShaderResourceViewResource*)_ctx->_resources[ridx];
-			srv = res->get();
+			srv = res->get()->srv;
 		}
 		if (type == ShaderType::PIXEL) {
 			XASSERT(s->pixelShader != 0, "No pixel shader selected");

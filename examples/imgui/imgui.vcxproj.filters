@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="..\common\SpriteBuffer.cpp" />
+    <ClCompile Include="Dialog.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\common\SpriteBuffer.h" />
+    <ClInclude Include="Dialog.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\common\Sprite_GS_Main.inc" />
+    <None Include="..\common\Sprite_PS_Main.inc" />
+    <None Include="..\common\Sprite_VS_Main.inc" />
+  </ItemGroup>
+</Project>
