@@ -19,6 +19,9 @@ struct TestSettings {
 	ds::vec2 v2;
 	ds::vec3 v3;
 	int state;
+	ds::Color color;
+	float sinTable[36];
+	float hTable[16];
 };
 // ---------------------------------------------------------------
 // initialize rendering system
@@ -50,9 +53,13 @@ int showDialog(TestSettings* settings) {
 		gui::Input("Value", &settings->iv);
 		gui::Input("Float Value", &settings->fv);
 		gui::Checkbox("Check me", &settings->bv);
+		gui::Separator();
 		gui::StepInput("Step input", &settings->stepValue, 0, 100, 5);
 		gui::Input("Vec2 value", &settings->v2);
 		gui::Input("Vec3 value", &settings->v3);
+		gui::Input("Color value", &settings->color);
+		gui::Histogram(settings->hTable, 16, 0.0f, 20.0f, 5.0f);
+		gui::Diagram(settings->sinTable, 36, -1.0f, 1.0f, 0.5f);
 		gui::beginGroup();
 		if (gui::Button("OK")) {
 			ret = 1;
@@ -90,7 +97,14 @@ int main(int argc, char *argv[]) {
 	settings.fv = 4.0f;
 	settings.v2 = ds::vec2(100, 200);
 	settings.v3 = ds::vec3(100, 200, 300);
+	settings.color = ds::Color(192, 32, 64, 255);
 	settings.state = 1;
+	for (int i = 0; i < 36; ++i) {
+		settings.sinTable[i] = sin(static_cast<float>(i) / 36.0f * ds::PI * 2.0f);
+	}
+	for (int i = 0; i < 16; ++i) {
+		settings.hTable[i] = ds::random(5.0f, 15.0f);
+	}
 	while (ds::isRunning()) {
 
 		ds::begin();

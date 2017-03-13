@@ -27,17 +27,27 @@ namespace gui {
 
 	bool Input(const char* label, char* str, int maxLength);
 
-	bool Input(const char* label, int* v);
+	void Input(const char* label, int* v);
 
-	bool Input(const char* label, float* v);
+	void Input(const char* label, float* v);
 
-	bool Input(const char* label, ds::vec2* v);
+	void Input(const char* label, ds::vec2* v);
 
-	bool Input(const char* label, ds::vec3* v);
+	void Input(const char* label, ds::vec3* v);
+
+	void Input(const char* label, ds::Color* v);
 
 	void StepInput(const char* label, int* v, int minValue, int maxValue, int steps);
 
 	void Checkbox(const char* label, bool* state);
+
+	void Separator();
+
+	void Histogram(float* values, int num, float minValue, float maxValue, float step);
+
+	void Diagram(float* values, int num, float minValue, float maxValue, float step);
+
+	void Diagram(const char* label, float* values, int num, float minValue, float maxValue, float step);
 
 	void beginMenu();
 

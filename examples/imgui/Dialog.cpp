@@ -23,6 +23,8 @@ namespace gui {
 		return hash;
 	}
 
+	const static ds::vec4 INPUT_RECT = ds::vec4(0.0f, 128.0f, 150.0f, 20.0f);
+
 	struct DrawCall {
 		ds::vec2 pos;
 		ds::vec2 size;
@@ -172,8 +174,8 @@ namespace gui {
 			_guiCtx->keyInput[i] = 0;
 		}
 		_guiCtx->settings.textPadding = 2.0f;
-		_guiCtx->settings.backgroundColor = ds::Color(56,69,74,255);
-		_guiCtx->settings.boxColor = ds::Color(51, 86, 100, 255);
+		_guiCtx->settings.backgroundColor = ds::Color(16,16,16,255);
+		_guiCtx->settings.boxColor = ds::Color(51, 51, 51, 255);
 		_guiCtx->grouping = false;
 		_guiCtx->numKeys = 0;
 	}
@@ -235,6 +237,36 @@ namespace gui {
 		if ((p.x + rect.z) > _guiCtx->size.x) {
 			_guiCtx->size.x = (p.x + rect.z);
 		}
+	}
+
+	static void addTiledImage(ds::vec2& pos, const ds::vec4& rect, float width, float cornerSize = 6.0f) {
+		ds::vec2 center = pos;
+		center.x += width * 0.5f;
+		float cw = width - 2.0f * cornerSize;
+		float hcz = cornerSize * 0.5f;
+		float innerX = width - 2.0f * cornerSize;
+		float sx = (innerX) / (rect.z - 2.0f * cornerSize);
+		if (sx < 1.0f) {
+			sx = 1.0f;
+		}
+		float w = innerX;
+		if (w >(rect.z - 2.0f * cornerSize)) {
+			w = rect.z - 2.0f * cornerSize;
+		}
+		// left 
+		ds::vec2 p = center;
+		ds::vec4 tex = ds::vec4(rect.x, rect.y, cornerSize, rect.w);
+		p.x = center.x - cw * 0.5f - hcz;
+		addImage(p, tex);
+		// right
+		tex = ds::vec4(rect.x + rect.z - cornerSize, rect.y, cornerSize, rect.w);
+		p.x = center.x + cw * 0.5f + hcz;
+		addImage(p, tex);
+		// center
+		tex = ds::vec4(rect.x + cornerSize, rect.y, cw, rect.w);
+		p.x = pos.x + cornerSize + hcz;
+		p.y = center.y;
+		addImage(p, tex);
 	}
 
 	// --------------------------------------------------------
@@ -369,6 +401,9 @@ namespace gui {
 		int new_id = id + 1024 * index;
 		bool ret = false;
 		ds::vec2 p = _guiCtx->currentPos;
+		if (index > 0) {
+			p.x += index * width + index * 10.0f;
+		}
 		bool selected = isBoxSelected(new_id, p, ds::vec2(width, 20.0f));
 		if (selected) {
 			sprintf_s(_guiCtx->inputText, 32, "%d", *v);
@@ -376,7 +411,8 @@ namespace gui {
 			_guiCtx->active = new_id;
 		}
 		if (_guiCtx->active == new_id) {
-			addBox(p, ds::vec2(width, 20.0f), ds::Color(0, 192, 0, 255));
+			//addBox(p, ds::vec2(width, 20.0f), ds::Color(0, 192, 0, 255));
+			addTiledImage(p, INPUT_RECT, width);// , ds::Color(0, 192, 0, 255));
 			ret = handleTextInput(true);
 			*v = atoi(_guiCtx->inputText);
 			ds::vec2 cp = p;
@@ -389,7 +425,8 @@ namespace gui {
 		else {
 			sprintf_s(_guiCtx->tmpBuffer, 64, "%d", *v);
 			ds::vec2 textDim = textSize(_guiCtx->tmpBuffer);
-			addBox(p, ds::vec2(width, 20.0f), ds::Color(192, 0, 0, 255));
+			//addBox(p, ds::vec2(width, 20.0f), ds::Color(192, 0, 0, 255));
+			addTiledImage(p, INPUT_RECT,width);
 			p.y -= 1.0f;
 			p.x += (width - textDim.x) * 0.5f;
 			addText(p, _guiCtx->tmpBuffer);
@@ -414,7 +451,8 @@ namespace gui {
 			_guiCtx->active = new_id;
 		}
 		if (_guiCtx->active == new_id) {
-			addBox(p, ds::vec2(width, 20.0f), ds::Color(0, 192, 0, 255));
+			//addBox(p, ds::vec2(width, 20.0f), ds::Color(0, 192, 0, 255));
+			addTiledImage(p, INPUT_RECT,width);
 			ret = handleTextInput(true);
 			*v = atof(_guiCtx->inputText);
 			ds::vec2 cp = p;
@@ -427,7 +465,8 @@ namespace gui {
 		else {
 			sprintf_s(_guiCtx->tmpBuffer, 64, "%g", *v);
 			ds::vec2 textDim = textSize(_guiCtx->tmpBuffer);
-			addBox(p, ds::vec2(width, 20.0f), ds::Color(192, 0, 0, 255));
+			//addBox(p, ds::vec2(width, 20.0f), ds::Color(192, 0, 0, 255));
+			addTiledImage(p, INPUT_RECT,width);
 			p.y -= 1.0f;
 			p.x += (width - textDim.x) * 0.5f;
 			addText(p, _guiCtx->tmpBuffer);
@@ -623,7 +662,7 @@ namespace gui {
 	// -------------------------------------------------------
 	// input int
 	// -------------------------------------------------------
-	bool Input(const char* label, int* v) {
+	void Input(const char* label, int* v) {
 		HashedId id = HashPointer(v);
 		ds::vec2 p = _guiCtx->currentPos;
 		p.x += 160.0f;
@@ -631,13 +670,12 @@ namespace gui {
 		bool ret = InputScalar(id, 0, v, 150.0f);
 		ds::vec2 ts = textSize(label);
 		moveForward(ds::vec2(150.0f + ts.x + 10.0f, 30.0f));
-		return ret;
 	}
 
 	// -------------------------------------------------------
 	// input float
 	// -------------------------------------------------------
-	bool Input(const char* label, float* v) {
+	void Input(const char* label, float* v) {
 		HashedId id = HashPointer(v);
 		ds::vec2 p = _guiCtx->currentPos;
 		p.x += 160.0f;
@@ -645,13 +683,12 @@ namespace gui {
 		bool ret = InputScalar(id, 0, v, 150.0f);
 		ds::vec2 ts = textSize(label);
 		moveForward(ds::vec2(150.0f + ts.x + 10.0f, 30.0f));
-		return ret;
 	}
 
 	// -------------------------------------------------------
 	// input vec2
 	// -------------------------------------------------------
-	bool Input(const char* label, ds::vec2* v) {
+	void Input(const char* label, ds::vec2* v) {
 		HashedId id = HashPointer(v);
 		ds::vec2 p = _guiCtx->currentPos;
 		p.x += 160.0f;
@@ -660,13 +697,12 @@ namespace gui {
 		bool ret = InputScalar(id, 1, &v->y, 70.0f);
 		ds::vec2 ts = textSize(label);
 		moveForward(ds::vec2(150.0f + ts.x + 10.0f, 30.0f));
-		return ret;
 	}
 
 	// -------------------------------------------------------
 	// input vec3
 	// -------------------------------------------------------
-	bool Input(const char* label, ds::vec3* v) {
+	void Input(const char* label, ds::vec3* v) {
 		HashedId id = HashPointer(v);
 		ds::vec2 p = _guiCtx->currentPos;
 		p.x += 240.0f;
@@ -676,7 +712,39 @@ namespace gui {
 		InputScalar(id, 2, &v->z, 70.0f);
 		ds::vec2 ts = textSize(label);
 		moveForward(ds::vec2(150.0f + ts.x + 10.0f, 30.0f));
-		return true;
+	}
+
+	// -------------------------------------------------------
+	// input vec3
+	// -------------------------------------------------------
+	void Input(const char* label, ds::Color* v) {
+		HashedId id = HashPointer(v);		
+		int r = v->r * 255.0f;
+		int g = v->g * 255.0f;
+		int b = v->b * 255.0f;
+		int a = v->a * 255.0f;
+		InputScalar(id, 0, &r, 70.0f);
+		InputScalar(id, 1, &g, 70.0f);
+		InputScalar(id, 2, &b, 70.0f);
+		InputScalar(id, 3, &a, 70.0f);
+		*v = ds::Color(r, g, b, a);
+		ds::vec2 p = _guiCtx->currentPos;
+		p.x = _guiCtx->currentPos.x + 320.0f;
+		addBox(p, ds::vec2(20, 20), *v);
+		p.x = _guiCtx->currentPos.x + 350.0f;
+		addText(p, label);
+		ds::vec2 ts = textSize(label);		
+		moveForward(ds::vec2(150.0f + ts.x + 10.0f, 30.0f));
+	}
+
+	// -------------------------------------------------------
+	// Separator
+	// -------------------------------------------------------	
+	void Separator() {
+		ds::vec2 p = _guiCtx->currentPos;
+		p.y += 8.0f;
+		addBox(p, ds::vec2(10,4), ds::Color(32, 32, 32, 255), true);
+		moveForward(ds::vec2(10, 16.0f));
 	}
 
 	// -------------------------------------------------------
@@ -699,7 +767,7 @@ namespace gui {
 		ds::vec2 textDim = textSize(_guiCtx->tmpBuffer);
 		p = _guiCtx->currentPos;
 		p.x += 30.0f;
-		addBox(p, ds::vec2(90, 20), ds::Color(31, 56, 67, 255));
+		addBox(p, ds::vec2(90, 20), _guiCtx->settings.boxColor);
 		p.x += (90.0f - textDim.x) * 0.5f;
 		addText(p, _guiCtx->tmpBuffer);
 		// +
@@ -719,6 +787,119 @@ namespace gui {
 		ds::vec2 ts = textSize(label);
 		moveForward(ds::vec2(150.0f + ts.x + 30.0f, 30.0f));
 	}
+
+	// -------------------------------------------------------
+	// Histogram
+	// -------------------------------------------------------	
+	void Histogram(float* values, int num, float minValue, float maxValue, float step) {
+		ds::vec2 p = _guiCtx->currentPos;
+		HashedId id = HashPointer(values);
+		float width = 200.0f;
+		float height = 100.0f;
+		float barWidth = 10.0f;
+		p.y -= height / 2.0f;
+		float delta = maxValue - minValue;
+		if (delta == 0.0f) {
+			delta = 1.0f;
+		}
+		float st = width / static_cast<float>(num - 1);
+		float bw = width / static_cast<float>(num);
+		addBox(p, ds::vec2(width + barWidth, height), ds::Color(51,51,51,255));
+		p.x += width + 20.0f;
+		p.y += height / 2.0f;
+		char buffer[16];
+		sprintf_s(buffer, 16, "%g", maxValue);
+		addText(p, buffer);
+		p.y -= height;
+		sprintf_s(buffer, 16, "%g", minValue);
+		addText(p, buffer);
+		for (int i = 0; i < num; ++i) {
+			float v = values[i];
+			if (v > maxValue) {
+				v = maxValue;
+			}
+			float current = (v - minValue) / delta;
+			float yp = current * height;
+			p = _guiCtx->currentPos;
+			p.y -= (height - yp * 0.5f);
+			p.x += static_cast<float>(i) * bw + 2.0f;
+			addBox(p, ds::vec2(bw - 4.0f, yp), ds::Color(192, 0, 0, 255));
+		}
+		step = delta / 10.0f;
+		int d = delta / step + 1;
+		for (int i = 0; i < d; ++i) {
+			p = _guiCtx->currentPos;
+			float current = 1.0f - (step*i) / delta;
+			float yp = current * height;
+			p.y -= yp;
+			addBox(p, ds::vec2(width + barWidth, 1.0f), ds::Color(16,16,16, 255));
+		}
+		moveForward(ds::vec2(width, height + 30.0f));
+	}
+
+	// -------------------------------------------------------
+	// Diagram
+	// -------------------------------------------------------	
+	void DiagramInternal(const ds::vec2& pos, float* values, int num, float minValue, float maxValue, float step) {
+		ds::vec2 p = pos;
+		HashedId id = HashPointer(values);
+		float width = 200.0f;
+		float height = 100.0f;
+		p.y -= height / 2.0f;
+		float delta = (maxValue - minValue);
+		if (delta == 0.0f) {
+			delta = 1.0f;
+		}
+		float st = width / static_cast<float>(num - 1);
+		addBox(p, ds::vec2(width, height), ds::Color(51, 51, 51, 255));
+		p.x += width + 20.0f;
+		p.y += height / 2.0f;
+		char buffer[16];
+		sprintf_s(buffer, 16, "%g", maxValue);
+		addText(p, buffer);
+		p.y -= height;
+		sprintf_s(buffer, 16, "%g", minValue);
+		addText(p, buffer);
+
+		for (int i = 0; i < num; ++i) {
+			float v = values[i];
+			if (v > maxValue) {
+				v = maxValue;
+			}
+			if (v < minValue) {
+				v = minValue;
+			}
+			float norm = (v - minValue) / delta;
+			float yp = norm * height;
+			p = pos;
+			p.y = pos.y - height + yp;
+			p.x += static_cast<float>(i)* st - 2.0f;
+			addBox(p, ds::vec2(4, 4), ds::Color(192,0,0,255));
+		}
+
+		step = delta / 10.0f;
+		int d = delta / step + 1;
+		for (int i = 0; i < d; ++i) {
+			p = pos;
+			float current = 1.0f - (step*i) / delta;
+			float yp = current * height;
+			p.y -= yp;
+			addBox(p, ds::vec2(width, 1.0f), ds::Color(16, 16, 16, 255));
+		}
+		moveForward(ds::vec2(width, height + 30.0f));
+	}
+
+	void Diagram(float* values, int num, float minValue, float maxValue, float step) {
+		DiagramInternal(_guiCtx->currentPos, values, num, minValue, maxValue, step);
+	}
+
+	void Diagram(const char* label, float* values, int num, float minValue, float maxValue, float step) {
+		ds::vec2 p = _guiCtx->currentPos;
+		addText(p, label);
+		moveForward(ds::vec2(10.0f, 20.0f));
+		DiagramInternal(p, values, num, minValue, maxValue, step);
+	}
+
 
 	// --------------------------------------------------------
 	// end - render all draw calls
