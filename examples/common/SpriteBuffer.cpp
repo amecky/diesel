@@ -35,28 +35,27 @@ SpriteBuffer::SpriteBuffer(int maxSprites) : _max(maxSprites) {
 	ds::matrix viewMatrix = ds::matIdentity();
 	// FIXME: get screen size
 	ds::matrix projectionMatrix = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
-	ds::matrix viewprojectionMatrix = viewMatrix * projectionMatrix;
+	_viewprojectionMatrix = viewMatrix * projectionMatrix;
 
-	ds::setViewMatrix(viewMatrix);
-	ds::setProjectionMatrix(projectionMatrix);
-	_constantBuffer.wvp = ds::matTranspose(viewprojectionMatrix);
-	_constantBuffer.screenDimension = ds::vec4(1024.0f, 768.0f, 1024.0f, 1024.f);
+	//ds::setViewMatrix(viewMatrix);
+	//ds::setProjectionMatrix(projectionMatrix);	
+	//_constantBuffer.screenDimension = ds::vec4(1024.0f, 768.0f, 1024.0f, 1024.f);
 
 	ds::StateGroup* sg = ds::createStateGroup();
 	sg->bindLayout(vertexDeclId);
+	sg->bindVertexBuffer(_vertexBufferID);
+	sg->bindIndexBuffer(NO_RID);
 	sg->bindShader(shaderID);
-	sg->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, &_constantBuffer);
+	//sg->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, &_constantBuffer);
 	sg->bindConstantBuffer(cbid, ds::ShaderType::GEOMETRY, &_constantBuffer);
 	sg->bindBlendState(bs_id);
 	sg->bindSamplerState(ssid, ds::ShaderType::PIXEL);
-	sg->bindVertexBuffer(_vertexBufferID);
+	
 
 	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::POINT_LIST, 0 };
-
-	_current = 0;
-
 	_item = ds::compile(drawCmd, sg);
 
+	_current = 0;
 }
 
 void SpriteBuffer::begin() {
@@ -78,12 +77,12 @@ void SpriteBuffer::add(const ds::vec2& position, RID textureID, const ds::vec4& 
 void SpriteBuffer::flush() {
 	if (_current > 0) {
 		_item->groups[0]->bindTexture(_currentTexture, ds::ShaderType::PIXEL, 0);
-		// FIXME: get texture size and set it here
 		ds::vec2 textureSize = ds::getTextureSize(_currentTexture);
+		_constantBuffer.wvp = ds::matTranspose(_viewprojectionMatrix);
 		_constantBuffer.screenDimension = ds::vec4(1024.0f, 768.0f, textureSize.x, textureSize.y);
 		ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
 		ds::mapBufferData(_vertexBufferID, _vertices, _current * sizeof(SpriteBufferVertex));
-		_item->command.size = _current;
+		_item->command.size = _current;		
 		ds::submit(_item);
 		ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
 		_current = 0;

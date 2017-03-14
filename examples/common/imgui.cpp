@@ -1,6 +1,6 @@
-#include "Dialog.h"
+#include "imgui.h"
 #include <vector>
-#include "..\common\SpriteBuffer.h"
+#include "SpriteBuffer.h"
 #include <stdarg.h>
 
 namespace gui {
@@ -13,22 +13,22 @@ namespace gui {
 		// https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
 		HashedId hash = 0x84222325;
 		while (*id) hash = (hash ^ static_cast<uint8_t>(*id++)) * 0x000001b3;
-		//assert(hash != NULL_HASH);
 		return hash;
 	}
 
 	HashedId HashPointer(const void *ptr) {
 		HashedId hash = static_cast<HashedId>(reinterpret_cast<size_t>(ptr)) * 2654435761;
-		//assert(hash != NULL_HASH);
 		return hash;
 	}
 
 	const static ds::vec4 INPUT_RECT = ds::vec4(0.0f, 128.0f, 150.0f, 20.0f);
+	const static ds::vec4 WHITE_RECT = ds::vec4(256, 0, 256, 160);
 
 	struct DrawCall {
 		ds::vec2 pos;
 		ds::vec2 size;
 		ds::vec4 rect;
+		ds::vec2 scale;
 		ds::Color color;
 		bool resize;
 		int groupIndex;
@@ -40,8 +40,6 @@ namespace gui {
 		ds::Color inputBoxColor;
 		ds::Color boxColor;
 	};
-
-	const ds::vec2 WHITE_RECT = ds::vec2(0, 128);
 
 	struct GUIContext {
 		RID textureID;
@@ -216,6 +214,7 @@ namespace gui {
 				call.rect = rect;
 				call.color = color;
 				call.resize = false;
+				call.scale = ds::vec2(1.0f, 1.0f);
 				call.groupIndex = _guiCtx->currentGoupIndex;
 				_guiCtx->calls.push_back(call);
 				p.x += rect.z + _guiCtx->settings.textPadding;
@@ -233,9 +232,20 @@ namespace gui {
 		DrawCall call;
 		call.pos = p;
 		call.pos.x += size.x * 0.5f;
-		call.rect = ds::vec4(256.0f, 0.0f, size.x, size.y);
+		ds::vec2 scale = ds::vec2(1.0f, 1.0f);
+		ds::vec2 sz = size;
+		if (size.x > WHITE_RECT.z) {
+			sz.x = WHITE_RECT.z;
+			scale.x = size.x / WHITE_RECT.z;
+		}
+		if (size.y > WHITE_RECT.w) {
+			sz.y = WHITE_RECT.w;
+			scale.y = size.y / WHITE_RECT.w;
+		}
+		call.rect = ds::vec4(256.0f, 0.0f, sz.x, sz.y);
 		call.color = color;
 		call.resize = resize;
+		call.scale = scale;
 		call.groupIndex = _guiCtx->currentGoupIndex;
 		_guiCtx->calls.push_back(call);
 		if ((p.x + size.x) > _guiCtx->size.x) {
@@ -253,6 +263,7 @@ namespace gui {
 		call.rect = rect;
 		call.color = ds::Color(255,255,255,255);
 		call.resize = resize;
+		call.scale = ds::vec2(1.0f,1.0f);
 		call.groupIndex = _guiCtx->currentGoupIndex;
 		_guiCtx->calls.push_back(call);
 		if ((p.x + rect.z) > _guiCtx->size.x) {
@@ -333,15 +344,15 @@ namespace gui {
 						--_guiCtx->caretPos;
 					}
 				}
-				else if (current == 130) {
+				else if (current == 39) {
 					if (_guiCtx->caretPos < strlen(_guiCtx->inputText)) {
 						++_guiCtx->caretPos;
 					}
 				}
-				else if (current == 131) {
+				else if (current == 36) {
 					_guiCtx->caretPos = 0;
 				}
-				else if (current == 132) {
+				else if (current == 35) {
 					_guiCtx->caretPos = strlen(_guiCtx->inputText);
 				}
 				else if (current == 13) {
@@ -359,13 +370,16 @@ namespace gui {
 						}
 					}
 				}
-				else if ((current > 31 && current < 128) || current == 190) {
+				else if ((current > 47 && current < 128) || current == 190) {
+					if (current == 190) {
+						current = 46;
+					}
 					if (len < 32) {
 						if (_guiCtx->caretPos < len) {
 							memmove(_guiCtx->inputText + _guiCtx->caretPos + 1, _guiCtx->inputText + _guiCtx->caretPos, len - _guiCtx->caretPos);
 						}
 						if (numeric) {
-							if ((current > 47 && current < 58) || current == 46 || current == 190) {
+							if ((current > 47 && current < 58) || current == 46 ) {
 								_guiCtx->inputText[_guiCtx->caretPos] = current;
 								++len;
 								++_guiCtx->caretPos;
@@ -421,48 +435,6 @@ namespace gui {
 	}
 
 	// -------------------------------------------------------
-	// internal input int
-	// -------------------------------------------------------
-	/*
-	static bool InputScalar(int id, int index, int* v, float width = 100.0f) {
-		int new_id = id + 1024 * index;
-		bool ret = false;
-		ds::vec2 p = _guiCtx->currentPos;
-		if (index > 0) {
-			p.x += index * width + index * 10.0f;
-		}
-		bool selected = isBoxSelected(new_id, p, ds::vec2(width, 20.0f));
-		if (selected) {
-			sprintf_s(_guiCtx->inputText, 32, "%d", *v);
-			_guiCtx->caretPos = strlen(_guiCtx->inputText);
-			_guiCtx->active = new_id;
-		}
-		if (_guiCtx->active == new_id) {
-			_guiCtx->activeGroup = _guiCtx->currentGoupIndex;
-			//addBox(p, ds::vec2(width, 20.0f), ds::Color(0, 192, 0, 255));
-			addTiledImage(p, INPUT_RECT, width);// , ds::Color(0, 192, 0, 255));
-			ret = handleTextInput(true);
-			*v = atoi(_guiCtx->inputText);
-			ds::vec2 cp = p;
-			ds::vec2 cursorPos = limitedTextSize(_guiCtx->inputText, _guiCtx->caretPos);
-			cp.x = _guiCtx->currentPos.x + 2.0f + (width + 10.0f) * index + cursorPos.x + 10.0f;
-			addBox(cp, ds::vec2(2, 30.0f- 4.0f), ds::Color(192, 0, 192, 255));
-			p.y -= 1.0f;
-			addText(p, _guiCtx->inputText);
-		}
-		else {
-			sprintf_s(_guiCtx->tmpBuffer, 64, "%d", *v);
-			ds::vec2 textDim = textSize(_guiCtx->tmpBuffer);
-			//addBox(p, ds::vec2(width, 20.0f), ds::Color(192, 0, 0, 255));
-			addTiledImage(p, INPUT_RECT,width);
-			p.y -= 1.0f;
-			p.x += (width - textDim.x) * 0.5f;
-			addText(p, _guiCtx->tmpBuffer);
-		}
-		return ret;
-	}
-	*/
-	// -------------------------------------------------------
 	// internal input float
 	// -------------------------------------------------------
 	static bool InputScalar(int id, int index, float* v, const char* format = "%g", float width = 100.0f) {
@@ -479,7 +451,6 @@ namespace gui {
 			_guiCtx->active = new_id;
 		}
 		if (_guiCtx->active == new_id) {
-			//addBox(p, ds::vec2(width, 20.0f), ds::Color(0, 192, 0, 255));
 			addTiledImage(p, INPUT_RECT,width);
 			ret = handleTextInput(true);
 			*v = atof(_guiCtx->inputText);
@@ -493,7 +464,6 @@ namespace gui {
 		else {
 			sprintf_s(_guiCtx->tmpBuffer, 64, format, *v);
 			ds::vec2 textDim = textSize(_guiCtx->tmpBuffer);
-			//addBox(p, ds::vec2(width, 20.0f), ds::Color(192, 0, 0, 255));
 			addTiledImage(p, INPUT_RECT,width);
 			p.y -= 1.0f;
 			p.x += (width - textDim.x) * 0.5f;
@@ -895,14 +865,18 @@ namespace gui {
 		moveForward(ds::vec2(width + ts.x + 20.0f, 30.0f));
 	}
 
+	void SliderAngle(const char* label, float* v, float width) {
+		int d = *v / ds::TWO_PI * 360.0f;
+		Slider(label, &d, 0, 360, width);
+		*v = d / 360.0f * ds::TWO_PI;
+	}
+
 	// -------------------------------------------------------
 	// Histogram
 	// -------------------------------------------------------	
-	void Histogram(float* values, int num, float minValue, float maxValue, float step) {
+	void Histogram(float* values, int num, float minValue, float maxValue, float step, float width, float height) {
 		ds::vec2 p = _guiCtx->currentPos;
 		HashedId id = HashPointer(values);
-		float width = 200.0f;
-		float height = 100.0f;
 		float barWidth = 10.0f;
 		p.y -= height / 2.0f;
 		float delta = maxValue - minValue;
@@ -947,11 +921,9 @@ namespace gui {
 	// -------------------------------------------------------
 	// Diagram
 	// -------------------------------------------------------	
-	void DiagramInternal(const ds::vec2& pos, float* values, int num, float minValue, float maxValue, float step) {
+	void DiagramInternal(const ds::vec2& pos, float* values, int num, float minValue, float maxValue, float step, float width, float height) {
 		ds::vec2 p = pos;
 		HashedId id = HashPointer(values);
-		float width = 200.0f;
-		float height = 100.0f;
 		p.y -= height / 2.0f;
 		float delta = (maxValue - minValue);
 		if (delta == 0.0f) {
@@ -996,15 +968,15 @@ namespace gui {
 		moveForward(ds::vec2(width, height + 30.0f));
 	}
 
-	void Diagram(float* values, int num, float minValue, float maxValue, float step) {
-		DiagramInternal(_guiCtx->currentPos, values, num, minValue, maxValue, step);
+	void Diagram(float* values, int num, float minValue, float maxValue, float step, float width, float height) {
+		DiagramInternal(_guiCtx->currentPos, values, num, minValue, maxValue, step, width, height);
 	}
 
-	void Diagram(const char* label, float* values, int num, float minValue, float maxValue, float step) {
+	void Diagram(const char* label, float* values, int num, float minValue, float maxValue, float step, float width, float height) {
 		ds::vec2 p = _guiCtx->currentPos;
 		addText(p, label);
 		moveForward(ds::vec2(10.0f, 20.0f));
-		DiagramInternal(p, values, num, minValue, maxValue, step);
+		DiagramInternal(p, values, num, minValue, maxValue, step, width, height);
 	}
 
 	void beginMenu() {
@@ -1212,7 +1184,7 @@ namespace gui {
 			}
 			else {
 				p.x += _guiCtx->itemOffset;
-				_guiCtx->buffer->add(p, _guiCtx->textureID, call.rect, ds::vec2(1.0f, 1.0f), 0.0f, call.color);
+				_guiCtx->buffer->add(p, _guiCtx->textureID, call.rect, call.scale, 0.0f, call.color);
 			}
 		}
 		_guiCtx->numKeys = 0;

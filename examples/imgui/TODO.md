@@ -1,22 +1,15 @@
 # TODO
 - [ ] MenuBar / MenuItems
 - [ ] Extended color selection 
-- [ ] Histogram -> add width and height as parameter
-- [ ] Diagram -> add width and height as parameter
 - [ ] extract colors into GUISettings
-- [ ] add Enumeration for Colors
-- [ ] PushStyle(GuiStyle style, int value);
-- [ ] PushStyle(GuiStyle style, float value);
-- [ ] PushStyle(GuiStyle style, ds::vec2 value);
-- [ ] PushStyle(GuiStyle style, ds::vec3 value);
-- [ ] PushStyle(GuiStyle style, ds::vec4 value);
-- [ ] PushStyle(GuiStyle style, ds::Color value);
-- [ ] PopStyle(GuiStyle style);
 - [ ] implement "hot" selection
 - [ ] overall slider on the right when dialog too long for screen
-- [ ] Slider Angle (shows degress but returns radians)
-
+- [ ] Set background alpha value
+- [ ] try smaller font and smaller elements
 ## 14.03
+- [x] Histogram -> add width and height as parameter
+- [x] Diagram -> add width and height as parameter
+- [x] Slider Angle (shows degress but returns radians)
 - [x] Slider
 - [x] List Box
 - [x] Open/Close boxes

@@ -5,10 +5,14 @@
     <ClCompile Include="..\common\Grid.cpp" />
     <ClCompile Include="..\common\Geometry.cpp" />
     <ClCompile Include="..\common\WorldMatrix.cpp" />
+    <ClCompile Include="..\common\imgui.cpp" />
+    <ClCompile Include="..\common\SpriteBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\common\Grid.h" />
     <ClInclude Include="..\common\Geometry.h" />
     <ClInclude Include="..\common\WorldMatrix.h" />
+    <ClInclude Include="..\common\imgui.h" />
+    <ClInclude Include="..\common\SpriteBuffer.h" />
   </ItemGroup>
 </Project>

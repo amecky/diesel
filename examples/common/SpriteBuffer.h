@@ -38,4 +38,5 @@ private:
 	RID _vertexBufferID;
 	ds::DrawItem* _item;
 	SpriteBufferVertex* _vertices;
+	ds::matrix _viewprojectionMatrix;
 };

@@ -3,13 +3,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "..\common\stb_image.h"
 #include "..\common\SpriteBuffer.h"
-#include "Dialog.h"
-
-enum GameMode {
-	GM_MENU,
-	GM_RUNNING,
-	GM_GAMEOVER
-};
+#include "..\common\imgui.h"
 
 struct TestSettings {
 	int iv;
@@ -30,6 +24,7 @@ struct TestSettings {
 	int dropState;
 	int dopIndex;
 	int dropOffset;
+	float angle;
 };
 // ---------------------------------------------------------------
 // initialize rendering system
@@ -86,6 +81,7 @@ int showDialog(TestSettings* settings) {
 		gui::Input("Color value", &settings->color);
 		gui::ListBox("Listbox", ITEMS, 4, &settings->listIndex, &settings->listOffset, 3);
 		gui::Slider("Slider", &settings->iv, 0, 200,100.0f);
+		gui::SliderAngle("Angle Slider", &settings->angle);
 		gui::DropDownBox("Dropdown", ITEMS, 4, &settings->dropState, &settings->dopIndex, &settings->dropOffset, 3, true);
 	}
 	gui::begin("Value example", &settings->valueState);
@@ -99,7 +95,7 @@ int showDialog(TestSettings* settings) {
 	}
 	gui::begin("Diagrams", &settings->diagramState);
 	if ( settings->diagramState == 1) {
-		gui::Histogram(settings->hTable, 16, 0.0f, 20.0f, 5.0f);
+		gui::Histogram(settings->hTable, 16, 0.0f, 20.0f, 5.0f, 300.0f,200.0f);
 		gui::Diagram(settings->sinTable, 36, -1.0f, 1.0f, 0.5f);
 		gui::beginGroup();
 		if (gui::Button("OK")) {
@@ -117,15 +113,15 @@ int showDialog(TestSettings* settings) {
 // ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------
-//int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
-int main(int argc, char *argv[]) {
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
+//int main(int argc, char *argv[]) {
 	
 	initialize();
 
 	SpriteBuffer spriteBuffer(512);
 	// load image using stb_image
 	int x, y, n;
-	unsigned char *data = stbi_load("imgui.png", &x, &y, &n, 4);
+	unsigned char *data = stbi_load("..\\common\\imgui.png", &x, &y, &n, 4);
 	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
 	stbi_image_free(data);
 
@@ -154,6 +150,7 @@ int main(int argc, char *argv[]) {
 	settings.dropState = 0;
 	settings.dopIndex = -1;
 	settings.dropOffset = 0;
+	settings.angle = ds::PI;
 	while (ds::isRunning()) {
 
 		ds::begin();

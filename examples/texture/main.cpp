@@ -5,6 +5,8 @@
 #include "..\common\Grid.h"
 #include "..\common\Geometry.h"
 #include "..\common\worldMatrix.h"
+#include "..\common\SpriteBuffer.h"
+#include "..\common\imgui.h"
 
 // ---------------------------------------------------------------
 // Vertex
@@ -188,7 +190,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	ds::StateGroup* cubeStack[] = { basicGroup, cubeGroup };
 	ds::DrawItem* cubeItem = ds::compile(drawCmd, cubeStack, 2);
-	
+
+	// prepare IMGUI
+	SpriteBuffer spriteBuffer(512);
+	RID guiTextureID = loadImage("..\\common\\imgui.png");
+	gui::init(&spriteBuffer, guiTextureID);
+
+	ds::vec3 rotation = ds::vec3(0.0f, 0.0f, 0.0f);
+
+	int state = 1;
 	while (ds::isRunning()) {
 		ds::begin();
 
@@ -201,10 +211,22 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		constantBuffer.worldMatrix = ds::matTranspose(world);
 		ds::submit(staticItem);
 
-		wm.rotateBy(ds::vec3(static_cast<float>(ds::getElapsedSeconds()), 2.0f  * static_cast<float>(ds::getElapsedSeconds()), 0.0f));
+		//wm.rotateBy(ds::vec3(static_cast<float>(ds::getElapsedSeconds()), 2.0f  * static_cast<float>(ds::getElapsedSeconds()), 0.0f));
+		wm.setRotation(rotation);
 		constantBuffer.worldMatrix = wm.getTransposedMatrix();
 		ds::submit(cubeItem);
-		
+
+		spriteBuffer.begin();
+		gui::start(ds::vec2(0, 750));		
+		gui::begin("Rotation", &state);
+		if (state == 1) {
+			gui::SliderAngle("Rotation X", &rotation.x);
+			gui::SliderAngle("Rotation Y", &rotation.y);
+			gui::SliderAngle("Rotation Z", &rotation.z);
+		}
+		gui::end();
+		spriteBuffer.flush();
+
 		ds::end();
 	}
 	ds::shutdown();

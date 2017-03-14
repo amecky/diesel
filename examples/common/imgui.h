@@ -57,13 +57,15 @@ namespace gui {
 
 	void Slider(const char* label, int* v, int minValue, int maxValue, float width = 200.0f);
 
+	void SliderAngle(const char* label, float* v, float width = 200.0f);
+
 	void Separator();
 
-	void Histogram(float* values, int num, float minValue, float maxValue, float step);
+	void Histogram(float* values, int num, float minValue, float maxValue, float step, float width = 200.0f, float height = 100.0f);
 
-	void Diagram(float* values, int num, float minValue, float maxValue, float step);
+	void Diagram(float* values, int num, float minValue, float maxValue, float step, float width = 200.0f, float height = 100.0f);
 
-	void Diagram(const char* label, float* values, int num, float minValue, float maxValue, float step);
+	void Diagram(const char* label, float* values, int num, float minValue, float maxValue, float step, float width = 200.0f, float height = 100.0f);
 
 	void beginMenu();
 
