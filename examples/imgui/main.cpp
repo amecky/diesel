@@ -22,6 +22,14 @@ struct TestSettings {
 	ds::Color color;
 	float sinTable[36];
 	float hTable[16];
+	int menu;
+	int diagramState;
+	int listIndex;
+	int listOffset;
+	int valueState;
+	int dropState;
+	int dopIndex;
+	int dropOffset;
 };
 // ---------------------------------------------------------------
 // initialize rendering system
@@ -37,16 +45,34 @@ void initialize() {
 }
 
 char* message = "Hello World";
+const char* ITEMS[] = { "First","Second","Third","Fourth" };
 // ---------------------------------------------------------------
 // show game over menu
 // ---------------------------------------------------------------
 int showDialog(TestSettings* settings) {
 	int ret = 0;
 	gui::start(ds::vec2(0, 750));
+	/*
+	gui::beginMenu();
+	//gui::MenuBar(ITEMS, 4, &settings->menu);
+	if (gui::MenuBar("First")) {
+		settings->menu = 1;
+	}
+	if (gui::MenuBar("Second")) {
+		settings->menu = 2;
+	}
+	if (gui::MenuBar("Third")) {
+		settings->menu = 3;
+	}
+	if (gui::MenuBar("Fourth")) {
+		settings->menu = 4;
+	}
+	*/
 	gui::begin("Basic elements",&settings->state);
 	if (settings->state == 1) {
 		ds::vec2 mp = ds::getMousePosition();
 		gui::Value("Mouse Position", mp);
+		gui::Value("Menu", settings->menu);
 		gui::Text("Simple text example");
 		gui::Label("Pos", "100.0 200.0");
 		gui::Label("Message", "Hello");
@@ -58,6 +84,21 @@ int showDialog(TestSettings* settings) {
 		gui::Input("Vec2 value", &settings->v2);
 		gui::Input("Vec3 value", &settings->v3);
 		gui::Input("Color value", &settings->color);
+		gui::ListBox("Listbox", ITEMS, 4, &settings->listIndex, &settings->listOffset, 3);
+		gui::Slider("Slider", &settings->iv, 0, 200,100.0f);
+		gui::DropDownBox("Dropdown", ITEMS, 4, &settings->dropState, &settings->dopIndex, &settings->dropOffset, 3, true);
+	}
+	gui::begin("Value example", &settings->valueState);
+	if (settings->valueState == 1) {
+		gui::Value("Int", 200);
+		gui::Value("Float", 123.0f);
+		gui::Value("Vec2", ds::vec2(100.0f, 200.0f));
+		gui::Value("Vec3", ds::vec3(12.0f, 34.0f, 56.0f));
+		gui::Value("Vec4", ds::vec4(10, 20, 50, 60));
+		gui::Value("Color", ds::Color(192, 32, 64, 128));
+	}
+	gui::begin("Diagrams", &settings->diagramState);
+	if ( settings->diagramState == 1) {
 		gui::Histogram(settings->hTable, 16, 0.0f, 20.0f, 5.0f);
 		gui::Diagram(settings->sinTable, 36, -1.0f, 1.0f, 0.5f);
 		gui::beginGroup();
@@ -105,6 +146,14 @@ int main(int argc, char *argv[]) {
 	for (int i = 0; i < 16; ++i) {
 		settings.hTable[i] = ds::random(5.0f, 15.0f);
 	}
+	settings.menu = -1;
+	settings.diagramState = 0;
+	settings.listIndex = -1;
+	settings.listOffset = 0;
+	settings.valueState = 0;
+	settings.dropState = 0;
+	settings.dopIndex = -1;
+	settings.dropOffset = 0;
 	while (ds::isRunning()) {
 
 		ds::begin();
