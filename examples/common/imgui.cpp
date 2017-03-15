@@ -35,7 +35,6 @@ namespace gui {
 	};
 
 	struct GUISettings {
-		float textPadding;
 		ds::Color backgroundColor;
 		ds::Color inputBoxColor;
 		ds::Color boxColor;
@@ -141,7 +140,7 @@ namespace gui {
 				int c = idx / 16;
 				int r = c - idx * 16;
 				ds::vec4 rect = ds::vec4(r, c, 7, 10);
-				p.x += rect.z + _guiCtx->settings.textPadding;
+				p.x += rect.z;
 				if (rect.w > p.y) {
 					p.y = rect.w;
 				}
@@ -165,7 +164,7 @@ namespace gui {
 				int c = idx / 16;
 				int r = c - idx * 16;
 				ds::vec4 rect = ds::vec4(r, c, 7, 10);
-				p.x += rect.z + _guiCtx->settings.textPadding;
+				p.x += rect.z;
 				if (rect.w > p.y) {
 					p.y = rect.w;
 				}
@@ -186,7 +185,6 @@ namespace gui {
 		for (int i = 0; i < 255; ++i) {
 			_guiCtx->keyInput[i] = 0;
 		}
-		_guiCtx->settings.textPadding = 2.0f;
 		_guiCtx->settings.backgroundColor = ds::Color(16,16,16,255);
 		_guiCtx->settings.boxColor = ds::Color(51, 51, 51, 255);
 		_guiCtx->grouping = false;
@@ -217,7 +215,7 @@ namespace gui {
 				call.scale = ds::vec2(1.0f, 1.0f);
 				call.groupIndex = _guiCtx->currentGoupIndex;
 				_guiCtx->calls.push_back(call);
-				p.x += rect.z + _guiCtx->settings.textPadding;
+				p.x += rect.z;
 			}
 		}
 		if (p.x > _guiCtx->size.x) {
@@ -325,10 +323,10 @@ namespace gui {
 	static bool handleTextInput(bool numeric = false) {
 		bool ret = false;
 		int len = strlen(_guiCtx->inputText);
-		if ( _guiCtx->numKeys > 0 ) {
-			for (int i = 0; i < _guiCtx->numKeys; ++i) {
-				int current = _guiCtx->keys[i];
-				if (current == 8) {
+		for (int i = 0; i < ds::getNumInputKeys(); ++i) {
+			const ds::InputKey& key = ds::getInputKey(i);
+			if (key.type == ds::IKT_SYSTEM) {
+				if (key.value == ds::SpecialKeys::DSKEY_Backspace) {
 					if (_guiCtx->caretPos > 0) {
 						if (_guiCtx->caretPos < len) {
 							memmove(_guiCtx->inputText + _guiCtx->caretPos - 1, _guiCtx->inputText + _guiCtx->caretPos, len - _guiCtx->caretPos);
@@ -339,29 +337,28 @@ namespace gui {
 
 					}
 				}
-				else if (current == 37) {
+				else if (key.value == ds::SpecialKeys::DSKEY_LeftArrow) {
 					if (_guiCtx->caretPos > 0) {
 						--_guiCtx->caretPos;
 					}
 				}
-				else if (current == 39) {
+				else if (key.value == ds::SpecialKeys::DSKEY_RightArrow) {
 					if (_guiCtx->caretPos < strlen(_guiCtx->inputText)) {
 						++_guiCtx->caretPos;
 					}
 				}
-				else if (current == 36) {
+				else if (key.value == ds::SpecialKeys::DSKEY_Home) {
 					_guiCtx->caretPos = 0;
 				}
-				else if (current == 35) {
+				else if (key.value == ds::SpecialKeys::DSKEY_End) {
 					_guiCtx->caretPos = strlen(_guiCtx->inputText);
 				}
-				else if (current == 13) {
-					// return pressed
+				else if (key.value == ds::SpecialKeys::DSKEY_Enter) {
 					_guiCtx->active = -1;
 					_guiCtx->activeGroup = -1;
 					ret = true;
 				}
-				else if (current == 134) {
+				else if (key.value == ds::SpecialKeys::DSKEY_Delete) {
 					if (len > 0) {
 						if (_guiCtx->caretPos < len) {
 							memmove(_guiCtx->inputText + _guiCtx->caretPos, _guiCtx->inputText + _guiCtx->caretPos + 1, len - _guiCtx->caretPos);
@@ -370,23 +367,22 @@ namespace gui {
 						}
 					}
 				}
-				else if ((current > 47 && current < 128) || current == 190) {
-					if (current == 190) {
-						current = 46;
-					}
+			}
+			else {
+				if ((key.value > 47 && key.value < 128) || key.value == '.' || key.value =='-') {
 					if (len < 32) {
 						if (_guiCtx->caretPos < len) {
 							memmove(_guiCtx->inputText + _guiCtx->caretPos + 1, _guiCtx->inputText + _guiCtx->caretPos, len - _guiCtx->caretPos);
 						}
 						if (numeric) {
-							if ((current > 47 && current < 58) || current == 46 ) {
-								_guiCtx->inputText[_guiCtx->caretPos] = current;
+							if ((key.value > 47 && key.value < 58) || key.value == '.' || key.value == '-') {
+								_guiCtx->inputText[_guiCtx->caretPos] = key.value;
 								++len;
 								++_guiCtx->caretPos;
 							}
 						}
 						else {
-							_guiCtx->inputText[_guiCtx->caretPos] = current;
+							_guiCtx->inputText[_guiCtx->caretPos] = key.value;
 							++len;
 							++_guiCtx->caretPos;
 						}
@@ -481,6 +477,16 @@ namespace gui {
 		_guiCtx->currentPos = pos;
 		_guiCtx->size = ds::vec2(0.0f, 0.0f);
 		_guiCtx->grouping = false;
+		for (int i = 0; i < ds::getNumInputKeys(); ++i) {
+			const ds::InputKey& key = ds::getInputKey(i);
+			if (key.type == ds::IKT_ASCII) {
+				printf("IK-ASCII: %d %c\n", key.value, key.value);
+			}
+			else {
+				printf("IK-SYS: %d %c\n", key.value, key.value);
+			}
+		}
+		/*
 		for (int i = 0; i < 255; ++i) {
 			if (ds::isKeyPressed(i) && _guiCtx->keyInput[i] == 0) {
 				_guiCtx->keys[_guiCtx->numKeys++] = i;
@@ -492,6 +498,7 @@ namespace gui {
 				_guiCtx->keyInput[i] = 0;
 			}
 		}
+		*/
 		if (_guiCtx->clicked) {
 			_guiCtx->clicked = false;
 		}

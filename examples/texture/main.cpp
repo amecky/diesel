@@ -40,61 +40,11 @@ RID loadImage(const char* name) {
 	return textureID;
 }
 
-void saveObj(Vertex* vertices, int num) {
-	std::vector<int> vertIndices;
-	std::vector<int> uvIndices;
-	std::vector<ds::vec3> vertCache;
-	for (int i = 0; i < num; ++i) {
-		bool found = false;
-		for (int j = 0; j < vertCache.size(); ++j) {
-			if (vertCache[j] == vertices[i].p) {
-				found = true;
-				vertIndices.push_back(j + 1);
-			}
-		}
-		if (!found) {
-			vertCache.push_back(vertices[i].p);
-			vertIndices.push_back(vertCache.size());
-		}
-	}
-	std::vector<ds::vec2> uvCache;
-	for (int i = 0; i < num; ++i) {
-		bool found = false;
-		for (int j = 0; j < uvCache.size(); ++j) {
-			if (uvCache[j] == vertices[i].uv) {
-				found = true;
-				uvIndices.push_back(j + 1);
-			}
-		}
-		if (!found) {
-			uvCache.push_back(vertices[i].uv);
-			uvIndices.push_back(uvCache.size());
-		}
-	}
-
-	FILE* fp = fopen("test.txt","w");
-	if (fp) {
-		for (int i = 0; i < vertCache.size(); ++i) {
-			const ds::vec3& p = vertCache[i];
-			fprintf(fp, "v %g %g %g\n", p.x, p.y, p.z);
-		}
-		for (int i = 0; i < uvCache.size(); ++i) {
-			const ds::vec2& p = uvCache[i];
-			fprintf(fp, "vt %g %g\n", p.x, p.y);
-		}
-		int faces = vertIndices.size() / 4;
-		for (int i = 0; i < faces; ++i) {
-			int idx = i * 4;
-			fprintf(fp, "f %d/%d %d/%d %d/%d %d/%d\n", vertIndices[idx], uvIndices[idx], vertIndices[idx + 1], uvIndices[idx + 1], vertIndices[idx + 2], uvIndices[idx + 2], vertIndices[idx + 3], uvIndices[idx + 3]);
-		}
-		fclose(fp);
-	}
-}
-
 // ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
+//int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
+int main(int argc, char *argv[]) {
 
 	ds::vec3 positions[24];
 	ds::vec2 uvs[24];
@@ -103,21 +53,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	Vertex v[24];
 	for (int i = 0; i < 24; ++i) {
-		v[i] = Vertex(positions[i], uvs[i]);
+		v[i] = Vertex(positions[i], uvs[i] * 0.5f);
 	}
 
-	ds::vec3 CP[] = { ds::vec3(-2,0,-1),ds::vec3(-2,0,3),ds::vec3(2,0,-1),ds::vec3(2,0,3) };
+	ds::vec3 CP[] = { ds::vec3(-2.0f,-0.5f,-1.0f),ds::vec3(-2.0f,-0.5f,2.0f),ds::vec3(2.0f,-0.5f,-1.0f),ds::vec3(2.0f,-0.5f,2.0f) };
 	const int numCubes = 4;
 	const int totalCubeVertices = numCubes * 24;
 	Vertex sv[totalCubeVertices];
 	int cnt = 0;
 	for(int j = 0; j < numCubes; ++j) {
 		ds::matrix m = ds::matTranslate(CP[j]);
-		ds::matrix s = ds::matScale(ds::vec3(0.5f,2.0f,0.5f));
+		ds::matrix s = ds::matScale(ds::vec3(1.0f,1.0f,1.0f));
 		ds::matrix w = s * m;
 		geometry::buildCube(w, positions, uvs);
 		for (int i = 0; i < 24; ++i) {
-			sv[cnt++] = Vertex(positions[i], uvs[i]);
+			sv[cnt++] = Vertex(positions[i], uvs[i] * 0.5f);
 		}
 	}
 	
@@ -126,7 +76,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::RenderSettings rs;
 	rs.width = 1024;
 	rs.height = 768;
-	rs.title = "Hello world";
+	rs.title = "Simple cube texturing demo";
 	rs.clearColor = ds::Color(0.0f, 0.0f, 0.0f, 1.0f);
 	rs.multisampling = 1;
 	ds::init(rs);
@@ -149,7 +99,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::vec3(4.0f, -1.0f,  4.5f),
 		ds::vec3(4.0f, -1.0f, -3.5f)
 	};
-	grid.create(gridPositions, 2, gridShader, textureID);
+	grid.create(gridPositions, 8, gridShader, cubeTextureID);
 
 	ds::VertexDeclaration decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
@@ -172,7 +122,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	basicGroup->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, &constantBuffer);
 	basicGroup->bindBlendState(bs_id);
 	basicGroup->bindSamplerState(ssid, ds::ShaderType::PIXEL);
-	basicGroup->bindTexture(cubeTextureID, ds::ShaderType::PIXEL, 0);
+	basicGroup->bindTexture(textureID, ds::ShaderType::PIXEL, 0);
 	basicGroup->bindShader(gridShader);
 	basicGroup->bindIndexBuffer(indexBuffer);
 
@@ -197,25 +147,24 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	gui::init(&spriteBuffer, guiTextureID);
 
 	ds::vec3 rotation = ds::vec3(0.0f, 0.0f, 0.0f);
+	ds::vec3 position = ds::vec3(0.0f, 1.0f, 0.0f);
 
 	int state = 1;
 	while (ds::isRunning()) {
 		ds::begin();
-
+		// grid
 		grid.render();
-		
+		// static cubes
 		constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix());
-
-		// spinning cube
 		ds::matrix world = ds::matIdentity();
 		constantBuffer.worldMatrix = ds::matTranspose(world);
 		ds::submit(staticItem);
-
-		//wm.rotateBy(ds::vec3(static_cast<float>(ds::getElapsedSeconds()), 2.0f  * static_cast<float>(ds::getElapsedSeconds()), 0.0f));
+		// spinning cube
 		wm.setRotation(rotation);
+		wm.setPosition(position);
 		constantBuffer.worldMatrix = wm.getTransposedMatrix();
 		ds::submit(cubeItem);
-
+		// GUI
 		spriteBuffer.begin();
 		gui::start(ds::vec2(0, 750));		
 		gui::begin("Rotation", &state);
@@ -223,6 +172,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			gui::SliderAngle("Rotation X", &rotation.x);
 			gui::SliderAngle("Rotation Y", &rotation.y);
 			gui::SliderAngle("Rotation Z", &rotation.z);
+			gui::Input("Position", &position);
 		}
 		gui::end();
 		spriteBuffer.flush();

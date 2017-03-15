@@ -967,6 +967,40 @@ namespace ds {
 	float random(float min, float max);
 
 	const char* getLastError();
+
+	enum SpecialKeys {
+		DSKEY_Tab,       
+		DSKEY_LeftArrow, 
+		DSKEY_RightArrow,
+		DSKEY_UpArrow,   
+		DSKEY_DownArrow, 
+		DSKEY_PageUp,
+		DSKEY_PageDown,
+		DSKEY_Home,      
+		DSKEY_End,       
+		DSKEY_Delete,    
+		DSKEY_Backspace, 
+		DSKEY_Enter,     
+		DSKEY_UNKNOWN
+	};
+
+	enum InputKeyType {
+		IKT_SYSTEM,
+		IKT_ASCII
+	};
+
+	struct InputKey {
+		InputKeyType type;
+		char value;
+	};
+
+	void addInputCharacter(char c);
+
+	void addVirtualKey(uint32_t keyCode);
+
+	int getNumInputKeys();
+
+	const InputKey& getInputKey(int index);
 	
 }
 
@@ -1502,6 +1536,9 @@ namespace ds {
 
 		DrawStatistics stats;
 
+		InputKey inputKeys[256];
+		int numInputKeys;
+
 	} InternalContext;
 
 	static InternalContext* _ctx;
@@ -1873,6 +1910,7 @@ namespace ds {
 		float screenAspect = (float)_ctx->screenWidth / (float)_ctx->screenHeight;
 		_ctx->projectionMatrix = matPerspectiveFovLH(fieldOfView, screenAspect, 0.01f, 100.0f);
 		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
+		
 		return true;
 	}
 
@@ -2000,16 +2038,24 @@ namespace ds {
 			return 0;
 			case WM_CHAR: {
 				char ascii = wParam;
-				_ctx->keyState[ascii] = 80;
+				//UINT ascii = MapVirtualKey(wParam, MAPVK_VK_TO_CHAR);
+				//printf("WM_CHAR: %d %c\n", (int)ascii,ascii);
+				//_ctx->keyState[ascii] = 80;
+				ds::addInputCharacter(ascii);
 				return 0;
 			}
 			case WM_KEYDOWN: {
 				char ascii = wParam;
+				//UINT ascii = MapVirtualKey(wParam, MAPVK_VK_TO_CHAR);
+				//printf("WM_KEYDOWN: %d\n", ascii);
+				ds::addVirtualKey(wParam);
 				_ctx->keyState[ascii] = 80;
 				return 0;
 			}
 			case WM_KEYUP: {
-				char ascii = wParam;
+				//char ascii = wParam;
+				UINT ascii = MapVirtualKey(wParam, MAPVK_VK_TO_CHAR);
+				//printf("WM_KEYUP: %d\n", ascii);
 				_ctx->keyState[ascii] = 0;
 				return 0;
 			}
@@ -2119,6 +2165,7 @@ namespace ds {
 		_ctx->framesPerSecond = 0;
 		_ctx->framesThisSecond = 0;
 		_ctx->secondCounter = 0;
+		_ctx->numInputKeys = 0;
 		_ctx->maxDelta = _ctx->timerFrequency.QuadPart / 10;
 		for (int i = 0; i < 256; ++i) {
 			_ctx->errorBuffer[i] = '\0';
@@ -2206,6 +2253,7 @@ namespace ds {
 	// ------------------------------------------------------
 	void end() {
 		_ctx->swapChain->Present(0, 0);
+		_ctx->numInputKeys = 0;
 	}
 
 	static const char* DXBufferAttributeNames[] = {
@@ -3620,6 +3668,47 @@ namespace ds {
 		vec4 nv(v.x, v.y, v.z, 1.0f);
 		vec4 tmp = m * nv;
 		return vec3(tmp.x, tmp.y, tmp.z);
+	}
+
+	// ---------------------------------------
+	void addInputCharacter(char c) {
+		if (c >= 32) {
+			InputKey& k = _ctx->inputKeys[_ctx->numInputKeys++];
+			k.type = IKT_ASCII;
+			k.value = c;
+		}
+	}
+
+	void addVirtualKey(uint32_t keyCode) {
+		int value = SpecialKeys::DSKEY_UNKNOWN;
+		switch (keyCode) {
+			case VK_TAB: value = SpecialKeys::DSKEY_Tab; break;
+			case VK_BACK: value = SpecialKeys::DSKEY_Backspace; break;					
+			case VK_LEFT: value = SpecialKeys::DSKEY_LeftArrow; break;
+			case VK_UP: value = SpecialKeys::DSKEY_UpArrow; break;
+			case VK_RIGHT: value = SpecialKeys::DSKEY_RightArrow; break;
+			case VK_DOWN: value = SpecialKeys::DSKEY_DownArrow; break;
+			case VK_HOME: value = SpecialKeys::DSKEY_Home; break;
+			case VK_END: value = SpecialKeys::DSKEY_End; break;
+			case VK_DELETE: value = SpecialKeys::DSKEY_Delete; break;
+			case VK_RETURN: value = SpecialKeys::DSKEY_Enter; break;
+		}
+		if (value != SpecialKeys::DSKEY_UNKNOWN) {
+			InputKey& k = _ctx->inputKeys[_ctx->numInputKeys++];
+			k.type = IKT_SYSTEM;
+			k.value = value;
+		}
+		else {
+			printf("unknown: %d\n", keyCode);
+		}
+	}
+
+	int getNumInputKeys() {
+		return _ctx->numInputKeys;
+	}
+
+	const InputKey& getInputKey(int index) {
+		return _ctx->inputKeys[index];
 	}
 }
 #endif
