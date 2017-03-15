@@ -1,6 +1,19 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
 
+// ---------------------------------------------------------------
+// Vertex
+// ---------------------------------------------------------------
+struct Vertex {
+
+	ds::vec3 p;
+	ds::vec2 uv;
+
+};
+
+// ---------------------------------------------------------------
+// the cube constant buffer
+// ---------------------------------------------------------------
 struct CubeConstantBuffer {
 	ds::matrix viewprojectionMatrix;
 	ds::matrix worldMatrix;
@@ -31,23 +44,49 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID shaderID = ds::createShader(desc, 2);
 
+	ds::VertexDeclaration decl[] = {
+		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
+		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }
+	};
+
+	RID rid = ds::createVertexDeclaration(decl, 2, shaderID);
+	RID indexBuffer = ds::createQuadIndexBuffer(1);
+
 	RID ppCBID = ds::createConstantBuffer(sizeof(PostProcessBuffer));
+	RID ccbID = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
+
+	CubeConstantBuffer constantBuffer;
+	constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix());
+	ds::matrix world = ds::matIdentity();
+	constantBuffer.worldMatrix = ds::matTranspose(world);
+
 	PostProcessBuffer ppBuffer;
 
+	Vertex vertices[4] = {
+		{ ds::vec3(-2,-2,0),ds::vec2(0,1) },
+		{ ds::vec3(-2, 2,0),ds::vec2(0,0) },
+		{ ds::vec3(2, 2,0),ds::vec2(1,0) },
+		{ ds::vec3(2,-2,0),ds::vec2(1,1) },
+	};
+	RID gridBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 4, sizeof(Vertex), vertices);
 	ds::StateGroup* ppGroup = ds::createStateGroup();
 	// render post process effect
-	ppGroup->bindLayout(NO_RID);
-	ppGroup->bindIndexBuffer(NO_RID);
-	ppGroup->bindVertexBuffer(NO_RID);
+	ppGroup->bindLayout(rid);
+	ppGroup->bindIndexBuffer(indexBuffer);
+	ppGroup->bindVertexBuffer(gridBuffer);
 	ppGroup->bindBlendState(bs_id);
 	ppGroup->bindShader(shaderID);
 	ppGroup->bindSamplerState(ssid, ds::ShaderType::PIXEL);
 	//ppGroup->bindRasterizerState(rasterizerStateID);
 	ppBuffer.data = ds::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 	ppGroup->bindConstantBuffer(ppCBID,ds::ShaderType::PIXEL, &ppBuffer);
+	ppGroup->bindConstantBuffer(ccbID, ds::ShaderType::VERTEX, &constantBuffer);
 
-	ds::DrawCommand ppCmd = { 3, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::TRIANGLE_LIST };
+	ds::DrawCommand ppCmd = { 6, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
 	ds::DrawItem* ppItem = ds::compile(ppCmd, ppGroup);
+
+	ds::vec3 vp = ds::vec3(0.0f, 0.0f, -0.1f);
+	ds::setViewPosition(vp);
 
 	float t = 0.0f;
 	
@@ -55,6 +94,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::begin();
 		t += static_cast<float>(ds::getElapsedSeconds());
 		ppBuffer.data = ds::vec4(t, 0.0f, 0.0f, 0.0f);
+		
 		ds::submit(ppItem);		
 		ds::end();
 	}

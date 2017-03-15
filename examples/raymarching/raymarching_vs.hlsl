@@ -1,16 +1,24 @@
-struct PS_Input {
-    float4 pos  : SV_POSITION;
-	float2 tex : TEXCOORD;
+cbuffer cbChangesPerObject : register(b0) {
+	matrix mvp;
+	matrix world;
 };
 
-PS_Input VS_Main(uint id:SV_VERTEXID) {
-	PS_Input vsOut;
-	vsOut.pos.x = (float)(id / 2) * 4.0 - 1.0;
-	vsOut.pos.y = (float)(id % 2) * 4.0 - 1.0;
-	vsOut.pos.z = 0.0;
-	vsOut.pos.w = 1.0;
-	vsOut.tex.x = (float)(id / 2) * 2.0;
-	vsOut.tex.y = 1.0 - (float)(id % 2) * 2.0;
-    return vsOut;
-}
+struct VS_Input {
+	float4 position  : POSITION;
+	float2 texcoord : TEXCOORD;
+};
 
+struct PS_Input {
+	float4 pos  : SV_POSITION;
+	float2 texcoord : TEXCOORD;
+};
+
+
+PS_Input VS_Main(VS_Input vertex) {
+	PS_Input vsOut = (PS_Input)0;
+	vertex.position.w = 1.0;
+	vsOut.pos = mul(vertex.position, world);
+	vsOut.pos = mul(vsOut.pos, mvp);
+	vsOut.texcoord = vertex.texcoord;
+	return vsOut;
+}
