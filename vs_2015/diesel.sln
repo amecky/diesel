@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+VisualStudioVersion = 14.0.23107.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "diesel", "diesel.vcxproj", "{4248D58D-2A87-4E81-BF1D-D97337EECE8A}"
 EndProject
@@ -40,6 +40,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WarpingGrid", "..\examples\warping_grid\WarpingGrid.vcxproj", "{EE6ECE8C-BD33-4C18-AAD0-89B470BCE39D}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imgui", "..\examples\imgui\imgui.vcxproj", "{3B16E9AB-D8AE-4F0D-84CF-434E6C859B26}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "raymarching", "..\examples\raymarching\raymarching.vcxproj", "{CEEBBD64-0947-43CB-8F9C-3B767A97CED8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -201,6 +203,14 @@ Global
 		{3B16E9AB-D8AE-4F0D-84CF-434E6C859B26}.Release|x64.Build.0 = Release|x64
 		{3B16E9AB-D8AE-4F0D-84CF-434E6C859B26}.Release|x86.ActiveCfg = Release|Win32
 		{3B16E9AB-D8AE-4F0D-84CF-434E6C859B26}.Release|x86.Build.0 = Release|Win32
+		{CEEBBD64-0947-43CB-8F9C-3B767A97CED8}.Debug|x64.ActiveCfg = Debug|x64
+		{CEEBBD64-0947-43CB-8F9C-3B767A97CED8}.Debug|x64.Build.0 = Debug|x64
+		{CEEBBD64-0947-43CB-8F9C-3B767A97CED8}.Debug|x86.ActiveCfg = Debug|Win32
+		{CEEBBD64-0947-43CB-8F9C-3B767A97CED8}.Debug|x86.Build.0 = Debug|Win32
+		{CEEBBD64-0947-43CB-8F9C-3B767A97CED8}.Release|x64.ActiveCfg = Release|x64
+		{CEEBBD64-0947-43CB-8F9C-3B767A97CED8}.Release|x64.Build.0 = Release|x64
+		{CEEBBD64-0947-43CB-8F9C-3B767A97CED8}.Release|x86.ActiveCfg = Release|Win32
+		{CEEBBD64-0947-43CB-8F9C-3B767A97CED8}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
