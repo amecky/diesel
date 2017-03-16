@@ -121,8 +121,6 @@ int main(int argc, char *argv[]) {
 	ds::matrix orthoProjection = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
 	RID orthoPass = ds::createRenderPass(orthoView, orthoProjection, ds::DepthBufferState::DISABLED);
 
-	RID pipeline[] = { basicPass, orthoPass };
-
 	worldMatrix wm;
 
 	ds::StateGroup* basicGroup = ds::createStateGroup();
@@ -172,6 +170,8 @@ int main(int argc, char *argv[]) {
 		wm.setPosition(position);
 		constantBuffer.worldMatrix = wm.getTransposedMatrix();
 		ds::submit(cubeItem);
+
+
 		// GUI
 		spriteBuffer.begin();
 		gui::start(ds::vec2(0, 750));		

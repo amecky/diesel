@@ -449,7 +449,7 @@ namespace gui {
 		if (_guiCtx->active == new_id) {
 			addTiledImage(p, INPUT_RECT,width);
 			ret = handleTextInput(true);
-			*v = atof(_guiCtx->inputText);
+			*v = static_cast<float>(atof(_guiCtx->inputText));
 			ds::vec2 cp = p;
 			ds::vec2 cursorPos = limitedTextSize(_guiCtx->inputText, _guiCtx->caretPos);
 			cp.x = _guiCtx->currentPos.x + 2.0f + (width + 10.0f) * index + cursorPos.x + 10.0f;
@@ -657,10 +657,10 @@ namespace gui {
 	// Value - color
 	// --------------------------------------------------------
 	void Value(const char* label, const ds::Color& v) {
-		int r = v.r * 255.0f;
-		int g = v.g * 255.0f;
-		int b = v.b * 255.0f;
-		int a = v.a * 255.0f;
+		int r = static_cast<int>(v.r * 255.0f);
+		int g = static_cast<int>(v.g * 255.0f);
+		int b = static_cast<int>(v.b * 255.0f);
+		int a = static_cast<int>(v.a * 255.0f);
 		sprintf_s(_guiCtx->tmpBuffer, 256, "%d %d %d %d", r, g, b, a);
 		Label(label, _guiCtx->tmpBuffer);
 	}
@@ -669,7 +669,7 @@ namespace gui {
 	// Text
 	// --------------------------------------------------------
 	void Text(const char* text) {
-		int l = strlen(text);
+		size_t l = strlen(text);
 		ds::vec2 p = _guiCtx->currentPos;
 		addText(p, text);
 		ds::vec2 size = textSize(text);
@@ -845,12 +845,12 @@ namespace gui {
 		if (isClicked(p,ds::vec2(width,20.0f))) {
 			ds::vec2 mp = ds::getMousePosition();
 			float dx = mp.x - p.x - _guiCtx->itemOffset;
-			*v = dx * d / width;
+			*v = static_cast<int>(dx * d / width);
 		}
 		if (_guiCtx->buttonPressed && isHovered(p,ds::vec2(width,20.0f))) {
 			ds::vec2 mp = ds::getMousePosition();
 			float dx = mp.x - p.x - _guiCtx->itemOffset;
-			*v = dx * d / width;			
+			*v = static_cast<int>(dx * d / width);
 		}
 		if (*v < minValue) {
 			*v = minValue;
@@ -873,7 +873,7 @@ namespace gui {
 	}
 
 	void SliderAngle(const char* label, float* v, float width) {
-		int d = *v / ds::TWO_PI * 360.0f;
+		int d = static_cast<int>(*v / ds::TWO_PI * 360.0f);
 		Slider(label, &d, 0, 360, width);
 		*v = d / 360.0f * ds::TWO_PI;
 	}
@@ -914,7 +914,7 @@ namespace gui {
 			addBox(p, ds::vec2(bw - 4.0f, yp), ds::Color(192, 0, 0, 255));
 		}
 		step = delta / 10.0f;
-		int d = delta / step + 1;
+		int d = static_cast<int>(delta / step) + 1;
 		for (int i = 0; i < d; ++i) {
 			p = _guiCtx->currentPos;
 			float current = 1.0f - (step*i) / delta;
@@ -964,7 +964,7 @@ namespace gui {
 		}
 
 		step = delta / 10.0f;
-		int d = delta / step + 1;
+		int d = static_cast<int>(delta / step) + 1;
 		for (int i = 0; i < d; ++i) {
 			p = pos;
 			float current = 1.0f - (step*i) / delta;

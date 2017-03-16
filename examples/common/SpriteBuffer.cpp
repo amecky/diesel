@@ -15,7 +15,7 @@ SpriteBuffer::SpriteBuffer(int maxSprites) : _max(maxSprites) {
 
 	RID shaderID = ds::createShader(desc, 3);
 
-	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
+	//RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 
 	// very special buffer layout 
 	ds::VertexDeclaration decl[] = {
@@ -29,7 +29,7 @@ SpriteBuffer::SpriteBuffer(int maxSprites) : _max(maxSprites) {
 
 	RID cbid = ds::createConstantBuffer(sizeof(SpriteBufferConstantBuffer));
 	_vertexBufferID = ds::createVertexBuffer(ds::BufferType::DYNAMIC, maxSprites, sizeof(SpriteBufferVertex));
-	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::POINT);
+	//RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::POINT);
 
 	// create orthographic view
 	ds::matrix viewMatrix = ds::matIdentity();
@@ -37,19 +37,14 @@ SpriteBuffer::SpriteBuffer(int maxSprites) : _max(maxSprites) {
 	ds::matrix projectionMatrix = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
 	_viewprojectionMatrix = viewMatrix * projectionMatrix;
 
-	//ds::setViewMatrix(viewMatrix);
-	//ds::setProjectionMatrix(projectionMatrix);	
-	//_constantBuffer.screenDimension = ds::vec4(1024.0f, 768.0f, 1024.0f, 1024.f);
-
 	ds::StateGroup* sg = ds::createStateGroup();
 	sg->bindLayout(vertexDeclId);
 	sg->bindVertexBuffer(_vertexBufferID);
 	sg->bindIndexBuffer(NO_RID);
 	sg->bindShader(shaderID);
-	//sg->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, &_constantBuffer);
 	sg->bindConstantBuffer(cbid, ds::ShaderType::GEOMETRY, 0, &_constantBuffer);
-	sg->bindBlendState(bs_id);
-	sg->bindSamplerState(ssid, ds::ShaderType::PIXEL);
+	//sg->bindBlendState(bs_id);
+	//sg->bindSamplerState(ssid, ds::ShaderType::PIXEL);
 	
 
 	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::POINT_LIST, 0 };

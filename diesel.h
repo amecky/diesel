@@ -719,7 +719,8 @@ namespace ds {
 	enum ShaderType {
 		VERTEX,
 		PIXEL,
-		GEOMETRY
+		GEOMETRY,
+		NO_SHADER
 	};
 
 	// ---------------------------------------------------
@@ -791,9 +792,9 @@ namespace ds {
 	// State group
 	// ---------------------------------------------------	
 	class StateGroup {
-	// FIXME: create default settings!! Every StateGroup MUST be complete
+
 	public:
-		StateGroup() : _types(0) , _indices(0) , _num(0) , _data(0) , _total(0) {}
+		StateGroup() : _types(0) , _indices(0) , _num(0) , _data(0) , _total(0), _mappings(0) {}
 		~StateGroup() {
 			if (_data != 0) {
 				delete[] _data;
@@ -803,6 +804,9 @@ namespace ds {
 			}
 			if (_indices != 0) {
 				delete[] _indices;
+			}
+			if (_mappings != 0) {
+				delete[] _mappings;
 			}
 		}
 		void apply(PipelineState* state);
@@ -816,6 +820,8 @@ namespace ds {
 		void bindIndexBuffer(RID rid);
 		void bindTexture(RID rid, ShaderType type, int slot);
 		void bindTextureFromRenderTarget(RID rtID, ShaderType type, int slot);
+		void bindRasterizerState(RID rid);
+		void sortBindings();
 	private:
 		void* allocate(RID rid, uint16_t size);
 		int* _types;
@@ -824,6 +830,7 @@ namespace ds {
 		int _total;
 		char* _data;
 		int _dataSize;
+		uint32_t* _mappings;
 	};
 
 	// ---------------------------------------------------
@@ -1201,7 +1208,7 @@ namespace ds {
 	}
 
 	static uint16_t type_mask(RID rid) {
-		return (rid << 16) & 0xffff;
+		return (rid >> 16) & 0xffff;
 	}
 
 	// ------------------------------------------------------
@@ -1663,6 +1670,7 @@ namespace ds {
 		int numInputKeys;
 
 		PipelineState* pipelineState;
+		StateGroup* defaultStateGroup;
 
 	} InternalContext;
 
@@ -1675,7 +1683,7 @@ namespace ds {
 	static RID addResource(BaseResource* res, ResourceType type) {
 		XASSERT((_ctx->_resources.size() + 1) < NO_RID, "The maximum number of resources reached");
 		_ctx->_resources.push_back(res);
-		return static_cast<uint16_t>(_ctx->_resources.size() - 1) + (type >> 16);
+		return static_cast<uint16_t>(_ctx->_resources.size() - 1) + (type << 16);
 	}
 
 	uint16_t getResourceIndex(RID rid,ResourceType type) {
@@ -2028,6 +2036,21 @@ namespace ds {
 		_ctx->projectionMatrix = matPerspectiveFovLH(fieldOfView, screenAspect, 0.01f, 100.0f);
 		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
 		_ctx->pipelineState = new PipelineState;
+
+		// create default state group
+		RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
+		RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
+		RID rasterizerStateID = ds::createRasterizerState(ds::CullMode::BACK, ds::FillMode::SOLID, true, false, 0.0f, 0.0f);
+
+		StateGroup* defaultStateGroup = createStateGroup();
+		defaultStateGroup->bindBlendState(bs_id);
+		defaultStateGroup->bindSamplerState(ssid, ds::ShaderType::PIXEL);
+		defaultStateGroup->bindTexture(NO_RID, ds::ShaderType::PIXEL, 0);
+		defaultStateGroup->bindShader(NO_RID);
+		defaultStateGroup->bindIndexBuffer(NO_RID);
+		defaultStateGroup->bindVertexBuffer(NO_RID);
+		defaultStateGroup->bindRasterizerState(rasterizerStateID);
+		defaultStateGroup->sortBindings();
 		return true;
 	}
 
@@ -3343,6 +3366,15 @@ namespace ds {
 	// -----------------------------------------------------------------
 	// StateGroup
 	// -----------------------------------------------------------------
+	enum PipielineStage {
+		PLS_IA, // input assembler
+		PLS_VS, // vertex shader
+		PLS_GS, // geometry shader
+		PLS_RS, // rasterizer
+		PLS_PS, // pixel shader
+		PLS_OM  // output merger
+	};
+
 	StateGroup* createStateGroup() {
 		StateGroup* sg = new StateGroup();
 		_ctx->_groups.push_back(sg);
@@ -3355,11 +3387,13 @@ namespace ds {
 	DrawItem* compile(const DrawCommand cmd, StateGroup* groups[], int num) {
 		DrawItem* item = new DrawItem;
 		item->command = cmd;
-		item->groups = new StateGroup*[num];
+		item->groups = new StateGroup*[num + 1];
 		for (int i = 0; i < num; ++i) {
+			groups[i]->sortBindings();
 			item->groups[i] = groups[i];
 		}
-		item->num = num;
+		item->groups[num] = _ctx->defaultStateGroup;
+		item->num = num + 1;
 		return item;
 	}
 
@@ -3369,26 +3403,15 @@ namespace ds {
 	DrawItem* compile(const DrawCommand cmd, StateGroup* group) {
 		DrawItem* item = new DrawItem;
 		item->command = cmd;
-		item->groups = new StateGroup*[1];
+		item->groups = new StateGroup*[2];
+		group->sortBindings();
+		// FIXME: sort by stages
 		item->groups[0] = group;
+		item->groups[1] = _ctx->defaultStateGroup;
 		item->num = 1;
 		return item;
 	}
 
-	/*
-	enum StateGroupItemType {
-		SGI_SET_LAYOUT,
-		SGI_SET_CONSTANTBUFFER,
-		SGI_SET_SAMPLER_STATE,
-		SGI_SET_BLEND_STATE,
-		SGI_SET_VERTEX_BUFFER,
-		SGI_SET_SHADER,
-		SGI_SET_INDEX_BUFFER,
-		SGI_SET_TEXTURE,
-		SGI_SET_RT,
-		SGI_SET_VERTEX_BUFFERS
-	};
-	*/
 	struct ConstantBufferBindData {
 		RID rid;
 		ShaderType type;
@@ -3501,6 +3524,11 @@ namespace ds {
 		*d = rid;
 	}
 
+	void StateGroup::bindRasterizerState(RID rid) {
+		RID* d = (RID*)allocate(rid, sizeof(RID));
+		*d = rid;
+	}
+
 	void StateGroup::bindSamplerState(RID rid, ShaderType type) {
 		SamplerStateBindData* d = (SamplerStateBindData*)allocate(rid, sizeof(SamplerStateBindData));
 		d->rid = rid;
@@ -3513,6 +3541,10 @@ namespace ds {
 		d->type = type;
 		d->data = data;
 		d->slot = 0;
+	}
+
+	void StateGroup::sortBindings() {
+		_mappings = new uint32_t[_num];
 	}
 
 	void StateGroup::apply(PipelineState* pipelineState) {
@@ -3535,6 +3567,13 @@ namespace ds {
 				RID* d = (RID*)(_data + _indices[i]);
 				if (!pipelineState->isUsed(*d)) {
 					setBlendState(*d);
+					pipelineState->add(*d);
+				}
+			}
+			else if (_types[i] == ResourceType::RT_RASTERIZER_STATE) {
+				RID* d = (RID*)(_data + _indices[i]);
+				if (!pipelineState->isUsed(*d)) {
+					setRasterizerState(*d);
 					pipelineState->add(*d);
 				}
 			}
