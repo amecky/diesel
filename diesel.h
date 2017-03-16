@@ -757,14 +757,6 @@ namespace ds {
 		int size;
 	};
 
-	struct DrawCommand {
-		uint32_t size;
-		DrawType drawType;
-		PrimitiveTypes topology;
-		uint32_t instances;
-	};
-
-	
 	// ---------------------------------------------------
 	// Render settings 
 	// ---------------------------------------------------
@@ -784,8 +776,22 @@ namespace ds {
 		uint16_t fps;
 	} DrawStatistics;
 
-	class StateGroup {
+	// ---------------------------------------------------
+	// Draw Command
+	// ---------------------------------------------------
+	struct DrawCommand {
+		uint32_t size;
+		DrawType drawType;
+		PrimitiveTypes topology;
+		uint32_t instances;
+	};
 
+	class PipelineState;
+	// ---------------------------------------------------
+	// State group
+	// ---------------------------------------------------	
+	class StateGroup {
+	// FIXME: create default settings!! Every StateGroup MUST be complete
 	public:
 		StateGroup() : _types(0) , _indices(0) , _num(0) , _data(0) , _total(0) {}
 		~StateGroup() {
@@ -799,10 +805,9 @@ namespace ds {
 				delete[] _indices;
 			}
 		}
-		void apply();
+		void apply(PipelineState* state);
 		void bindLayout(RID rid);
-		void bindConstantBuffer(RID rid, ShaderType type);
-		void bindConstantBuffer(RID rid, ShaderType type, void* data);
+		void bindConstantBuffer(RID rid, ShaderType type, int slot = 0, void* data = 0);
 		void bindBlendState(RID rid);
 		void bindSamplerState(RID rid, ShaderType type);
 		void bindVertexBuffer(RID rid);
@@ -812,7 +817,7 @@ namespace ds {
 		void bindTexture(RID rid, ShaderType type, int slot);
 		void bindTextureFromRenderTarget(RID rtID, ShaderType type, int slot);
 	private:
-		void* allocate(uint16_t type, uint16_t size);
+		void* allocate(RID rid, uint16_t size);
 		int* _types;
 		int* _indices;
 		int _num;
@@ -821,17 +826,43 @@ namespace ds {
 		int _dataSize;
 	};
 
+	// ---------------------------------------------------
+	// Draw Item
+	// ---------------------------------------------------
 	struct DrawItem {
 		DrawCommand command;
 		StateGroup** groups;
 		int num;
 	};
 
+	struct RenderPass {
+		matrix viewMatrix;
+		matrix projectionMatrix;
+		matrix viewProjectionMatrix;
+		RID rts[4];
+		int numRenderTargets;
+		//DepthTarget depthTarget;
+		DepthBufferState depthState;
+	};
+
+	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state);
+
+	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state, RID* renderTargets,int numRenderTargets);
+
+	RenderPass* getRenderPass(RID rid);
+
+	// items, groups, passes
 	DrawItem* compile(const DrawCommand cmd, StateGroup* groups[], int num);
 
 	DrawItem* compile(const DrawCommand cmd, StateGroup* group);
 
 	StateGroup* createStateGroup();
+
+	void submit(const DrawCommand& cmd, StateGroup* group);
+
+	void submit(DrawItem* item);
+
+	void submit(RID renderPass, DrawItem* item);
 
 	bool init(const RenderSettings& settings);
 
@@ -904,10 +935,6 @@ namespace ds {
 
 	// drawing
 	
-	void submit(const DrawCommand& cmd, StateGroup* group);
-
-	void submit(DrawItem* item);
-
 	void begin();
 
 	void end();
@@ -1047,7 +1074,9 @@ namespace ds {
 		RT_SHADER,
 		RT_SRV,
 		RT_RASTERIZER_STATE,
-		RT_RENDER_TARGET
+		RT_RENDER_TARGET,
+		RT_RENDER_PASS,
+		RT_INSTANCED_VERTEX_BUFFER
 	};
 
 	const char* RESOURCE_NAMES[] {
@@ -1163,6 +1192,85 @@ namespace ds {
 		//LOG << "refresh: " << refreshRate.Numerator << " " << refreshRate.Denominator;
 		return true;
 	}
+
+	// ------------------------------------------------------
+	// RID conversion
+	// ------------------------------------------------------
+	static uint16_t id_mask(RID rid) {
+		return rid & 0xffff;
+	}
+
+	static uint16_t type_mask(RID rid) {
+		return (rid << 16) & 0xffff;
+	}
+
+	// ------------------------------------------------------
+	// Internal pipeline state
+	// ------------------------------------------------------
+	class PipelineState {
+
+		struct PipelineStateEntry {
+			uint16_t type;
+			uint8_t slot;
+			uint8_t data;
+		};
+
+	public:
+		PipelineState() : _entries(0), _index(0), _capacity(0) {}
+		~PipelineState() {
+			if (_entries != 0) {
+				delete[] _entries;
+			}
+		}
+		void reset() {
+			_index = 0;
+		}
+		bool isUsed(RID rid) {
+			return isUsed(rid, 0, 0);
+		}
+		bool isUsed(RID rid, uint8_t slot, uint8_t data) {
+			int type = type_mask(rid);
+			for (int i = 0; i < _index; ++i) {
+				const PipelineStateEntry& e = _entries[i];
+				if (e.type == type && e.slot == slot && e.data == data) {
+					return true;
+				}
+			}
+			return false;
+		}
+		void add(RID rid) {
+			add(rid, 0, 0);
+		}
+		void add(RID rid, uint8_t slot, uint8_t data) {
+			if (!isUsed(rid, slot, data)) {
+				if ((_index + 1) > _capacity) {
+					alloc(_capacity * 2);
+				}
+				PipelineStateEntry& e = _entries[_index++];
+				e.type = type_mask(rid);
+				e.slot = slot;
+				e.data = data;
+			}
+		}
+	private:
+		void alloc(uint16_t newCapacity) {
+			if (_entries == 0) {
+				_capacity = 16;
+				_entries = new PipelineStateEntry[_capacity];
+				_index = 0;
+			}
+			else {
+				PipelineStateEntry* tmp = new PipelineStateEntry[newCapacity];
+				memcpy(tmp, _entries, _index*sizeof(PipelineStateEntry));
+				delete[] _entries;
+				_entries = tmp;
+				_capacity = newCapacity;
+			}
+		}
+		PipelineStateEntry* _entries;
+		uint16_t _capacity;
+		uint16_t _index;
+	};
 
 	// ------------------------------------------------------
 	// Shader
@@ -1465,6 +1573,21 @@ namespace ds {
 		}
 	};
 
+	class RenderPassResource : public AbstractResource<RenderPass*> {
+
+	public:
+		RenderPassResource(RenderPass* t) : AbstractResource(t) {}
+		virtual ~RenderPassResource() {}
+		void release() {
+			if (_data != 0) {				
+				delete _data;
+			}
+		}
+		const ResourceType getType() const {
+			return RT_RENDER_TARGET;
+		}
+	};
+
 	// ------------------------------------------------------
 	// Internal context
 	// ------------------------------------------------------
@@ -1539,17 +1662,11 @@ namespace ds {
 		InputKey inputKeys[256];
 		int numInputKeys;
 
+		PipelineState* pipelineState;
+
 	} InternalContext;
 
 	static InternalContext* _ctx;
-
-	static uint16_t id_mask(RID rid) {
-		return rid & 0xffff;
-	}
-
-	static uint16_t type_mask(RID rid) {
-		return (rid << 16) & 0xffff;
-	}
 
 	static void assert_resource(RID rid, ResourceType type) {
 		XASSERT(type_mask(rid) == type,"The selected resource %d is not the required type %s", rid, RESOURCE_NAMES[type]);
@@ -1910,7 +2027,7 @@ namespace ds {
 		float screenAspect = (float)_ctx->screenWidth / (float)_ctx->screenHeight;
 		_ctx->projectionMatrix = matPerspectiveFovLH(fieldOfView, screenAspect, 0.01f, 100.0f);
 		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
-		
+		_ctx->pipelineState = new PipelineState;
 		return true;
 	}
 
@@ -2178,6 +2295,7 @@ namespace ds {
 	// ------------------------------------------------------
 	void shutdown() {
 		if (_ctx != 0) {
+			delete _ctx->pipelineState;
 			for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
 				_ctx->_resources[i]->release();
 				delete _ctx->_resources[i];
@@ -2425,22 +2543,22 @@ namespace ds {
 	// ------------------------------------------------------
 	// set vertex shader constant buffer
 	// ------------------------------------------------------
-	static void setConstantBuffer(RID rid,ShaderType type) {
+	static void setConstantBuffer(RID rid,ShaderType type, int slot = 0) {
 		uint16_t ridx = getResourceIndex(rid, RT_CONSTANT_BUFFER);
 		if (ridx != NO_RID) {
 			ConstantBufferResource* cbr = (ConstantBufferResource*)_ctx->_resources[ridx];
 			ID3D11Buffer* buffer = cbr->get();
 			switch (type) {
-				case ShaderType::VERTEX: _ctx->d3dContext->VSSetConstantBuffers(0, 1, &buffer); break;
-				case ShaderType::PIXEL: _ctx->d3dContext->PSSetConstantBuffers(0, 1, &buffer); break;
-				case ShaderType::GEOMETRY: _ctx->d3dContext->GSSetConstantBuffers(0, 1, &buffer); break;
+				case ShaderType::VERTEX: _ctx->d3dContext->VSSetConstantBuffers(slot, 1, &buffer); break;
+				case ShaderType::PIXEL: _ctx->d3dContext->PSSetConstantBuffers(slot, 1, &buffer); break;
+				case ShaderType::GEOMETRY: _ctx->d3dContext->GSSetConstantBuffers(slot, 1, &buffer); break;
 			}
 		}
 		else {
 			switch (type) {
-				case ShaderType::VERTEX: _ctx->d3dContext->VSSetConstantBuffers(0, 1, NULL); break;
-				case ShaderType::PIXEL: _ctx->d3dContext->PSSetConstantBuffers(0, 1, NULL); break;
-				case ShaderType::GEOMETRY: _ctx->d3dContext->GSSetConstantBuffers(0, 1, NULL); break;
+				case ShaderType::VERTEX: _ctx->d3dContext->VSSetConstantBuffers(slot, 1, NULL); break;
+				case ShaderType::PIXEL: _ctx->d3dContext->PSSetConstantBuffers(slot, 1, NULL); break;
+				case ShaderType::GEOMETRY: _ctx->d3dContext->GSSetConstantBuffers(slot, 1, NULL); break;
 			}
 		}
 	}
@@ -2766,8 +2884,9 @@ namespace ds {
 	// submit draw command
 	// ------------------------------------------------------
 	void submit(DrawItem* item) {
+		_ctx->pipelineState->reset();
 		for (int i = 0; i < item->num; ++i) {
-			item->groups[i]->apply();
+			item->groups[i]->apply(_ctx->pipelineState);
 		}
 		const DrawCommand& cmd = item->command;
 		_ctx->d3dContext->IASetPrimitiveTopology(PRIMITIVE_TOPOLOGIES[cmd.topology]);
@@ -2779,7 +2898,8 @@ namespace ds {
 	}
 
 	void submit(const DrawCommand& cmd, StateGroup* group) {
-		group->apply();
+		_ctx->pipelineState->reset();
+		group->apply(_ctx->pipelineState);
 		_ctx->d3dContext->IASetPrimitiveTopology(PRIMITIVE_TOPOLOGIES[cmd.topology]);
 		switch (cmd.drawType) {
 			case DT_VERTICES: _ctx->d3dContext->Draw(cmd.size, 0); break;
@@ -3255,6 +3375,7 @@ namespace ds {
 		return item;
 	}
 
+	/*
 	enum StateGroupItemType {
 		SGI_SET_LAYOUT,
 		SGI_SET_CONSTANTBUFFER,
@@ -3267,10 +3388,11 @@ namespace ds {
 		SGI_SET_RT,
 		SGI_SET_VERTEX_BUFFERS
 	};
-
+	*/
 	struct ConstantBufferBindData {
 		RID rid;
 		ShaderType type;
+		int slot;
 		void* data;
 	};
 
@@ -3290,7 +3412,8 @@ namespace ds {
 		RID instanceBuffer;
 	};
 
-	void* StateGroup::allocate(uint16_t type, uint16_t size) {
+	void* StateGroup::allocate(RID rid, uint16_t size) {
+		uint16_t type = type_mask(rid);
 		if ((_num + 1 ) > _total) {
 			if (_types == 0) {
 				_types = new int[16];
@@ -3334,127 +3457,158 @@ namespace ds {
 	}
 
 	void StateGroup::bindShader(RID rid) {
-		RID* d = (RID*)allocate(SGI_SET_SHADER, sizeof(RID));
+		RID* d = (RID*)allocate(rid, sizeof(RID));
 		*d = rid;
 	}
 
 	void StateGroup::bindInstancedVertexBuffer(RID rid, RID instanceBuffer) {
-		InstancedBindData* d = (InstancedBindData*)allocate(SGI_SET_VERTEX_BUFFERS, sizeof(InstancedBindData));
+		InstancedBindData* d = (InstancedBindData*)allocate(rid, sizeof(InstancedBindData));
 		d->rid = rid;
 		d->instanceBuffer = instanceBuffer;
 	}
 
 	void StateGroup::bindVertexBuffer(RID rid) {
-		RID* d = (RID*)allocate(SGI_SET_VERTEX_BUFFER, sizeof(RID));
+		RID* d = (RID*)allocate(rid, sizeof(RID));
 		*d = rid;
 	}
 
 	void StateGroup::bindLayout(RID rid) {
-		RID* d = (RID*)allocate(SGI_SET_LAYOUT,sizeof(RID));
+		RID* d = (RID*)allocate(rid,sizeof(RID));
 		*d = rid;
 	}
 
 	void StateGroup::bindTextureFromRenderTarget(RID rtID, ShaderType type, int slot) {
-		TextureBindData* d = (TextureBindData*)allocate(SGI_SET_RT, sizeof(TextureBindData));
+		TextureBindData* d = (TextureBindData*)allocate(rtID, sizeof(TextureBindData));
 		d->rid = rtID;
 		d->type = type;
 		d->slot = slot;
 	}
 
 	void StateGroup::bindTexture(RID rid, ShaderType type, int slot) {
-		TextureBindData* d = (TextureBindData*)allocate(SGI_SET_TEXTURE, sizeof(TextureBindData));
+		TextureBindData* d = (TextureBindData*)allocate(rid, sizeof(TextureBindData));
 		d->rid = rid;
 		d->type = type;
 		d->slot = slot;
 	}
 
 	void StateGroup::bindIndexBuffer(RID rid) {
-		RID* d = (RID*)allocate(SGI_SET_INDEX_BUFFER, sizeof(RID));
+		RID* d = (RID*)allocate(rid, sizeof(RID));
 		*d = rid;
 	}
 
 	void StateGroup::bindBlendState(RID rid) {
-		RID* d = (RID*)allocate(SGI_SET_BLEND_STATE, sizeof(RID));
+		RID* d = (RID*)allocate(rid, sizeof(RID));
 		*d = rid;
 	}
 
 	void StateGroup::bindSamplerState(RID rid, ShaderType type) {
-		SamplerStateBindData* d = (SamplerStateBindData*)allocate(SGI_SET_SAMPLER_STATE, sizeof(SamplerStateBindData));
+		SamplerStateBindData* d = (SamplerStateBindData*)allocate(rid, sizeof(SamplerStateBindData));
 		d->rid = rid;
 		d->type = type;
 	}
 
-	void StateGroup::bindConstantBuffer(RID rid, ShaderType type) {
-		ConstantBufferBindData* d = (ConstantBufferBindData*)allocate(SGI_SET_CONSTANTBUFFER, sizeof(ConstantBufferBindData));
-		d->rid = rid;
-		d->type = type;
-		d->data = 0;
-	}
-
-	void StateGroup::bindConstantBuffer(RID rid, ShaderType type, void* data) {
-		ConstantBufferBindData* d = (ConstantBufferBindData*)allocate(SGI_SET_CONSTANTBUFFER, sizeof(ConstantBufferBindData));
+	void StateGroup::bindConstantBuffer(RID rid, ShaderType type, int slot, void* data) {
+		ConstantBufferBindData* d = (ConstantBufferBindData*)allocate(rid, sizeof(ConstantBufferBindData));
 		d->rid = rid;
 		d->type = type;
 		d->data = data;
+		d->slot = 0;
 	}
 
-	void StateGroup::apply() {
-		int used[16] = { 0 };
+	void StateGroup::apply(PipelineState* pipelineState) {
 		for (int i = 0; i < _num; ++i) {
-			if (_types[i] == SGI_SET_LAYOUT && used[SGI_SET_LAYOUT] == 0) {
+			if (_types[i] == ResourceType::RT_VERTEX_DECLARATION) {
 				RID* d = (RID*)(_data + _indices[i]);
-				setVertexDeclaration(*d);
-				used[SGI_SET_LAYOUT] = 1;
+				if (!pipelineState->isUsed(*d)) {
+					setVertexDeclaration(*d);
+					pipelineState->add(*d);
+				}
 			}
-			else if (_types[i] == SGI_SET_SAMPLER_STATE && used[SGI_SET_SAMPLER_STATE] == 0) {
+			else if (_types[i] == ResourceType::RT_SAMPLER_STATE) {
 				SamplerStateBindData* d = (SamplerStateBindData*)(_data + _indices[i]);
-				setSamplerState(d->rid, d->type);
-				used[SGI_SET_SAMPLER_STATE] = 1;
+				if (!pipelineState->isUsed(d->rid, d->type,0)) {
+					setSamplerState(d->rid, d->type);
+					pipelineState->add(d->rid, d->type, 0);
+				}
 			}
-			else if (_types[i] == SGI_SET_BLEND_STATE && used[SGI_SET_BLEND_STATE] == 0) {
+			else if (_types[i] == ResourceType::RT_BLENDSTATE) {
 				RID* d = (RID*)(_data + _indices[i]);
-				setBlendState(*d);
-				used[SGI_SET_BLEND_STATE] = 1;
+				if (!pipelineState->isUsed(*d)) {
+					setBlendState(*d);
+					pipelineState->add(*d);
+				}
 			}
-			else if (_types[i] == SGI_SET_VERTEX_BUFFER && used[SGI_SET_VERTEX_BUFFER] == 0) {
+			else if (_types[i] == ResourceType::RT_VERTEX_BUFFER) {
 				RID* d = (RID*)(_data + _indices[i]);
-				setVertexBuffer(*d);
-				used[SGI_SET_VERTEX_BUFFER] = 1;
+				if (!pipelineState->isUsed(*d)) {
+					setVertexBuffer(*d);
+					pipelineState->add(*d);
+				}
 			}
-			else if (_types[i] == SGI_SET_VERTEX_BUFFERS && used[SGI_SET_VERTEX_BUFFERS] == 0) {
+			else if (_types[i] == ResourceType::RT_INSTANCED_VERTEX_BUFFER) {
 				InstancedBindData* d = (InstancedBindData*)(_data + _indices[i]);
 				setVertexBuffer(d->rid,d->instanceBuffer);
-				used[SGI_SET_VERTEX_BUFFERS] = 1;
 			}
-			else if (_types[i] == SGI_SET_INDEX_BUFFER && used[SGI_SET_INDEX_BUFFER] == 0) {
+			else if (_types[i] == ResourceType::RT_INDEX_BUFFER) {
 				RID* d = (RID*)(_data + _indices[i]);
-				setIndexBuffer(*d);
-				used[SGI_SET_INDEX_BUFFER] = 1;
-			}
-			else if (_types[i] == SGI_SET_SHADER && used[SGI_SET_SHADER] == 0) {
-				RID* d = (RID*)(_data + _indices[i]);
-				setShader(*d);
-				used[SGI_SET_SHADER] = 1;
-			}
-			else if (_types[i] == SGI_SET_TEXTURE && used[SGI_SET_TEXTURE] == 0) {
-				TextureBindData* d = (TextureBindData*)(_data + _indices[i]);
-				setTexture(d->rid, d->type, d->slot);
-				used[SGI_SET_TEXTURE] = 1;
-			}
-			else if (_types[i] == SGI_SET_RT && used[SGI_SET_RT] == 0) {
-				TextureBindData* d = (TextureBindData*)(_data + _indices[i]);
-				setTextureFromRenderTarget(d->rid, d->type, d->slot);
-				used[SGI_SET_RT] = 1;
-			}
-			else if (_types[i] == SGI_SET_CONSTANTBUFFER ) {//&& used[SGI_SET_CONSTANTBUFFER] == 0) {
-				ConstantBufferBindData* d = (ConstantBufferBindData*)(_data + _indices[i]);
-				if (d->data != 0) {
-					updateConstantBuffer(d->rid, d->data);
+				if (!pipelineState->isUsed(*d)) {
+					setIndexBuffer(*d);
+					pipelineState->add(*d);
 				}
-				setConstantBuffer(d->rid, d->type);
-				used[SGI_SET_CONSTANTBUFFER] = 1;
+			}
+			else if (_types[i] == ResourceType::RT_SHADER) {
+				RID* d = (RID*)(_data + _indices[i]);
+				if (!pipelineState->isUsed(*d)) {
+					setShader(*d);
+				}
+			}
+			else if (_types[i] == ResourceType::RT_SRV) {
+				TextureBindData* d = (TextureBindData*)(_data + _indices[i]);
+				if (!pipelineState->isUsed(d->rid, d->type, d->slot)) {
+					setTexture(d->rid, d->type, d->slot);
+					pipelineState->add(d->rid, d->type, d->slot);
+				}
+			}
+			else if (_types[i] == ResourceType::RT_RENDER_TARGET) {
+				TextureBindData* d = (TextureBindData*)(_data + _indices[i]);
+				if (!pipelineState->isUsed(d->rid, d->type, d->slot)) {
+					setTextureFromRenderTarget(d->rid, d->type, d->slot);
+					pipelineState->add(d->rid, d->type, d->slot);
+				}
+			}
+			else if (_types[i] == ResourceType::RT_CONSTANT_BUFFER) {
+				ConstantBufferBindData* d = (ConstantBufferBindData*)(_data + _indices[i]);
+				if (!pipelineState->isUsed(d->rid, d->type, d->slot)) {
+					if (d->data != 0) {
+						updateConstantBuffer(d->rid, d->data);
+					}
+					setConstantBuffer(d->rid, d->type, d->slot);
+					pipelineState->add(d->rid, d->type, d->slot);
+				}
 			}
 		}
+	}
+
+	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state) {
+		RenderPass* rp = new RenderPass();
+		rp->viewMatrix = viewMatrix;
+		rp->projectionMatrix = projectionMatrix;
+		rp->viewProjectionMatrix = viewMatrix * projectionMatrix;
+		rp->numRenderTargets = 0;
+		rp->depthState = state;
+		RenderPassResource* res = new RenderPassResource(rp);
+		return addResource(res, RT_RENDER_PASS);
+	}
+
+	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state, RenderTarget* renderTargets, int numRenderTargets) {
+		RenderPass* rp = new RenderPass();
+		rp->viewMatrix = viewMatrix;
+		rp->projectionMatrix = projectionMatrix;
+		rp->viewProjectionMatrix = viewMatrix * projectionMatrix;
+		rp->numRenderTargets = 0;
+		rp->depthState = state;
+		RenderPassResource* res = new RenderPassResource(rp);
+		return addResource(res, RT_RENDER_PASS);
 	}
 
 
@@ -3670,6 +3824,10 @@ namespace ds {
 		return vec3(tmp.x, tmp.y, tmp.z);
 	}
 
+	// ---------------------------------------
+	//
+	// Input handling
+	//
 	// ---------------------------------------
 	void addInputCharacter(char c) {
 		if (c >= 32) {

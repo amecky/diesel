@@ -30,7 +30,7 @@ void Grid::create(ds::vec3* positions, int numCells, RID shaderID, RID textureID
 	_gridStates->bindSamplerState(samplerState, ds::ShaderType::PIXEL);
 	_gridStates->bindShader(shaderID);
 	_gridStates->bindTexture(textureID, ds::ShaderType::PIXEL, 0);
-	_gridStates->bindConstantBuffer(bufferID,ds::ShaderType::VERTEX, &_constantBuffer);
+	_gridStates->bindConstantBuffer(bufferID,ds::ShaderType::VERTEX, 0, &_constantBuffer);
 	drawCmd = { 6, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
 }
 

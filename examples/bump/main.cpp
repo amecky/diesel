@@ -199,8 +199,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	ds::StateGroup* sg = ds::createStateGroup();
 	sg->bindLayout(rid);
-	sg->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, &constantBuffer);
-	sg->bindConstantBuffer(cbid, ds::ShaderType::PIXEL, &constantBuffer);
+	sg->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, 0, &constantBuffer);
+	sg->bindConstantBuffer(cbid, ds::ShaderType::PIXEL, 0, &constantBuffer);
 	sg->bindBlendState(bs_id);
 	sg->bindSamplerState(ssid, ds::ShaderType::PIXEL);
 	sg->bindVertexBuffer(cubeBuffer);

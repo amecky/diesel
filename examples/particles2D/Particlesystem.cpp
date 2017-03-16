@@ -40,8 +40,8 @@ Particlesystem::Particlesystem(ParticlesystemDescriptor descriptor) : _descripto
 	ds::StateGroup* basicGroup = ds::createStateGroup();
 	basicGroup->bindLayout(vertexDeclaration);
 	basicGroup->bindShader(gridShader);
-	basicGroup->bindConstantBuffer(constantBuffer, ds::ShaderType::VERTEX, &_constantBuffer);
-	basicGroup->bindConstantBuffer(constantBuffer, ds::ShaderType::GEOMETRY, &_constantBuffer);
+	basicGroup->bindConstantBuffer(constantBuffer, ds::ShaderType::VERTEX, 0, &_constantBuffer);
+	basicGroup->bindConstantBuffer(constantBuffer, ds::ShaderType::GEOMETRY, 0, &_constantBuffer);
 	basicGroup->bindBlendState(blendState);
 	//basicGroup->bindSamplerState(ssid, ds::ShaderType::PIXEL);
 	basicGroup->bindTexture(descriptor.textureID, ds::ShaderType::PIXEL, 0);

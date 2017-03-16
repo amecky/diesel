@@ -88,7 +88,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::StateGroup* staticGroup = ds::createStateGroup();
 	staticGroup->bindLayout(rid);
 	staticGroup->bindIndexBuffer(indexBufferID);
-	staticGroup->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, &constantBuffer);
+	staticGroup->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, 0, &constantBuffer);
 	staticGroup->bindShader(blockShaderID);
 	staticGroup->bindVertexBuffer(floorBuffer);
 	staticGroup->bindBlendState(bs_id);
@@ -109,7 +109,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ppGroup->bindSamplerState(ssid, ds::ShaderType::PIXEL);
 	//ppGroup->bindRasterizerState(rasterizerStateID);
 	ppBuffer.data = ds::vec4(abs(sin(t*0.5f)), 0.0f, 0.0f, 0.0f);
-	ppGroup->bindConstantBuffer(ppCBID,ds::ShaderType::PIXEL, &ppBuffer);
+	ppGroup->bindConstantBuffer(ppCBID,ds::ShaderType::PIXEL, 0, &ppBuffer);
 
 	ds::DrawCommand ppCmd = { 3, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::TRIANGLE_LIST };
 	ds::DrawItem* ppItem = ds::compile(ppCmd, ppGroup);

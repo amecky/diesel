@@ -198,7 +198,7 @@ vec2 map(in vec3 pos)
 	res = opU(res, vec2(sdBox(pos - vec3(1.0, 0.25, 0.0), vec3(0.25, 0.25, 0.25)), 3.0));	
 	res = opU(res, vec2(udRoundBox(pos - vec3(1.0, 0.25, 1.0), vec3(0.15, 0.15, 0.15), 0.1), 41.0));
 	res = opU(res, vec2(sdTorus(pos - vec3(0.0, 0.25, 1.0), vec2(0.20, 0.05)), 25.0));
-	
+	/*
 	res = opU(res, vec2(sdCapsule(pos, vec3(-1.3, 0.10, -0.1), vec3(-0.8, 0.50, 0.2), 0.1), 31.9));
 	res = opU(res, vec2(sdTriPrism(pos - vec3(-1.0, 0.25, -1.0), vec2(0.25, 0.05)), 43.5));
 	res = opU(res, vec2(sdCylinder(pos - vec3(1.0, 0.30, -1.0), vec2(0.1, 0.2)), 8.0));
@@ -216,7 +216,7 @@ vec2 map(in vec3 pos)
 	res = opU(res, vec2(0.5*sdTorus(opTwist(pos - vec3(-2.0, 0.25, 2.0)), vec2(0.20, 0.05)), 46.7));
 	res = opU(res, vec2(sdConeSection(pos - vec3(0.0, 0.35, -2.0), 0.15, 0.2, 0.1), 13.67));
 	res = opU(res, vec2(sdEllipsoid(pos - vec3(1.0, 0.35, -2.0), vec3(0.15, 0.2, 0.05)), 43.17));
-	
+	*/
 	return res;
 }
 

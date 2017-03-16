@@ -192,7 +192,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::StateGroup* basicGroup = ds::createStateGroup();
 	basicGroup->bindLayout(rid);
 	basicGroup->bindShader(fillShader);
-	basicGroup->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, &constantBuffer);
+	basicGroup->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, 0,&constantBuffer);
 	basicGroup->bindBlendState(bs_id);
 	basicGroup->bindSamplerState(ssid, ds::ShaderType::PIXEL);
 	basicGroup->bindTexture(cubeTextureID, ds::ShaderType::PIXEL, 0);

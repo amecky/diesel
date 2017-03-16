@@ -147,8 +147,8 @@ int main(const char** args) {
 
 	ds::StateGroup* basicGroup = ds::createStateGroup();
 	basicGroup->bindLayout(rid);
-	basicGroup->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, &constantBuffer);
-	basicGroup->bindConstantBuffer(lightBufferID, ds::ShaderType::PIXEL, &lightBuffer);
+	basicGroup->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, 0, &constantBuffer);
+	basicGroup->bindConstantBuffer(lightBufferID, ds::ShaderType::PIXEL, 0, &lightBuffer);
 	basicGroup->bindBlendState(bs_id);
 	basicGroup->bindSamplerState(ssid, ds::ShaderType::PIXEL);
 	basicGroup->bindShader(shaderID);

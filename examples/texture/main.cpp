@@ -115,11 +115,19 @@ int main(int argc, char *argv[]) {
 	ds::vec3 vp = ds::vec3(0.0f, 2.0f, -6.0f);
 	ds::setViewPosition(vp);
 
+	RID basicPass = ds::createRenderPass(ds::getViewMatrix(), ds::getProjectionMatrix(), ds::DepthBufferState::ENABLED);
+	// create orthographic render pass
+	ds::matrix orthoView = ds::matIdentity();
+	ds::matrix orthoProjection = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
+	RID orthoPass = ds::createRenderPass(orthoView, orthoProjection, ds::DepthBufferState::DISABLED);
+
+	RID pipeline[] = { basicPass, orthoPass };
+
 	worldMatrix wm;
 
 	ds::StateGroup* basicGroup = ds::createStateGroup();
 	basicGroup->bindLayout(rid);
-	basicGroup->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, &constantBuffer);
+	basicGroup->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, 0, &constantBuffer);
 	basicGroup->bindBlendState(bs_id);
 	basicGroup->bindSamplerState(ssid, ds::ShaderType::PIXEL);
 	basicGroup->bindTexture(textureID, ds::ShaderType::PIXEL, 0);

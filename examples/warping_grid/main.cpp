@@ -39,7 +39,7 @@ ds::StateGroup* createStateGroup(int numVertices,CubeConstantBuffer* buffer) {
 	sg->bindLayout(rid);	
 	sg->bindBlendState(bs_id);
 	sg->bindShader(shaderID);
-	sg->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, buffer);
+	sg->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, 0, buffer);
 	sg->bindSamplerState(ssid, ds::ShaderType::PIXEL);
 	sg->bindVertexBuffer(vertexBufferID);
 	sg->bindIndexBuffer(indexBufferID);

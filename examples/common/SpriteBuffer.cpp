@@ -47,7 +47,7 @@ SpriteBuffer::SpriteBuffer(int maxSprites) : _max(maxSprites) {
 	sg->bindIndexBuffer(NO_RID);
 	sg->bindShader(shaderID);
 	//sg->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, &_constantBuffer);
-	sg->bindConstantBuffer(cbid, ds::ShaderType::GEOMETRY, &_constantBuffer);
+	sg->bindConstantBuffer(cbid, ds::ShaderType::GEOMETRY, 0, &_constantBuffer);
 	sg->bindBlendState(bs_id);
 	sg->bindSamplerState(ssid, ds::ShaderType::PIXEL);
 	
