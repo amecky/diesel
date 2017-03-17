@@ -11,6 +11,7 @@
 // second 16 bits define the reosurce type
 // ----------------------------------------------------
 typedef uint32_t RID;
+typedef uint32_t RBID;
 
 const uint16_t INVALID_RID = UINT16_MAX;
 const uint16_t NO_RID = UINT16_MAX - 1;
@@ -1003,18 +1004,30 @@ namespace ds {
 	const char* getLastError();
 
 	enum SpecialKeys {
-		DSKEY_Tab,       
-		DSKEY_LeftArrow, 
+		DSKEY_Tab,
+		DSKEY_LeftArrow,
 		DSKEY_RightArrow,
-		DSKEY_UpArrow,   
-		DSKEY_DownArrow, 
+		DSKEY_UpArrow,
+		DSKEY_DownArrow,
 		DSKEY_PageUp,
 		DSKEY_PageDown,
-		DSKEY_Home,      
-		DSKEY_End,       
-		DSKEY_Delete,    
-		DSKEY_Backspace, 
-		DSKEY_Enter,     
+		DSKEY_Home,
+		DSKEY_End,
+		DSKEY_Delete,
+		DSKEY_Backspace,
+		DSKEY_Enter,
+		DSKEY_F1,
+		DSKEY_F2,
+		DSKEY_F3,
+		DSKEY_F4,
+		DSKEY_F5,
+		DSKEY_F6,
+		DSKEY_F7,
+		DSKEY_F8,
+		DSKEY_F9,
+		DSKEY_F10,
+		DSKEY_F11,
+		DSKEY_F12,
 		DSKEY_UNKNOWN
 	};
 
@@ -1071,7 +1084,6 @@ namespace ds {
 
 	enum ResourceType {
 		RT_NONE,
-		RT_TEXTURE,
 		RT_VERTEX_DECLARATION,
 		RT_CONSTANT_BUFFER,
 		RT_INDEX_BUFFER,
@@ -1212,15 +1224,37 @@ namespace ds {
 	}
 
 	// ------------------------------------------------------
+	// RBID conversion
+	// resource binding identifier
+	// ------------------------------------------------------
+	static RBID convertReosurceBinding(uint16_t type, uint8_t slot, uint8_t data) {
+		uint32_t a = type;
+		uint32_t b = slot;
+		uint32_t c = data;
+		return a + (b << 16) + (c << 24);
+	}
+
+	static uint16_t getReosurceBindingType(RBID id) {
+		return id & 0xffff;
+	}
+
+	static uint8_t getReosurceBindingSlot(RBID id) {
+		uint32_t t = id >> 16;
+		return t & 0xff;
+	}
+
+	static uint8_t getReosurceBindingData(RBID id) {
+		uint32_t t = id >> 24;
+		return t & 0xff;
+	}
+	// ------------------------------------------------------
 	// Internal pipeline state
+	//
+	// This is used when the StateGroups are applied to keep
+	// track which resources have already been binded.
+	//
 	// ------------------------------------------------------
 	class PipelineState {
-
-		struct PipelineStateEntry {
-			uint16_t type;
-			uint8_t slot;
-			uint8_t data;
-		};
 
 	public:
 		PipelineState() : _entries(0), _index(0), _capacity(0) {}
@@ -1238,8 +1272,11 @@ namespace ds {
 		bool isUsed(RID rid, uint8_t slot, uint8_t data) {
 			int type = type_mask(rid);
 			for (int i = 0; i < _index; ++i) {
-				const PipelineStateEntry& e = _entries[i];
-				if (e.type == type && e.slot == slot && e.data == data) {
+				const RBID& e = _entries[i];
+				uint16_t rt = getReosurceBindingType(e);
+				uint8_t rs = getReosurceBindingSlot(e);
+				uint8_t rd = getReosurceBindingData(e);
+				if (rt == type && rs == slot && rd == data) {
 					return true;
 				}
 			}
@@ -1253,28 +1290,25 @@ namespace ds {
 				if ((_index + 1) > _capacity) {
 					alloc(_capacity * 2);
 				}
-				PipelineStateEntry& e = _entries[_index++];
-				e.type = type_mask(rid);
-				e.slot = slot;
-				e.data = data;
+				_entries[_index++] = convertReosurceBinding(type_mask(rid),slot,data);
 			}
 		}
 	private:
 		void alloc(uint16_t newCapacity) {
 			if (_entries == 0) {
 				_capacity = 16;
-				_entries = new PipelineStateEntry[_capacity];
+				_entries = new RBID[_capacity];
 				_index = 0;
 			}
 			else {
-				PipelineStateEntry* tmp = new PipelineStateEntry[newCapacity];
-				memcpy(tmp, _entries, _index*sizeof(PipelineStateEntry));
+				RBID* tmp = new RBID[newCapacity];
+				memcpy(tmp, _entries, _index*sizeof(RBID));
 				delete[] _entries;
 				_entries = tmp;
 				_capacity = newCapacity;
 			}
 		}
-		PipelineStateEntry* _entries;
+		RBID* _entries;
 		uint16_t _capacity;
 		uint16_t _index;
 	};
@@ -1288,10 +1322,8 @@ namespace ds {
 		ID3D11GeometryShader* geometryShader;
 		void* vertexShaderBuffer;
 		UINT bufferSize;
-		ID3D11SamplerState* samplerState;
-		ID3DBlob* geometryShaderBuffer;
 
-		Shader() : vertexShader(0), pixelShader(0), vertexShaderBuffer(0), geometryShader(0), samplerState(0) {}
+		Shader() : vertexShader(0), pixelShader(0), vertexShaderBuffer(0), geometryShader(0) {}
 
 	};
 
@@ -1595,6 +1627,15 @@ namespace ds {
 		}
 	};
 
+	struct BindedResource {
+		RID rid;
+		int slot;
+		int data;
+	};
+
+	bool operator == (const BindedResource& first, const BindedResource& other) {
+		return first.rid == other.rid && first.slot == other.slot && first.data == other.data;
+	}
 	// ------------------------------------------------------
 	// Internal context
 	// ------------------------------------------------------
@@ -1654,15 +1695,18 @@ namespace ds {
 		char errorBuffer[256];
 		bool broken;
 
+		BindedResource bindedResources[256];
+		uint8_t numBindedResources;
+
 		uint32_t selectedShaderId;
 		uint32_t selectedVertexDeclaration;
 		uint32_t selectedIndexBuffer;
 		uint32_t selectedVertexBuffer;
 		uint32_t selectedRasterizerState;
 
-		uint32_t selectedPSTextures[16];
-		uint32_t selectedVSTextures[16];
-		uint32_t selectedGSTextures[16];
+		//uint32_t selectedPSTextures[16];
+		//uint32_t selectedVSTextures[16];
+		//uint32_t selectedGSTextures[16];
 
 		DrawStatistics stats;
 
@@ -2042,15 +2086,16 @@ namespace ds {
 		RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 		RID rasterizerStateID = ds::createRasterizerState(ds::CullMode::BACK, ds::FillMode::SOLID, true, false, 0.0f, 0.0f);
 
-		StateGroup* defaultStateGroup = createStateGroup();
-		defaultStateGroup->bindBlendState(bs_id);
-		defaultStateGroup->bindSamplerState(ssid, ds::ShaderType::PIXEL);
-		defaultStateGroup->bindTexture(NO_RID, ds::ShaderType::PIXEL, 0);
-		defaultStateGroup->bindShader(NO_RID);
-		defaultStateGroup->bindIndexBuffer(NO_RID);
-		defaultStateGroup->bindVertexBuffer(NO_RID);
-		defaultStateGroup->bindRasterizerState(rasterizerStateID);
-		defaultStateGroup->sortBindings();
+		_ctx->defaultStateGroup = createStateGroup();
+		_ctx->defaultStateGroup->bindBlendState(bs_id);
+		_ctx->defaultStateGroup->bindSamplerState(ssid, ds::ShaderType::PIXEL);
+		_ctx->defaultStateGroup->bindTexture(NO_RID, ds::ShaderType::PIXEL, 0);
+		_ctx->defaultStateGroup->bindShader(NO_RID);
+		_ctx->defaultStateGroup->bindIndexBuffer(NO_RID);
+		_ctx->defaultStateGroup->bindVertexBuffer(NO_RID);
+		_ctx->defaultStateGroup->bindRasterizerState(rasterizerStateID);
+		_ctx->defaultStateGroup->sortBindings();
+
 		return true;
 	}
 
@@ -2313,6 +2358,21 @@ namespace ds {
 		return initializeDevice(settings);
 	}
 
+	static void resetBindedResources() {
+		_ctx->numBindedResources = 0;
+	}
+
+	static bool bindResource(RID rid, uint8_t slot, uint8_t data) {
+		BindedResource current = { rid,slot,data };
+		for (uint8_t i = 0; i < _ctx->numBindedResources; ++i) {
+			if (_ctx->bindedResources[i] == current) {
+				return false;
+			}
+		}
+		_ctx->bindedResources[_ctx->numBindedResources++] = current;
+		return true;
+	}
+
 	// ------------------------------------------------------
 	// shutdown
 	// ------------------------------------------------------
@@ -2373,16 +2433,12 @@ namespace ds {
 		_ctx->d3dContext->ClearDepthStencilView(_ctx->depthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 		_ctx->d3dContext->OMSetDepthStencilState(_ctx->depthEnabledStencilState, 1);
 		_ctx->depthBufferState = DepthBufferState::ENABLED;
+		resetBindedResources();
 		_ctx->selectedShaderId = INVALID_RID;
 		_ctx->selectedVertexDeclaration = INVALID_RID;
 		_ctx->selectedIndexBuffer = INVALID_RID;
 		_ctx->selectedRasterizerState = INVALID_RID;
 		_ctx->selectedVertexBuffer = INVALID_RID;
-		for (int i = 0; i < 16; ++i) {
-			_ctx->selectedVSTextures[i] = NO_RID;
-			_ctx->selectedPSTextures[i] = NO_RID;
-			_ctx->selectedGSTextures[i] = NO_RID;
-		}
 		_ctx->stats.indices = 0;
 		_ctx->stats.shaders = 0;
 		_ctx->stats.textures = 0;
@@ -3178,23 +3234,20 @@ namespace ds {
 		}
 		if (type == ShaderType::PIXEL) {
 			XASSERT(s->pixelShader != 0, "No pixel shader selected");
-			if (_ctx->selectedPSTextures[slot] != id_mask(rid)) {
+			if (bindResource(rid, slot, type)) {
 				_ctx->d3dContext->PSSetShaderResources(slot, 1, &srv);
-				_ctx->selectedPSTextures[slot] = ridx;
 			}
 		}
 		else if (type == ShaderType::VERTEX) {
 			XASSERT(s->vertexShader != 0, "No vertex shader selected");
-			if (_ctx->selectedVSTextures[slot] != id_mask(rid)) {
-				_ctx->d3dContext->VSSetShaderResources(slot, 1, &srv);
-				_ctx->selectedVSTextures[slot] = ridx;
+			if (bindResource(rid, slot, type)) {
+				_ctx->d3dContext->VSSetShaderResources(slot, 1, &srv);				
 			}
 		}
 		else if (type == ShaderType::GEOMETRY) {
 			XASSERT(s->geometryShader != 0, "No geometry shader selected");
-			if (_ctx->selectedGSTextures[slot] != id_mask(rid)) {
+			if (bindResource(rid, slot, type)) {
 				_ctx->d3dContext->GSSetShaderResources(slot, 1, &srv);
-				_ctx->selectedGSTextures[slot] = ridx;
 			}
 		}
 	}
@@ -3206,23 +3259,20 @@ namespace ds {
 		Shader* s = sRes->get();
 		if (type == ShaderType::PIXEL) {
 			XASSERT(s->pixelShader != 0, "No pixel shader selected");
-			if (_ctx->selectedPSTextures[slot] != ridx) {
+			if (bindResource(rtID,slot,type)) {
 				_ctx->d3dContext->PSSetShaderResources(slot, 1, &res->get()->srv);
-				_ctx->selectedPSTextures[slot] = ridx;
 			}
 		}
 		else if (type == ShaderType::VERTEX) {
 			XASSERT(s->vertexShader != 0, "No vertex shader selected");
-			if (_ctx->selectedVSTextures[slot] != ridx) {
+			if (bindResource(rtID, slot, type)) {
 				_ctx->d3dContext->VSSetShaderResources(slot, 1, &res->get()->srv);
-				_ctx->selectedVSTextures[slot] = ridx;
 			}
 		}
 		else if (type == ShaderType::GEOMETRY) {
 			XASSERT(s->geometryShader != 0, "No geometry shader selected");
-			if (_ctx->selectedGSTextures[slot] != ridx) {
+			if (bindResource(rtID, slot, type)) {
 				_ctx->d3dContext->GSSetShaderResources(slot, 1, &res->get()->srv);
-				_ctx->selectedGSTextures[slot] = ridx;
 			}
 		}
 	}
@@ -3889,6 +3939,18 @@ namespace ds {
 			case VK_END: value = SpecialKeys::DSKEY_End; break;
 			case VK_DELETE: value = SpecialKeys::DSKEY_Delete; break;
 			case VK_RETURN: value = SpecialKeys::DSKEY_Enter; break;
+			case VK_F1: value = SpecialKeys::DSKEY_F1; break;
+			case VK_F2: value = SpecialKeys::DSKEY_F2; break;
+			case VK_F3: value = SpecialKeys::DSKEY_F3; break;
+			case VK_F4: value = SpecialKeys::DSKEY_F4; break;
+			case VK_F5: value = SpecialKeys::DSKEY_F5; break;
+			case VK_F6: value = SpecialKeys::DSKEY_F6; break;
+			case VK_F7: value = SpecialKeys::DSKEY_F7; break;
+			case VK_F8: value = SpecialKeys::DSKEY_F8; break;
+			case VK_F9: value = SpecialKeys::DSKEY_F9; break;
+			case VK_F10: value = SpecialKeys::DSKEY_F10; break;
+			case VK_F11: value = SpecialKeys::DSKEY_F11; break;
+			case VK_F12: value = SpecialKeys::DSKEY_F12; break;
 		}
 		if (value != SpecialKeys::DSKEY_UNKNOWN) {
 			InputKey& k = _ctx->inputKeys[_ctx->numInputKeys++];

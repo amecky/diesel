@@ -1,3 +1,4 @@
+
 StateGroupMapping
 
 struct StageMapping {

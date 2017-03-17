@@ -40,11 +40,42 @@ RID loadImage(const char* name) {
 	return textureID;
 }
 
+uint32_t convert(uint16_t type, uint8_t slot, uint8_t data) {
+	uint32_t a = type;
+	uint32_t b = slot;
+	uint32_t c = data;
+	return a + (b << 16) + (c << 24);
+}
+
+uint16_t getType(uint32_t id) {
+	return id & 0xffff;
+}
+
+uint8_t getSlot(uint32_t id) {
+	uint32_t t = id >> 16;
+	return t & 0xff;
+}
+
+uint8_t getData(uint32_t id) {
+	uint32_t t = id >> 24;
+	return t & 0xff;
+}
+
+
 // ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------
 //int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
 int main(int argc, char *argv[]) {
+
+
+	uint32_t ttt = convert(12, 34, 6);
+	uint16_t tttt = getType(ttt);
+	printf("type: %d\n", tttt);
+	uint8_t aaa = getSlot(ttt);
+	printf("slot: %d\n", aaa);
+	uint8_t bbb = getData(ttt);
+	printf("data: %d\n", bbb);
 
 	ds::vec3 positions[24];
 	ds::vec2 uvs[24];
@@ -83,7 +114,6 @@ int main(int argc, char *argv[]) {
 
 	RID textureID = loadImage("..\\common\\cube_map.png");
 	RID cubeTextureID = loadImage("..\\common\\grid.png");
-	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 	
 	ds::ShaderDescriptor desc[] = {
 		{ ds::ShaderType::VERTEX, "..\\common\\Textured_vs.cso" },
@@ -92,14 +122,16 @@ int main(int argc, char *argv[]) {
 
 	RID gridShader = ds::createShader(desc, 2);
 
+	float gridWidth = 3.0f;
+	float gridHeight = 3.0f;
 	Grid grid;
 	ds::vec3 gridPositions[] = {
-		ds::vec3(-4.0f, -1.0f, -3.5f),
-		ds::vec3(-4.0f, -1.0f,  4.5f),
-		ds::vec3(4.0f, -1.0f,  4.5f),
-		ds::vec3(4.0f, -1.0f, -3.5f)
+		ds::vec3(-gridWidth, -1.0f, -gridHeight),
+		ds::vec3(-gridWidth, -1.0f,  gridHeight),
+		ds::vec3( gridWidth, -1.0f,  gridHeight),
+		ds::vec3( gridWidth, -1.0f, -gridHeight)
 	};
-	grid.create(gridPositions, 8, gridShader, cubeTextureID);
+	grid.create(gridPositions, 6, gridShader, cubeTextureID);
 
 	ds::VertexDeclaration decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
@@ -111,7 +143,6 @@ int main(int argc, char *argv[]) {
 	RID indexBuffer = ds::createQuadIndexBuffer(256);
 	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v);
 	RID staticCubes = ds::createVertexBuffer(ds::BufferType::STATIC, totalCubeVertices, sizeof(Vertex), sv);
-	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 	ds::vec3 vp = ds::vec3(0.0f, 2.0f, -6.0f);
 	ds::setViewPosition(vp);
 
@@ -126,8 +157,6 @@ int main(int argc, char *argv[]) {
 	ds::StateGroup* basicGroup = ds::createStateGroup();
 	basicGroup->bindLayout(rid);
 	basicGroup->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, 0, &constantBuffer);
-	basicGroup->bindBlendState(bs_id);
-	basicGroup->bindSamplerState(ssid, ds::ShaderType::PIXEL);
 	basicGroup->bindTexture(textureID, ds::ShaderType::PIXEL, 0);
 	basicGroup->bindShader(gridShader);
 	basicGroup->bindIndexBuffer(indexBuffer);
@@ -170,8 +199,6 @@ int main(int argc, char *argv[]) {
 		wm.setPosition(position);
 		constantBuffer.worldMatrix = wm.getTransposedMatrix();
 		ds::submit(cubeItem);
-
-
 		// GUI
 		spriteBuffer.begin();
 		gui::start(ds::vec2(0, 750));		
