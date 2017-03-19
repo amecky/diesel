@@ -3,19 +3,13 @@
 #include "Sprite_GS_Main.inc"
 #include "Sprite_PS_Main.inc"
 
-SpriteBuffer::SpriteBuffer(int maxSprites) : _max(maxSprites) {
+SpriteBuffer::SpriteBuffer(int maxSprites, RID textureID) : _max(maxSprites) {
 
 	_vertices = new SpriteBufferVertex[maxSprites];
 
-	ds::ShaderDataDescriptor desc[] = {
-		{ ds::ShaderType::VERTEX, Sprite_VS_Main,sizeof(Sprite_VS_Main) },
-		{ ds::ShaderType::PIXEL, Sprite_PS_Main,sizeof(Sprite_PS_Main) },
-		{ ds::ShaderType::GEOMETRY, Sprite_GS_Main,sizeof(Sprite_GS_Main) }
-	};
-
-	RID shaderID = ds::createShader(desc, 3);
-
-	//RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
+	RID vertexShader = ds::createVertexShader(Sprite_VS_Main, sizeof(Sprite_VS_Main));
+	_pixelShader = ds::createPixelShader(Sprite_PS_Main, sizeof(Sprite_PS_Main));
+	RID geoShader = ds::createGeometryShader(Sprite_GS_Main, sizeof(Sprite_GS_Main));
 
 	// very special buffer layout 
 	ds::VertexDeclaration decl[] = {
@@ -25,45 +19,47 @@ SpriteBuffer::SpriteBuffer(int maxSprites) : _max(maxSprites) {
 		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
 	};
 
-	RID vertexDeclId = ds::createVertexDeclaration(decl, 4, shaderID);
+	RID vertexDeclId = ds::createVertexDeclaration(decl, 4, vertexShader);
 
 	RID cbid = ds::createConstantBuffer(sizeof(SpriteBufferConstantBuffer));
 	_vertexBufferID = ds::createVertexBuffer(ds::BufferType::DYNAMIC, maxSprites, sizeof(SpriteBufferVertex));
-	//RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::POINT);
 
+	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::POINT);
 	// create orthographic view
 	ds::matrix viewMatrix = ds::matIdentity();
 	// FIXME: get screen size
 	ds::matrix projectionMatrix = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
-	_viewprojectionMatrix = viewMatrix * projectionMatrix;
+	ds::matrix viewprojectionMatrix = viewMatrix * projectionMatrix;
 
-	ds::StateGroup* sg = ds::createStateGroup();
-	sg->bindLayout(vertexDeclId);
-	sg->bindVertexBuffer(_vertexBufferID);
-	sg->bindIndexBuffer(NO_RID);
-	sg->bindShader(shaderID);
-	sg->bindConstantBuffer(cbid, ds::ShaderType::GEOMETRY, 0, &_constantBuffer);
-	//sg->bindBlendState(bs_id);
-	//sg->bindSamplerState(ssid, ds::ShaderType::PIXEL);
+	RID spriteStateGroup = ds::StateGroupBuilder()
+		.inputLayout(vertexDeclId)
+		.vertexBuffer(_vertexBufferID)
+		.indexBuffer(NO_RID)
+		.vertexShader(vertexShader)
+		.geometryShader(geoShader)
+		.pixelShader(_pixelShader)
+		.constantBuffer(cbid, geoShader, 0, &_constantBuffer)
+		.texture(textureID, _pixelShader, 0)
+		.samplerState(ssid, _pixelShader)
+		.build();
 	
+	ds::vec2 textureSize = ds::getTextureSize(textureID);
+	_constantBuffer.wvp = ds::matTranspose(viewprojectionMatrix);
+	_constantBuffer.screenDimension = ds::vec4(1024.0f, 768.0f, textureSize.x, textureSize.y);
 
 	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::POINT_LIST, 0 };
-	_item = ds::compile(drawCmd, sg);
+	_item = ds::compile(drawCmd, spriteStateGroup);
 
 	_current = 0;
 }
 
 void SpriteBuffer::begin() {
 	_current = 0;
-	_currentTexture = NO_RID;
+	//_currentTexture = NO_RID;
 }
 
-void SpriteBuffer::add(const ds::vec2& position, RID textureID, const ds::vec4& rect, const ds::vec2& scale, float rotation, const ds::Color& clr) {
+void SpriteBuffer::add(const ds::vec2& position, const ds::vec4& rect, const ds::vec2& scale, float rotation, const ds::Color& clr) {
 	if ((_current + 1) >= _max) {
-		flush();
-	}
-	if (_currentTexture != textureID) {
-		_currentTexture = textureID;
 		flush();
 	}
 	_vertices[_current++] = SpriteBufferVertex(position, rect, ds::vec3(scale.x, scale.y, rotation), clr);
@@ -71,13 +67,9 @@ void SpriteBuffer::add(const ds::vec2& position, RID textureID, const ds::vec4& 
 
 void SpriteBuffer::flush() {
 	if (_current > 0) {
-		_item->groups[0]->bindTexture(_currentTexture, ds::ShaderType::PIXEL, 0);
-		ds::vec2 textureSize = ds::getTextureSize(_currentTexture);
-		_constantBuffer.wvp = ds::matTranspose(_viewprojectionMatrix);
-		_constantBuffer.screenDimension = ds::vec4(1024.0f, 768.0f, textureSize.x, textureSize.y);
 		ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
 		ds::mapBufferData(_vertexBufferID, _vertices, _current * sizeof(SpriteBufferVertex));
-		_item->command.size = _current;		
+		ds::setNum(_item,_current);		
 		ds::submit(_item);
 		ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
 		_current = 0;

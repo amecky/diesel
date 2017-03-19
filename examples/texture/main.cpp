@@ -16,9 +16,6 @@ struct Vertex {
 	ds::vec3 p;
 	ds::vec2 uv;
 
-	Vertex() : p(0.0f), uv(0.0f) {}
-	Vertex(const ds::vec3& pv, float u, float v) : p(pv) , uv(u,v) {}
-	Vertex(const ds::vec3& pv, const ds::vec2& uvv) : p(pv), uv(uvv) {}
 };
 
 // ---------------------------------------------------------------
@@ -40,42 +37,11 @@ RID loadImage(const char* name) {
 	return textureID;
 }
 
-uint32_t convert(uint16_t type, uint8_t slot, uint8_t data) {
-	uint32_t a = type;
-	uint32_t b = slot;
-	uint32_t c = data;
-	return a + (b << 16) + (c << 24);
-}
-
-uint16_t getType(uint32_t id) {
-	return id & 0xffff;
-}
-
-uint8_t getSlot(uint32_t id) {
-	uint32_t t = id >> 16;
-	return t & 0xff;
-}
-
-uint8_t getData(uint32_t id) {
-	uint32_t t = id >> 24;
-	return t & 0xff;
-}
-
-
 // ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------
 //int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
 int main(int argc, char *argv[]) {
-
-
-	uint32_t ttt = convert(12, 34, 6);
-	uint16_t tttt = getType(ttt);
-	printf("type: %d\n", tttt);
-	uint8_t aaa = getSlot(ttt);
-	printf("slot: %d\n", aaa);
-	uint8_t bbb = getData(ttt);
-	printf("data: %d\n", bbb);
 
 	ds::vec3 positions[24];
 	ds::vec2 uvs[24];
@@ -84,10 +50,10 @@ int main(int argc, char *argv[]) {
 
 	Vertex v[24];
 	for (int i = 0; i < 24; ++i) {
-		v[i] = Vertex(positions[i], uvs[i] * 0.5f);
+		v[i] = { positions[i], uvs[i] * 0.5f };
 	}
 
-	ds::vec3 CP[] = { ds::vec3(-2.0f,-0.5f,-1.0f),ds::vec3(-2.0f,-0.5f,2.0f),ds::vec3(2.0f,-0.5f,-1.0f),ds::vec3(2.0f,-0.5f,2.0f) };
+	ds::vec3 CP[] = { ds::vec3(-2.0f,-0.5f,-2.0f),ds::vec3(-2.0f,-0.5f,2.0f),ds::vec3(2.0f,-0.5f,-2.0f),ds::vec3(2.0f,-0.5f,2.0f) };
 	const int numCubes = 4;
 	const int totalCubeVertices = numCubes * 24;
 	Vertex sv[totalCubeVertices];
@@ -98,7 +64,7 @@ int main(int argc, char *argv[]) {
 		ds::matrix w = s * m;
 		geometry::buildCube(w, positions, uvs);
 		for (int i = 0; i < 24; ++i) {
-			sv[cnt++] = Vertex(positions[i], uvs[i] * 0.5f);
+			sv[cnt++] = { positions[i], uvs[i] * 0.5f };
 		}
 	}
 	
@@ -110,17 +76,14 @@ int main(int argc, char *argv[]) {
 	rs.title = "Simple cube texturing demo";
 	rs.clearColor = ds::Color(0.0f, 0.0f, 0.0f, 1.0f);
 	rs.multisampling = 1;
+	rs.useGPUProfiling = true;
 	ds::init(rs);
 
 	RID textureID = loadImage("..\\common\\cube_map.png");
 	RID cubeTextureID = loadImage("..\\common\\grid.png");
 	
-	ds::ShaderDescriptor desc[] = {
-		{ ds::ShaderType::VERTEX, "..\\common\\Textured_vs.cso" },
-		{ ds::ShaderType::PIXEL, "..\\common\\Textured_ps.cso" }
-	};
-
-	RID gridShader = ds::createShader(desc, 2);
+	RID vertexShader = ds::loadVertexShader("..\\common\\Textured_vs.cso");
+	RID pixelShader = ds::loadPixelShader("..\\common\\Textured_ps.cso");
 
 	float gridWidth = 3.0f;
 	float gridHeight = 3.0f;
@@ -131,19 +94,19 @@ int main(int argc, char *argv[]) {
 		ds::vec3( gridWidth, -1.0f,  gridHeight),
 		ds::vec3( gridWidth, -1.0f, -gridHeight)
 	};
-	grid.create(gridPositions, 6, gridShader, cubeTextureID);
+	grid.create(gridPositions, 6, vertexShader, pixelShader, cubeTextureID);
 
 	ds::VertexDeclaration decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }
 	};
 
-	RID rid = ds::createVertexDeclaration(decl, 2, gridShader);
+	RID rid = ds::createVertexDeclaration(decl, 2, vertexShader);
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
 	RID indexBuffer = ds::createQuadIndexBuffer(256);
 	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v);
 	RID staticCubes = ds::createVertexBuffer(ds::BufferType::STATIC, totalCubeVertices, sizeof(Vertex), sv);
-	ds::vec3 vp = ds::vec3(0.0f, 2.0f, -6.0f);
+	ds::vec3 vp = ds::vec3(0.0f, 2.0f, -8.0f);
 	ds::setViewPosition(vp);
 
 	RID basicPass = ds::createRenderPass(ds::getViewMatrix(), ds::getProjectionMatrix(), ds::DepthBufferState::ENABLED);
@@ -152,37 +115,47 @@ int main(int argc, char *argv[]) {
 	ds::matrix orthoProjection = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
 	RID orthoPass = ds::createRenderPass(orthoView, orthoProjection, ds::DepthBufferState::DISABLED);
 
+	
+
 	worldMatrix wm;
 
-	ds::StateGroup* basicGroup = ds::createStateGroup();
-	basicGroup->bindLayout(rid);
-	basicGroup->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, 0, &constantBuffer);
-	basicGroup->bindTexture(textureID, ds::ShaderType::PIXEL, 0);
-	basicGroup->bindShader(gridShader);
-	basicGroup->bindIndexBuffer(indexBuffer);
+	RID basicGroup = ds::StateGroupBuilder()
+		.inputLayout(rid)
+		.constantBuffer(cbid, vertexShader, 0, &constantBuffer)
+		.texture(textureID, pixelShader, 0)
+		.vertexShader(vertexShader)
+		.pixelShader(pixelShader)
+		.indexBuffer(indexBuffer)
+		.build();
 
-	ds::StateGroup* staticGroup = ds::createStateGroup();
-	staticGroup->bindVertexBuffer(staticCubes);
+	RID staticGroup = ds::StateGroupBuilder()
+		.vertexBuffer(staticCubes)
+		.build();
 
-	ds::StateGroup* cubeGroup = ds::createStateGroup();
-	cubeGroup->bindVertexBuffer(cubeBuffer);
+	RID cubeGroup = ds::StateGroupBuilder()
+		.vertexBuffer(cubeBuffer)
+		.build();
 
 	ds::DrawCommand staticCmd = { totalCubeVertices / 4 * 6, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
 	ds::DrawCommand drawCmd = { 36, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
 
-	ds::StateGroup* staticStack[] = { basicGroup, staticGroup };
-	ds::DrawItem* staticItem = ds::compile(staticCmd, staticStack, 2);
+	RID staticStack[] = { basicGroup, staticGroup };
+	RID staticItem = ds::compile(staticCmd, staticStack, 2);
 
-	ds::StateGroup* cubeStack[] = { basicGroup, cubeGroup };
-	ds::DrawItem* cubeItem = ds::compile(drawCmd, cubeStack, 2);
+	RID cubeStack[] = { basicGroup, cubeGroup };
+	RID cubeItem = ds::compile(drawCmd, cubeStack, 2);
 
 	// prepare IMGUI
-	SpriteBuffer spriteBuffer(512);
+	
 	RID guiTextureID = loadImage("..\\common\\imgui.png");
+	SpriteBuffer spriteBuffer(512, guiTextureID);
 	gui::init(&spriteBuffer, guiTextureID);
 
 	ds::vec3 rotation = ds::vec3(0.0f, 0.0f, 0.0f);
-	ds::vec3 position = ds::vec3(0.0f, 1.0f, 0.0f);
+	ds::vec3 position = ds::vec3(0.0f, 0.0f, 0.0f);
+
+	
+	ds::printResources();
 
 	int state = 1;
 	while (ds::isRunning()) {
@@ -194,16 +167,20 @@ int main(int argc, char *argv[]) {
 		ds::matrix world = ds::matIdentity();
 		constantBuffer.worldMatrix = ds::matTranspose(world);
 		ds::submit(staticItem);
+		ds::gpu::measure(1);
 		// spinning cube
 		wm.setRotation(rotation);
 		wm.setPosition(position);
 		constantBuffer.worldMatrix = wm.getTransposedMatrix();
 		ds::submit(cubeItem);
+		ds::gpu::measure(2);
+
 		// GUI
 		spriteBuffer.begin();
 		gui::start(ds::vec2(0, 750));		
 		gui::begin("Rotation", &state);
 		if (state == 1) {
+			gui::Value("FPS", ds::getFramesPerSecond());
 			gui::SliderAngle("Rotation X", &rotation.x);
 			gui::SliderAngle("Rotation Y", &rotation.y);
 			gui::SliderAngle("Rotation Z", &rotation.z);
@@ -211,7 +188,20 @@ int main(int argc, char *argv[]) {
 		}
 		gui::end();
 		spriteBuffer.flush();
-
+		ds::gpu::measure(3);
+		ds::gpu::waitForData();
+		// GUI
+		spriteBuffer.begin();
+		gui::start(ds::vec2(700, 750));
+		gui::begin("Timer", &state);
+		if (state == 1) {
+			gui::Value("DrawTime", 1000.0f * ds::gpu::getTotalTime(), "%0.4f");
+			gui::Value("DT1", 1000.0f * ds::gpu::getAverageTime(1), "%0.4f");
+			gui::Value("DT2", 1000.0f * ds::gpu::getAverageTime(2), "%0.4f");
+			gui::Value("DT3", 1000.0f * ds::gpu::getAverageTime(3), "%0.4f");
+		}
+		gui::end();
+		spriteBuffer.flush();
 		ds::end();
 	}
 	ds::shutdown();

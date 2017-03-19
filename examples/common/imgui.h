@@ -23,7 +23,11 @@ namespace gui {
 
 	void Value(const char* label, int v);
 
+	void Value(const char* label, uint32_t v);
+
 	void Value(const char* label, float v);
+
+	void Value(const char* label, float v, const char* format);
 
 	void Value(const char* label, const ds::vec2& v);
 

@@ -486,19 +486,6 @@ namespace gui {
 				printf("IK-SYS: %d %c\n", key.value, key.value);
 			}
 		}
-		/*
-		for (int i = 0; i < 255; ++i) {
-			if (ds::isKeyPressed(i) && _guiCtx->keyInput[i] == 0) {
-				_guiCtx->keys[_guiCtx->numKeys++] = i;
-				printf("pressed %d\n", i);
-				_guiCtx->keyInput[i] = 1;
-			}
-			if (!ds::isKeyPressed(i) && _guiCtx->keyInput[i] == 1) {
-				printf("released %d\n", i);
-				_guiCtx->keyInput[i] = 0;
-			}
-		}
-		*/
 		if (_guiCtx->clicked) {
 			_guiCtx->clicked = false;
 		}
@@ -624,6 +611,14 @@ namespace gui {
 	// --------------------------------------------------------
 	// Value - int
 	// --------------------------------------------------------
+	void Value(const char* label, uint32_t v) {
+		sprintf_s(_guiCtx->tmpBuffer, 256, "%d", v);
+		Label(label, _guiCtx->tmpBuffer);
+	}
+
+	// --------------------------------------------------------
+	// Value - uint32_t
+	// --------------------------------------------------------
 	void Value(const char* label, int v) {
 		sprintf_s(_guiCtx->tmpBuffer, 256, "%d", v);
 		Label(label, _guiCtx->tmpBuffer);
@@ -634,6 +629,14 @@ namespace gui {
 	// --------------------------------------------------------
 	void Value(const char* label, float v) {
 		sprintf_s(_guiCtx->tmpBuffer, 256, "%g", v);
+		Label(label, _guiCtx->tmpBuffer);
+	}
+
+	// --------------------------------------------------------
+	// Value - float
+	// --------------------------------------------------------
+	void Value(const char* label, float v, const char* format) {
+		sprintf_s(_guiCtx->tmpBuffer, 256, format, v);
 		Label(label, _guiCtx->tmpBuffer);
 	}
 
@@ -1177,7 +1180,7 @@ namespace gui {
 		float bpx = _guiCtx->startPos.x + w * 0.5f;
 		float bpy = _guiCtx->startPos.y - h * 0.5f;
 
-		_guiCtx->buffer->add(ds::vec2(bpx,bpy), _guiCtx->textureID, ds::vec4(256,0,128,128),ds::vec2(sx,sy),0.0f,_guiCtx->settings.backgroundColor);
+		_guiCtx->buffer->add(ds::vec2(bpx,bpy),ds::vec4(256,0,128,128),ds::vec2(sx,sy),0.0f,_guiCtx->settings.backgroundColor);
 
 		int activeId = _guiCtx->activeGroup;
 		for (size_t i = 0; i < _guiCtx->calls.size(); ++i) {
@@ -1187,11 +1190,11 @@ namespace gui {
 				ds::vec4 rect = call.rect;
 				rect.z = 128.0f;
 				p.x = bpx;
-				_guiCtx->buffer->add(p, _guiCtx->textureID, rect, ds::vec2(sx, 1.0f), 0.0f, call.color);
+				_guiCtx->buffer->add(p, rect, ds::vec2(sx, 1.0f), 0.0f, call.color);
 			}
 			else {
 				p.x += _guiCtx->itemOffset;
-				_guiCtx->buffer->add(p, _guiCtx->textureID, call.rect, call.scale, 0.0f, call.color);
+				_guiCtx->buffer->add(p, call.rect, call.scale, 0.0f, call.color);
 			}
 		}
 		_guiCtx->numKeys = 0;

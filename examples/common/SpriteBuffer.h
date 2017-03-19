@@ -26,17 +26,19 @@ struct SpriteBufferConstantBuffer {
 class SpriteBuffer {
 
 public:
-	SpriteBuffer(int maxSprites);
+	SpriteBuffer(int maxSprites, RID textureID);
 	void begin();
-	void add(const ds::vec2& position, RID textureID, const ds::vec4& rect,const ds::vec2& scale = ds::vec2(1.0f), float rotation = 0.0f, const ds::Color& clr = ds::Color(1.0f,1.0f,1.0f,1.0f));
+	void add(const ds::vec2& position, const ds::vec4& rect,const ds::vec2& scale = ds::vec2(1.0f), float rotation = 0.0f, const ds::Color& clr = ds::Color(1.0f,1.0f,1.0f,1.0f));
 	void flush();
 private:	
-	RID _currentTexture;
+	//RID _currentTexture;
 	int _max;
 	int _current;
 	SpriteBufferConstantBuffer _constantBuffer;
 	RID _vertexBufferID;
-	ds::DrawItem* _item;
+	RID _item;
+	RID _pixelShader;
+	RID _textureID;
 	SpriteBufferVertex* _vertices;
-	ds::matrix _viewprojectionMatrix;
+	//ds::matrix _viewprojectionMatrix;
 };

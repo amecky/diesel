@@ -1,6 +1,6 @@
 #pragma once
 #include <stdint.h>
-
+#include <stdio.h>
 // https://www.dropbox.com/sh/4uvmgy14je7eaxv/AABboa6UE5Pzfg3d9updwUexa?dl=0&preview=Designing+a+Modern+GPU+Interface.pdf
 
 
@@ -747,7 +747,7 @@ namespace ds {
 		DT_INSTANCED,
 		DT_INDEXED_INSTANCED
 	};
-
+	/*
 	struct ShaderDescriptor {
 		ShaderType type;
 		const char* csoName;
@@ -758,7 +758,7 @@ namespace ds {
 		const void* data;
 		int size;
 	};
-
+	*/
 	// ---------------------------------------------------
 	// Render settings 
 	// ---------------------------------------------------
@@ -768,6 +768,7 @@ namespace ds {
 		Color clearColor;
 		uint8_t multisampling;
 		const char* title;
+		bool useGPUProfiling;
 	} RenderSettings;
 
 	typedef struct {
@@ -789,9 +790,68 @@ namespace ds {
 	};
 
 	class PipelineState;
+	enum ResourceType;
+
 	// ---------------------------------------------------
 	// State group
 	// ---------------------------------------------------	
+	struct StateGroup {
+		int* types;
+		int* indices;
+		int num;
+		char* data;
+		RID rid;
+	};
+
+	static void apply(PipelineState* state, RID groupID);
+	// ---------------------------------------------------
+	// State group
+	// ---------------------------------------------------	
+	class StateGroupBuilder {
+
+	public:
+		StateGroupBuilder() : _types(0), _indices(0), _num(0), _data(0), _total(0), _mappings(0) {}
+		~StateGroupBuilder() {
+			if (_data != 0) {
+				delete[] _data;
+			}
+			if (_types != 0) {
+				delete[] _types;
+			}
+			if (_indices != 0) {
+				delete[] _indices;
+			}
+			if (_mappings != 0) {
+				delete[] _mappings;
+			}
+		}
+		StateGroupBuilder& inputLayout(RID rid);
+		StateGroupBuilder& constantBuffer(RID rid, RID shader, int slot = 0, void* data = 0);
+		StateGroupBuilder& blendState(RID rid);
+		StateGroupBuilder& samplerState(RID rid, RID shader);
+		StateGroupBuilder& vertexBuffer(RID rid);
+		StateGroupBuilder& instancedVertexBuffer(RID rid, RID instanceBuffer);
+		StateGroupBuilder& vertexShader(RID rid);
+		StateGroupBuilder& geometryShader(RID rid);
+		StateGroupBuilder& pixelShader(RID rid);
+		StateGroupBuilder& indexBuffer(RID rid);
+		StateGroupBuilder& texture(RID rid, RID shader, int slot);
+		StateGroupBuilder& textureFromRenderTarget(RID rtID, RID shader, int slot);
+		StateGroupBuilder& rasterizerState(RID rid);
+		RID build();
+	private:
+		void* allocate(RID rid, uint16_t size);
+		void basicBinding(RID rid, ResourceType rt);
+		int* _types;
+		int* _indices;
+		int _num;
+		int _total;
+		char* _data;
+		int _dataSize;
+		uint32_t* _mappings;
+	};
+	
+	/*
 	class StateGroup {
 
 	public:
@@ -817,14 +877,18 @@ namespace ds {
 		void bindSamplerState(RID rid, ShaderType type);
 		void bindVertexBuffer(RID rid);
 		void bindInstancedVertexBuffer(RID rid, RID instanceBuffer);
-		void bindShader(RID rid);
+		void bindVertexShader(RID rid);
+		void bindGeometryShader(RID rid);
+		void bindPixelShader(RID rid);
 		void bindIndexBuffer(RID rid);
-		void bindTexture(RID rid, ShaderType type, int slot);
-		void bindTextureFromRenderTarget(RID rtID, ShaderType type, int slot);
+		void bindTexture(RID rid, RID shader, int slot);
+		void bindTextureFromRenderTarget(RID rtID, RID shader, int slot);
 		void bindRasterizerState(RID rid);
 		void sortBindings();
+		void log(FILE* fp);
 	private:
 		void* allocate(RID rid, uint16_t size);
+		void basicBinding(RID rid, ResourceType rt);
 		int* _types;
 		int* _indices;
 		int _num;
@@ -833,13 +897,13 @@ namespace ds {
 		int _dataSize;
 		uint32_t* _mappings;
 	};
-
+	*/
 	// ---------------------------------------------------
 	// Draw Item
 	// ---------------------------------------------------
 	struct DrawItem {
 		DrawCommand command;
-		StateGroup** groups;
+		RID* groups;
 		int num;
 	};
 
@@ -857,20 +921,22 @@ namespace ds {
 
 	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state, RID* renderTargets,int numRenderTargets);
 
-	RenderPass* getRenderPass(RID rid);
+	//RenderPass* getRenderPass(RID rid);
 
 	// items, groups, passes
-	DrawItem* compile(const DrawCommand cmd, StateGroup* groups[], int num);
+	RID compile(const DrawCommand cmd, RID* groups, int num);
 
-	DrawItem* compile(const DrawCommand cmd, StateGroup* group);
+	RID compile(const DrawCommand cmd, RID group);
 
-	StateGroup* createStateGroup();
+	//StateGroup* createStateGroup();
 
-	void submit(const DrawCommand& cmd, StateGroup* group);
+	//void submit(const DrawCommand& cmd, StateGroup* group);
 
-	void submit(DrawItem* item);
+	void submit(RID drawItemID);
 
-	void submit(RID renderPass, DrawItem* item);
+	void setNum(RID drawItemID, uint16_t size);
+
+	void submit(RID renderPass, RID drawItemID);
 
 	bool init(const RenderSettings& settings);
 
@@ -912,19 +978,23 @@ namespace ds {
 
 	// shader
 
-	RID createShader();
+	RID createVertexShader(const void* data, int size);
 
-	RID createShader(ShaderDescriptor* descriptors,int num);
+	RID createGeometryShader(const void* data, int size);
 
-	RID createShader(ShaderDataDescriptor* descriptors, int num);
+	RID createPixelShader(const void* data, int size);
 
-	void loadShader(RID shader, ShaderType type, const char* csoName);
+	RID loadVertexShader(const char* csoName);
+
+	RID loadGeometryShader(const char* csoName);
+
+	RID loadPixelShader(const char* csoName);
 
 	// texture
 
 	RID createTexture(int width, int height, uint8_t channels, void* data, TextureFormat format);
 
-	void setTextureFromRenderTarget(RID rtID, ShaderType type, uint8_t slot);
+	void setTextureFromRenderTarget(RID rtID, RID shader, uint8_t slot);
 
 	ds::vec2 getTextureSize(RID rid);
 
@@ -995,6 +1065,19 @@ namespace ds {
 
 	uint32_t getFramesPerSecond();
 
+	// GPU profiling
+
+	namespace gpu {
+
+		void measure(int index);
+
+		void waitForData();
+
+		float getAverageTime(int index);
+
+		float getTotalTime();
+	}
+
 	const DrawStatistics& getStatistics();
 
 	// utils
@@ -1048,6 +1131,10 @@ namespace ds {
 	int getNumInputKeys();
 
 	const InputKey& getInputKey(int index);
+
+	// ------------------------------------------
+
+	void printResources();
 	
 }
 
@@ -1058,6 +1145,9 @@ namespace ds {
 #include <d3d11.h>
 #include <vector>
 #include <random>
+#include <thread>
+#include <chrono>
+#include "GPUProfiler.h"
 
 namespace ds {
 
@@ -1090,27 +1180,36 @@ namespace ds {
 		RT_VERTEX_BUFFER,
 		RT_SAMPLER_STATE,
 		RT_BLENDSTATE,
-		RT_SHADER,
 		RT_SRV,
 		RT_RASTERIZER_STATE,
 		RT_RENDER_TARGET,
 		RT_RENDER_PASS,
-		RT_INSTANCED_VERTEX_BUFFER
+		RT_INSTANCED_VERTEX_BUFFER,
+		RT_VERTEX_SHADER,
+		RT_GEOMETRY_SHADER,
+		RT_PIXEL_SHADER,
+		RT_DRAW_ITEM,
+		RT_STATE_GROUP
 	};
 
 	const char* RESOURCE_NAMES[] {
 		"NONE",
-		"TEXTURE",
 		"VERTEX_DECLARATION",
 		"CONSTANT_BUFFER",
 		"INDEX_BUFFER",
 		"VERTEX_BUFFER",
 		"SAMPLER_STATE",
 		"BLENDSTATE",
-		"SHADER",
 		"SRV",
 		"RASTERIZER_STATE",
-		"RENDER_TARGET"
+		"RENDER_TARGET",
+		"RENDER_PASS",
+		"INSTANCED_VERTEX_BUFFER",
+		"VERTEX_SHADER",
+		"GEOMETRY_SHADER",
+		"PIXEL_SHADER",
+		"DRAW_ITEM",
+		"STATE_GROUP"
 	};
 
 	// ------------------------------------------------------
@@ -1316,15 +1415,10 @@ namespace ds {
 	// ------------------------------------------------------
 	// Shader
 	// ------------------------------------------------------
-	struct Shader {
+	struct VertexShader {
 		ID3D11VertexShader* vertexShader;
-		ID3D11PixelShader* pixelShader;
-		ID3D11GeometryShader* geometryShader;
 		void* vertexShaderBuffer;
 		UINT bufferSize;
-
-		Shader() : vertexShader(0), pixelShader(0), vertexShaderBuffer(0), geometryShader(0) {}
-
 	};
 
 	// ------------------------------------------------------
@@ -1356,6 +1450,14 @@ namespace ds {
 		virtual ~BaseResource() {}
 		virtual void release() = 0;
 		virtual const ResourceType getType() const = 0;
+		void setRID(RID rid) {
+			_rid = rid;
+		}
+		const RID& getRID() const {
+			return _rid;
+		}
+	private:
+		RID _rid;
 	};
 
 	template<class T>
@@ -1551,24 +1653,16 @@ namespace ds {
 		}
 	};
 
-	class ShaderResource : public AbstractResource<Shader*> {
+	class VertexShaderResource : public AbstractResource<VertexShader*> {
 
 	public:
-		ShaderResource(Shader* t) : AbstractResource(t) {}
-		virtual ~ShaderResource() {}
+		VertexShaderResource(VertexShader* t) : AbstractResource(t) {}
+		virtual ~VertexShaderResource() {}
 		void release() {
 			if (_data != 0) {
 				if (_data->vertexShader != 0) {
 					_data->vertexShader->Release();
 					_data->vertexShader = 0;
-				}
-				if (_data->pixelShader != 0) {
-					_data->pixelShader->Release();
-					_data->pixelShader = 0;
-				}
-				if (_data->geometryShader != 0) {
-					_data->geometryShader->Release();
-					_data->geometryShader = 0;
 				}
 				if (_data->vertexShaderBuffer != 0) {
 					delete[] _data->vertexShaderBuffer;
@@ -1578,7 +1672,39 @@ namespace ds {
 			}
 		}
 		const ResourceType getType() const {
-			return RT_SHADER;
+			return RT_VERTEX_SHADER;
+		}
+	};
+
+	class GeometryShaderResource : public AbstractResource<ID3D11GeometryShader*> {
+
+	public:
+		GeometryShaderResource(ID3D11GeometryShader* t) : AbstractResource(t) {}
+		virtual ~GeometryShaderResource() {}
+		void release() {
+			if (_data != 0) {				
+				_data->Release();
+				_data = 0;				
+			}
+		}
+		const ResourceType getType() const {
+			return RT_GEOMETRY_SHADER;
+		}
+	};
+
+	class PixelShaderResource : public AbstractResource<ID3D11PixelShader*> {
+
+	public:
+		PixelShaderResource(ID3D11PixelShader* t) : AbstractResource(t) {}
+		virtual ~PixelShaderResource() {}
+		void release() {
+			if (_data != 0) {
+				_data->Release();
+				_data = 0;
+			}
+		}
+		const ResourceType getType() const {
+			return RT_PIXEL_SHADER;
 		}
 	};
 
@@ -1627,15 +1753,60 @@ namespace ds {
 		}
 	};
 
+	class DrawItemResource : public AbstractResource<DrawItem*> {
+
+	public:
+		DrawItemResource(DrawItem* t) : AbstractResource(t) {}
+		virtual ~DrawItemResource() {}
+		void release() {
+			if (_data != 0) {
+				//for (int i = 0; i < _data->num; ++i) {
+					//delete _data->groups[i];
+				//}
+				delete _data;
+			}
+		}
+		const ResourceType getType() const {
+			return RT_DRAW_ITEM;
+		}
+	};
+
+	// ------------------------------------------------------
+	// StateGroupResource
+	// ------------------------------------------------------
+	class StateGroupResource : public AbstractResource<StateGroup*> {
+
+	public:
+		StateGroupResource(StateGroup* t) : AbstractResource(t) {}
+		virtual ~StateGroupResource() {}
+		void release() {
+			if (_data != 0) {
+				// FIXME: delete all
+				//for (int i = 0; i < _data->num; ++i) {
+				//delete _data->groups[i];
+				//}
+				delete _data;
+			}
+		}
+		const ResourceType getType() const {
+			return RT_STATE_GROUP;
+		}
+	};
+
 	struct BindedResource {
 		RID rid;
 		int slot;
 		int data;
 	};
 
+
+
 	bool operator == (const BindedResource& first, const BindedResource& other) {
 		return first.rid == other.rid && first.slot == other.slot && first.data == other.data;
 	}
+
+	class GPUProfiler;
+
 	// ------------------------------------------------------
 	// Internal context
 	// ------------------------------------------------------
@@ -1646,6 +1817,7 @@ namespace ds {
 		uint16_t screenHeight;
 		Color clearColor;
 		uint8_t multisampling;
+		
 		bool running;
 		D3D_DRIVER_TYPE driverType;
 		D3D_FEATURE_LEVEL featureLevel;
@@ -1698,7 +1870,7 @@ namespace ds {
 		BindedResource bindedResources[256];
 		uint8_t numBindedResources;
 
-		uint32_t selectedShaderId;
+		uint32_t selectedShaderId[3];
 		uint32_t selectedVertexDeclaration;
 		uint32_t selectedIndexBuffer;
 		uint32_t selectedVertexBuffer;
@@ -1714,11 +1886,15 @@ namespace ds {
 		int numInputKeys;
 
 		PipelineState* pipelineState;
-		StateGroup* defaultStateGroup;
+		RID defaultStateGroup;
+
+		GPUProfiler* profiler;
 
 	} InternalContext;
 
 	static InternalContext* _ctx;
+
+	
 
 	static void assert_resource(RID rid, ResourceType type) {
 		XASSERT(type_mask(rid) == type,"The selected resource %d is not the required type %s", rid, RESOURCE_NAMES[type]);
@@ -1727,12 +1903,14 @@ namespace ds {
 	static RID addResource(BaseResource* res, ResourceType type) {
 		XASSERT((_ctx->_resources.size() + 1) < NO_RID, "The maximum number of resources reached");
 		_ctx->_resources.push_back(res);
-		return static_cast<uint16_t>(_ctx->_resources.size() - 1) + (type << 16);
+		RID rid = static_cast<uint16_t>(_ctx->_resources.size() - 1) + (type << 16);
+		res->setRID(rid);		
+		return rid;
 	}
 
 	uint16_t getResourceIndex(RID rid,ResourceType type) {
-		if (rid != NO_RID) {
-			uint16_t idx = id_mask(rid);
+		uint16_t idx = id_mask(rid);
+		if (idx != NO_RID) {			
 			XASSERT(idx < _ctx->_resources.size(), "Invalid resource selected - Out of bounds");
 			BaseResource* cbr = _ctx->_resources[idx];
 			XASSERT(cbr->getType() == type, "The selected resource %d is not the required type: %s", idx, RESOURCE_NAMES[idx]);
@@ -1822,8 +2000,10 @@ namespace ds {
 			va_start(args, format);
 			char buffer[1024];
 			memset(buffer, 0, sizeof(buffer));
-			int written = vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, format, args);			
-			MessageBox(_ctx->hwnd, buffer, "ERROR", NULL);
+			int written = vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, format, args);		
+			char complete[1600];
+			sprintf(complete, "%s - %d : %s", file, line, buffer);
+			MessageBox(_ctx->hwnd, complete, "ERROR", NULL);
 			va_end(args);
 			exit(-1);
 		}
@@ -1835,8 +2015,9 @@ namespace ds {
 		char buffer[1024];
 		memset(buffer, 0, sizeof(buffer));
 		int written = vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, format, args);
-		// FIXME: add file and line to message
-		MessageBox(_ctx->hwnd, buffer, "ERROR", NULL);
+		char complete[1600];
+		sprintf(complete, "%s - %d : %s", file, line, buffer);
+		MessageBox(_ctx->hwnd, complete, "ERROR", NULL);
 		va_end(args);
 		exit(-1);
 	}
@@ -2086,16 +2267,25 @@ namespace ds {
 		RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 		RID rasterizerStateID = ds::createRasterizerState(ds::CullMode::BACK, ds::FillMode::SOLID, true, false, 0.0f, 0.0f);
 
-		_ctx->defaultStateGroup = createStateGroup();
-		_ctx->defaultStateGroup->bindBlendState(bs_id);
-		_ctx->defaultStateGroup->bindSamplerState(ssid, ds::ShaderType::PIXEL);
-		_ctx->defaultStateGroup->bindTexture(NO_RID, ds::ShaderType::PIXEL, 0);
-		_ctx->defaultStateGroup->bindShader(NO_RID);
-		_ctx->defaultStateGroup->bindIndexBuffer(NO_RID);
-		_ctx->defaultStateGroup->bindVertexBuffer(NO_RID);
-		_ctx->defaultStateGroup->bindRasterizerState(rasterizerStateID);
-		_ctx->defaultStateGroup->sortBindings();
+		_ctx->defaultStateGroup = StateGroupBuilder()
+			.blendState(bs_id)
+			.samplerState(ssid, ds::ShaderType::PIXEL)
+			.texture(NO_RID, ds::ShaderType::PIXEL, 0)
+			.vertexShader(NO_RID)
+			.geometryShader(NO_RID)
+			.pixelShader(NO_RID)
+			.indexBuffer(NO_RID)
+			.vertexBuffer(NO_RID)
+			.rasterizerState(rasterizerStateID)
+			.build();
 
+		if (settings.useGPUProfiling) {
+			_ctx->profiler = new GPUProfiler(_ctx->d3dDevice,_ctx->d3dContext);
+			_ctx->profiler->Init();
+		}
+		else {
+			_ctx->profiler = 0;
+		}
 		return true;
 	}
 
@@ -2223,24 +2413,17 @@ namespace ds {
 			return 0;
 			case WM_CHAR: {
 				char ascii = wParam;
-				//UINT ascii = MapVirtualKey(wParam, MAPVK_VK_TO_CHAR);
-				//printf("WM_CHAR: %d %c\n", (int)ascii,ascii);
-				//_ctx->keyState[ascii] = 80;
 				ds::addInputCharacter(ascii);
 				return 0;
 			}
 			case WM_KEYDOWN: {
 				char ascii = wParam;
-				//UINT ascii = MapVirtualKey(wParam, MAPVK_VK_TO_CHAR);
-				//printf("WM_KEYDOWN: %d\n", ascii);
 				ds::addVirtualKey(wParam);
 				_ctx->keyState[ascii] = 80;
 				return 0;
 			}
 			case WM_KEYUP: {
-				//char ascii = wParam;
 				UINT ascii = MapVirtualKey(wParam, MAPVK_VK_TO_CHAR);
-				//printf("WM_KEYUP: %d\n", ascii);
 				_ctx->keyState[ascii] = 0;
 				return 0;
 			}
@@ -2351,6 +2534,7 @@ namespace ds {
 		_ctx->framesThisSecond = 0;
 		_ctx->secondCounter = 0;
 		_ctx->numInputKeys = 0;
+		_ctx->totalTicks = 0;
 		_ctx->maxDelta = _ctx->timerFrequency.QuadPart / 10;
 		for (int i = 0; i < 256; ++i) {
 			_ctx->errorBuffer[i] = '\0';
@@ -2379,6 +2563,10 @@ namespace ds {
 	void shutdown() {
 		if (_ctx != 0) {
 			delete _ctx->pipelineState;
+			if (_ctx->profiler != 0) {
+				_ctx->profiler->Shutdown();
+				delete _ctx->profiler;
+			}
 			for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
 				_ctx->_resources[i]->release();
 				delete _ctx->_resources[i];
@@ -2428,13 +2616,18 @@ namespace ds {
 	// begin rendering
 	// ------------------------------------------------------
 	void begin() {
+		if (_ctx->profiler != 0) {
+			_ctx->profiler->beginFrame();
+		}
 		_ctx->d3dContext->OMSetRenderTargets(1, &_ctx->backBufferTarget, _ctx->depthStencilView);
 		_ctx->d3dContext->ClearRenderTargetView(_ctx->backBufferTarget, _ctx->clearColor);
 		_ctx->d3dContext->ClearDepthStencilView(_ctx->depthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 		_ctx->d3dContext->OMSetDepthStencilState(_ctx->depthEnabledStencilState, 1);
 		_ctx->depthBufferState = DepthBufferState::ENABLED;
 		resetBindedResources();
-		_ctx->selectedShaderId = INVALID_RID;
+		_ctx->selectedShaderId[0] = INVALID_RID;
+		_ctx->selectedShaderId[1] = INVALID_RID;
+		_ctx->selectedShaderId[2] = INVALID_RID;
 		_ctx->selectedVertexDeclaration = INVALID_RID;
 		_ctx->selectedIndexBuffer = INVALID_RID;
 		_ctx->selectedRasterizerState = INVALID_RID;
@@ -2451,6 +2644,9 @@ namespace ds {
 	void end() {
 		_ctx->swapChain->Present(0, 0);
 		_ctx->numInputKeys = 0;
+		if (_ctx->profiler != 0) {
+			_ctx->profiler->endFrame();
+		}
 	}
 
 	static const char* DXBufferAttributeNames[] = {
@@ -2510,9 +2706,9 @@ namespace ds {
 			index += formatType.bytes;
 			si[decl[i].attribute] += 1;
 		}		
-		uint16_t sidx = getResourceIndex(shaderId, RT_SHADER);
-		ShaderResource* sres = (ShaderResource*)_ctx->_resources[sidx];
-		Shader* s = sres->get();
+		uint16_t sidx = getResourceIndex(shaderId, RT_VERTEX_SHADER);
+		VertexShaderResource* sres = (VertexShaderResource*)_ctx->_resources[sidx];
+		VertexShader* s = sres->get();
 		ID3D11InputLayout* layout = 0;
 		ASSERT_RESULT(_ctx->d3dDevice->CreateInputLayout(descriptors, num, s->vertexShaderBuffer, s->bufferSize, &layout), "Failed to create input layout");
 		InputLayoutResource* res = new InputLayoutResource(layout, index);
@@ -2561,9 +2757,9 @@ namespace ds {
 			desc.InstanceDataStepRate = 1;
 			index += formatType.bytes;
 		}
-		uint16_t sidx = getResourceIndex(shaderId, RT_SHADER);
-		ShaderResource* sres = (ShaderResource*)_ctx->_resources[sidx];
-		Shader* s = sres->get();
+		uint16_t sidx = getResourceIndex(shaderId, RT_VERTEX_SHADER);
+		VertexShaderResource* sres = (VertexShaderResource*)_ctx->_resources[sidx];
+		VertexShader* s = sres->get();
 		ID3D11InputLayout* layout = 0;
 		ASSERT_RESULT(_ctx->d3dDevice->CreateInputLayout(descriptors, total, s->vertexShaderBuffer, s->bufferSize, &layout), "Failed to create input layout");
 		InputLayoutResource* res = new InputLayoutResource(layout, index);
@@ -2622,22 +2818,23 @@ namespace ds {
 	// ------------------------------------------------------
 	// set vertex shader constant buffer
 	// ------------------------------------------------------
-	static void setConstantBuffer(RID rid,ShaderType type, int slot = 0) {
+	static void setConstantBuffer(RID rid,RID shader, int slot = 0) {
+		int type = type_mask(shader);
 		uint16_t ridx = getResourceIndex(rid, RT_CONSTANT_BUFFER);
 		if (ridx != NO_RID) {
 			ConstantBufferResource* cbr = (ConstantBufferResource*)_ctx->_resources[ridx];
 			ID3D11Buffer* buffer = cbr->get();
 			switch (type) {
-				case ShaderType::VERTEX: _ctx->d3dContext->VSSetConstantBuffers(slot, 1, &buffer); break;
-				case ShaderType::PIXEL: _ctx->d3dContext->PSSetConstantBuffers(slot, 1, &buffer); break;
-				case ShaderType::GEOMETRY: _ctx->d3dContext->GSSetConstantBuffers(slot, 1, &buffer); break;
+				case RT_VERTEX_SHADER: _ctx->d3dContext->VSSetConstantBuffers(slot, 1, &buffer); break;
+				case RT_PIXEL_SHADER: _ctx->d3dContext->PSSetConstantBuffers(slot, 1, &buffer); break;
+				case RT_GEOMETRY_SHADER: _ctx->d3dContext->GSSetConstantBuffers(slot, 1, &buffer); break;
 			}
 		}
 		else {
 			switch (type) {
-				case ShaderType::VERTEX: _ctx->d3dContext->VSSetConstantBuffers(slot, 1, NULL); break;
-				case ShaderType::PIXEL: _ctx->d3dContext->PSSetConstantBuffers(slot, 1, NULL); break;
-				case ShaderType::GEOMETRY: _ctx->d3dContext->GSSetConstantBuffers(slot, 1, NULL); break;
+				case RT_VERTEX_SHADER: _ctx->d3dContext->VSSetConstantBuffers(slot, 1, NULL); break;
+				case RT_PIXEL_SHADER: _ctx->d3dContext->PSSetConstantBuffers(slot, 1, NULL); break;
+				case RT_GEOMETRY_SHADER: _ctx->d3dContext->GSSetConstantBuffers(slot, 1, NULL); break;
 			}
 		}
 	}
@@ -2861,18 +3058,19 @@ namespace ds {
 	// set sampler state
 	// ------------------------------------------------------
 	// FIXME: set by shader type!!
-	static void setSamplerState(RID rid, ShaderType type) {
+	static void setSamplerState(RID rid, RID shader) {
+		int type = type_mask(shader);
 		uint16_t ridx = getResourceIndex(rid, RT_SAMPLER_STATE);
 		if (ridx != NO_RID) {
 			SamplerStateResource* res = (SamplerStateResource*)_ctx->_resources[ridx];
 			ID3D11SamplerState* state = res->get();
-			if (type == PIXEL) {
+			if (type == RT_PIXEL_SHADER) {
 				_ctx->d3dContext->PSSetSamplers(0, 1, &state);
 			}
-			else if (type == VERTEX) {
+			else if (type == RT_VERTEX_SHADER) {
 				_ctx->d3dContext->VSSetSamplers(0, 1, &state);
 			}
-			else if (type == GEOMETRY) {
+			else if (type == RT_GEOMETRY_SHADER) {
 				_ctx->d3dContext->GSSetSamplers(0, 1, &state);
 			}
 		}
@@ -2962,10 +3160,13 @@ namespace ds {
 	// ------------------------------------------------------
 	// submit draw command
 	// ------------------------------------------------------
-	void submit(DrawItem* item) {
+	void submit(RID drawItemID) {
+		uint16_t ridx = getResourceIndex(drawItemID, RT_DRAW_ITEM);
+		DrawItemResource* res = (DrawItemResource*)_ctx->_resources[ridx];
+		const DrawItem* item = res->get();
 		_ctx->pipelineState->reset();
 		for (int i = 0; i < item->num; ++i) {
-			item->groups[i]->apply(_ctx->pipelineState);
+			apply(_ctx->pipelineState, item->groups[i]);
 		}
 		const DrawCommand& cmd = item->command;
 		_ctx->d3dContext->IASetPrimitiveTopology(PRIMITIVE_TOPOLOGIES[cmd.topology]);
@@ -2976,9 +3177,9 @@ namespace ds {
 		}
 	}
 
-	void submit(const DrawCommand& cmd, StateGroup* group) {
+	void submit(const DrawCommand& cmd, RID group) {
 		_ctx->pipelineState->reset();
-		group->apply(_ctx->pipelineState);
+		apply(_ctx->pipelineState, group);
 		_ctx->d3dContext->IASetPrimitiveTopology(PRIMITIVE_TOPOLOGIES[cmd.topology]);
 		switch (cmd.drawType) {
 			case DT_VERTICES: _ctx->d3dContext->Draw(cmd.size, 0); break;
@@ -2987,67 +3188,44 @@ namespace ds {
 		}
 	}
 
+	void setNum(RID drawItemID, uint16_t size) {
+		uint16_t ridx = getResourceIndex(drawItemID, RT_DRAW_ITEM);
+		DrawItemResource* res = (DrawItemResource*)_ctx->_resources[ridx];
+		DrawItem* item = res->get();
+		item->command.size = size;
+	}
+	
 	// ------------------------------------------------------
-	// create shader
+	// create vertex shader
 	// ------------------------------------------------------
-	RID createShader() {
-		Shader* s = new Shader;
-		ShaderResource* res = new ShaderResource(s);
-		return addResource(res, RT_SHADER);
+	RID createVertexShader(const void* data, int size) {
+		VertexShader* s = new VertexShader;
+		assert_result(_ctx->d3dDevice->CreateVertexShader(data,size,nullptr,&s->vertexShader), "Failed to create vertex shader");
+		s->vertexShaderBuffer = new char[size];
+		memcpy(s->vertexShaderBuffer, data, size);
+		s->bufferSize = size;
+		VertexShaderResource* res = new VertexShaderResource(s);
+		return addResource(res, RT_VERTEX_SHADER);
 	}
 
 	// ------------------------------------------------------
-	// load shader
+	// create geometry shader
 	// ------------------------------------------------------
-	static void loadShader(RID shader, ShaderType type, const void* data, int size) {
-		uint16_t ridx = getResourceIndex(shader, RT_SHADER);
-		if (ridx != NO_RID) {
-			ShaderResource* res = (ShaderResource*)_ctx->_resources[ridx];
-			Shader* s = res->get();
-			if (type == GEOMETRY) {
-				assert_result(_ctx->d3dDevice->CreateGeometryShader(
-					data,
-					size,
-					nullptr,
-					&s->geometryShader
-				), "Failed to create geometry shader");
-			}
-			else if (type == PIXEL) {
-				assert_result(_ctx->d3dDevice->CreatePixelShader(
-					data,
-					size,
-					nullptr,
-					&s->pixelShader), "Failed to create pixel shader");
-			}
-			else if (type == VERTEX) {
-				assert_result(_ctx->d3dDevice->CreateVertexShader(
-					data,
-					size,
-					nullptr,
-					&s->vertexShader), "Failed to create vertex shader");
-				s->vertexShaderBuffer = new char[size];
-				memcpy(s->vertexShaderBuffer, data, size);
-				s->bufferSize = size;
-			}
-		}
+	RID createGeometryShader(const void* data, int size) {
+		ID3D11GeometryShader* s;
+		assert_result(_ctx->d3dDevice->CreateGeometryShader(data,size,nullptr,&s), "Failed to create geometry shader");
+		GeometryShaderResource* res = new GeometryShaderResource(s);
+		return addResource(res, RT_GEOMETRY_SHADER);
 	}
 
-	RID createShader(ShaderDescriptor* descriptors, int num) {
-		RID rid = createShader();
-		for (int i = 0; i < num; ++i) {
-			const ShaderDescriptor& desc = descriptors[i];
-			loadShader(rid, desc.type, desc.csoName);
-		}
-		return rid;
-	}
-
-	RID createShader(ShaderDataDescriptor* descriptors, int num) {
-		RID rid = createShader();
-		for (int i = 0; i < num; ++i) {
-			const ShaderDataDescriptor& desc = descriptors[i];
-			loadShader(rid, desc.type, desc.data,desc.size);
-		}
-		return rid;
+	// ------------------------------------------------------
+	// create pixel shader
+	// ------------------------------------------------------
+	RID createPixelShader(const void* data, int size) {
+		ID3D11PixelShader* s;
+		assert_result(_ctx->d3dDevice->CreatePixelShader(data, size, nullptr, &s), "Failed to create pixel shader");
+		PixelShaderResource* res = new PixelShaderResource(s);
+		return addResource(res, RT_PIXEL_SHADER);
 	}
 
 	struct DataFile {
@@ -3075,72 +3253,123 @@ namespace ds {
 	}
 
 	// ------------------------------------------------------
+	// load vertex shader
+	// ------------------------------------------------------
+	RID loadVertexShader(const char* csoName) {
+		DataFile file = read_data(csoName);
+		XASSERT(file.size != -1, "Cannot load vertex shader file: '%s'", csoName);
+		VertexShader* s = new VertexShader;
+		assert_result(_ctx->d3dDevice->CreateVertexShader(
+				file.data,
+				file.size,
+				nullptr,
+				&s->vertexShader), "Failed to create vertex shader");
+		s->vertexShaderBuffer = new char[file.size];
+		memcpy(s->vertexShaderBuffer, file.data, file.size);
+		s->bufferSize = file.size;
+		delete[] file.data;
+		VertexShaderResource* res = new VertexShaderResource(s);
+		return addResource(res, RT_VERTEX_SHADER);
+	}
+
+	// ------------------------------------------------------
 	// load pixel shader
 	// ------------------------------------------------------
-	void loadShader(RID shader, ShaderType type, const char* csoName) {
-		uint16_t ridx = getResourceIndex(shader, RT_SHADER);
-		if (ridx != NO_RID) {
-			DataFile file = read_data(csoName);
-			XASSERT(file.size != -1, "Cannot load geometry shader file: '%s'", csoName);
-			ShaderResource* res = (ShaderResource*)_ctx->_resources[ridx];
-			Shader* s = res->get();
-			if (type == GEOMETRY) {
-				assert_result(_ctx->d3dDevice->CreateGeometryShader(
-					file.data,
-					file.size,
-					nullptr,
-					&s->geometryShader
-					), "Failed to create geometry shader");
+	RID loadPixelShader(const char* csoName) {
+		DataFile file = read_data(csoName);
+		XASSERT(file.size != -1, "Cannot load pixel shader file: '%s'", csoName);
+		ID3D11PixelShader* s;
+		assert_result(_ctx->d3dDevice->CreatePixelShader(
+			file.data,
+			file.size,
+			nullptr,
+			&s), "Failed to create pixel shader");
+		delete[] file.data;
+		PixelShaderResource* res = new PixelShaderResource(s);
+		return addResource(res, RT_PIXEL_SHADER);
+	}
+
+	// ------------------------------------------------------
+	// load geometry shader
+	// ------------------------------------------------------
+	RID loadGeometryShader(const char* csoName) {
+		DataFile file = read_data(csoName);
+		XASSERT(file.size != -1, "Cannot load geometry shader file: '%s'", csoName);
+		ID3D11GeometryShader* s;
+		assert_result(_ctx->d3dDevice->CreateGeometryShader(
+			file.data,
+			file.size,
+			nullptr,
+			&s), "Failed to create pixel shader");
+		delete[] file.data;
+		GeometryShaderResource* res = new GeometryShaderResource(s);
+		return addResource(res, RT_GEOMETRY_SHADER);
+	}
+
+	// ------------------------------------------------------
+	// set shader
+	// ------------------------------------------------------
+	static void setPixelShader(RID rid) {
+		uint16_t ridx = getResourceIndex(rid, RT_PIXEL_SHADER);
+		if (ridx != _ctx->selectedShaderId[2]) {
+			if (ridx == NO_RID) {
+				_ctx->d3dContext->VSSetShader(NULL, NULL, 0);
 			}
-			else if (type == PIXEL) {
-				assert_result(_ctx->d3dDevice->CreatePixelShader(
-					file.data,
-					file.size,
-					nullptr,
-					&s->pixelShader), "Failed to create pixel shader");
+			else {
+				PixelShaderResource* res = (PixelShaderResource*)_ctx->_resources[ridx];
+				if (res->get() != 0) {
+					_ctx->d3dContext->PSSetShader(res->get(), 0, 0);
+				}
+				else {
+					_ctx->d3dContext->PSSetShader(NULL, NULL, 0);
+				}
 			}
-			else if (type == VERTEX) {
-				assert_result(_ctx->d3dDevice->CreateVertexShader(
-					file.data,
-					file.size,
-					nullptr,
-					&s->vertexShader), "Failed to create vertex shader");
-				s->vertexShaderBuffer = new char[file.size];
-				memcpy(s->vertexShaderBuffer, file.data, file.size);
-				s->bufferSize = file.size;
-			}
-			delete[] file.data;
+			_ctx->selectedShaderId[2] = ridx;
 		}
 	}
 
 	// ------------------------------------------------------
 	// set shader
 	// ------------------------------------------------------
-	static void setShader(RID rid) {
-		uint16_t ridx = getResourceIndex(rid, RT_SHADER);
-		if (ridx != _ctx->selectedShaderId) {
-			ShaderResource* res = (ShaderResource*)_ctx->_resources[ridx];
-			Shader* s = res->get();
-			// FIXME: handle NO_RID
-			if (s->vertexShader != 0) {
-				_ctx->d3dContext->VSSetShader(s->vertexShader, 0, 0);
-			}
-			else {
-				_ctx->d3dContext->VSSetShader(NULL, NULL, 0);
-			}
-			if (s->pixelShader != 0) {
-				_ctx->d3dContext->PSSetShader(s->pixelShader, 0, 0);
-			}
-			else {
-				_ctx->d3dContext->PSSetShader(NULL, NULL, 0);
-			}
-			if (s->geometryShader != 0) {
-				_ctx->d3dContext->GSSetShader(s->geometryShader, 0, 0);
-			}
-			else {
+	static void setGeometryShader(RID rid) {
+		uint16_t ridx = getResourceIndex(rid, RT_GEOMETRY_SHADER);
+		if (ridx != _ctx->selectedShaderId[1]) {
+			if (ridx == NO_RID) {
 				_ctx->d3dContext->GSSetShader(NULL, NULL, 0);
 			}
-			_ctx->selectedShaderId = ridx;
+			else {
+				GeometryShaderResource* res = (GeometryShaderResource*)_ctx->_resources[ridx];
+				if (res->get() != 0) {
+					_ctx->d3dContext->GSSetShader(res->get(), 0, 0);
+				}
+				else {
+					_ctx->d3dContext->GSSetShader(NULL, NULL, 0);
+				}
+			}
+			_ctx->selectedShaderId[1] = ridx;
+		}
+	}
+
+	// ------------------------------------------------------
+	// set shader
+	// ------------------------------------------------------
+	static void setVertexShader(RID rid) {
+		uint16_t ridx = getResourceIndex(rid, RT_VERTEX_SHADER);
+		if (ridx != _ctx->selectedShaderId[0]) {
+			if (ridx == NO_RID) {
+				_ctx->d3dContext->VSSetShader(NULL, NULL, 0);
+			}
+			else {
+				VertexShaderResource* res = (VertexShaderResource*)_ctx->_resources[ridx];
+				VertexShader* s = res->get();
+				if (s->vertexShader != 0) {
+					_ctx->d3dContext->VSSetShader(s->vertexShader, 0, 0);
+				}
+				else {
+					_ctx->d3dContext->VSSetShader(NULL, NULL, 0);
+				}
+			}
+			_ctx->selectedShaderId[0] = ridx;
 		}
 	}
 
@@ -3209,6 +3438,7 @@ namespace ds {
 
 	ds::vec2 getTextureSize(RID rid) {
 		uint16_t ridx = getResourceIndex(rid, RT_SRV);
+		XASSERT(ridx != NO_RID, "Invalid texture selected");
 		ShaderResourceViewResource* res = (ShaderResourceViewResource*)_ctx->_resources[ridx];
 		return res->getSize();
 	}
@@ -3222,55 +3452,66 @@ namespace ds {
 	// ------------------------------------------------------
 	// set texture
 	// ------------------------------------------------------
-	static void setTexture(RID rid, ShaderType type, uint8_t slot) {
+	static void setTexture(RID rid, RID shader, uint8_t slot) {
 		uint16_t ridx = getResourceIndex(rid, RT_SRV);
-		XASSERT(_ctx->selectedShaderId != INVALID_RID, "Invalid or no shader selected");
-		ShaderResource* sRes = (ShaderResource*)_ctx->_resources[_ctx->selectedShaderId];
-		Shader* s = sRes->get();
+		XASSERT(ridx != NO_RID, "Invalid texture selected");
+		int type = type_mask(shader);
+		if (type == RT_VERTEX_SHADER) {
+			XASSERT(_ctx->selectedShaderId[0] != INVALID_RID, "Invalid or no vertex shader selected");
+		}
+		else if (type == RT_GEOMETRY_SHADER) {
+			XASSERT(_ctx->selectedShaderId[1] != INVALID_RID, "Invalid or no geometry shader selected");
+		}
+		else if (type == RT_PIXEL_SHADER) {
+			XASSERT(_ctx->selectedShaderId[2] != INVALID_RID, "Invalid or no pixel shader selected");
+		}
 		ID3D11ShaderResourceView* srv = 0;
 		if (ridx != NO_RID) {
 			ShaderResourceViewResource* res = (ShaderResourceViewResource*)_ctx->_resources[ridx];
 			srv = res->get()->srv;
 		}
-		if (type == ShaderType::PIXEL) {
-			XASSERT(s->pixelShader != 0, "No pixel shader selected");
+		if (type == RT_PIXEL_SHADER) {
+			//PixelShaderResource* sRes = (ShaderResource*)_ctx->_resources[_ctx->selectedShaderId];
+			//Shader* s = sRes->get();
+			//XASSERT(s->pixelShader != 0, "No pixel shader selected");
 			if (bindResource(rid, slot, type)) {
 				_ctx->d3dContext->PSSetShaderResources(slot, 1, &srv);
 			}
 		}
-		else if (type == ShaderType::VERTEX) {
-			XASSERT(s->vertexShader != 0, "No vertex shader selected");
+		else if (type == RT_VERTEX_SHADER) {
+			//XASSERT(s->vertexShader != 0, "No vertex shader selected");
 			if (bindResource(rid, slot, type)) {
 				_ctx->d3dContext->VSSetShaderResources(slot, 1, &srv);				
 			}
 		}
-		else if (type == ShaderType::GEOMETRY) {
-			XASSERT(s->geometryShader != 0, "No geometry shader selected");
+		else if (type == RT_GEOMETRY_SHADER) {
+			//XASSERT(s->geometryShader != 0, "No geometry shader selected");
 			if (bindResource(rid, slot, type)) {
 				_ctx->d3dContext->GSSetShaderResources(slot, 1, &srv);
 			}
 		}
 	}
 
-	void setTextureFromRenderTarget(RID rtID, ShaderType type, uint8_t slot) {
+	void setTextureFromRenderTarget(RID rtID, RID shader, uint8_t slot) {
 		uint16_t ridx = getResourceIndex(rtID, RT_RENDER_TARGET);
 		RenderTargetResource* res = (RenderTargetResource*)_ctx->_resources[ridx];
-		ShaderResource* sRes = (ShaderResource*)_ctx->_resources[_ctx->selectedShaderId];
-		Shader* s = sRes->get();
-		if (type == ShaderType::PIXEL) {
-			XASSERT(s->pixelShader != 0, "No pixel shader selected");
+		//ShaderResource* sRes = (ShaderResource*)_ctx->_resources[_ctx->selectedShaderId];
+		//Shader* s = sRes->get();
+		int type = type_mask(shader);
+		if (type == RT_PIXEL_SHADER) {
+			//XASSERT(s->pixelShader != 0, "No pixel shader selected");
 			if (bindResource(rtID,slot,type)) {
 				_ctx->d3dContext->PSSetShaderResources(slot, 1, &res->get()->srv);
 			}
 		}
-		else if (type == ShaderType::VERTEX) {
-			XASSERT(s->vertexShader != 0, "No vertex shader selected");
+		else if (type == RT_VERTEX_SHADER) {
+			//XASSERT(s->vertexShader != 0, "No vertex shader selected");
 			if (bindResource(rtID, slot, type)) {
 				_ctx->d3dContext->VSSetShaderResources(slot, 1, &res->get()->srv);
 			}
 		}
-		else if (type == ShaderType::GEOMETRY) {
-			XASSERT(s->geometryShader != 0, "No geometry shader selected");
+		else if (type ==RT_GEOMETRY_SHADER) {
+			//XASSERT(s->geometryShader != 0, "No geometry shader selected");
 			if (bindResource(rtID, slot, type)) {
 				_ctx->d3dContext->GSSetShaderResources(slot, 1, &res->get()->srv);
 			}
@@ -3425,58 +3666,52 @@ namespace ds {
 		PLS_OM  // output merger
 	};
 
-	StateGroup* createStateGroup() {
-		StateGroup* sg = new StateGroup();
-		_ctx->_groups.push_back(sg);
-		return sg;
-	}
-
 	// -----------------------------------------------------------------
 	// compile with array of StateGroups
 	// -----------------------------------------------------------------
-	DrawItem* compile(const DrawCommand cmd, StateGroup* groups[], int num) {
+	RID compile(const DrawCommand cmd, RID* groups, int num) {
 		DrawItem* item = new DrawItem;
 		item->command = cmd;
-		item->groups = new StateGroup*[num + 1];
+		item->groups = new RID[num + 1];
 		for (int i = 0; i < num; ++i) {
-			groups[i]->sortBindings();
+			//groups[i]->sortBindings();
 			item->groups[i] = groups[i];
 		}
 		item->groups[num] = _ctx->defaultStateGroup;
 		item->num = num + 1;
-		return item;
+		return addResource(new DrawItemResource(item), RT_DRAW_ITEM);
 	}
 
 	// -----------------------------------------------------------------
 	// compile with only one StateGroup
 	// -----------------------------------------------------------------
-	DrawItem* compile(const DrawCommand cmd, StateGroup* group) {
+	RID compile(const DrawCommand cmd, RID group) {
 		DrawItem* item = new DrawItem;
 		item->command = cmd;
-		item->groups = new StateGroup*[2];
-		group->sortBindings();
+		item->groups = new RID[2];
+		//group->sortBindings();
 		// FIXME: sort by stages
 		item->groups[0] = group;
 		item->groups[1] = _ctx->defaultStateGroup;
-		item->num = 1;
-		return item;
+		item->num = 2;
+		return addResource(new DrawItemResource(item), RT_DRAW_ITEM);
 	}
 
 	struct ConstantBufferBindData {
 		RID rid;
-		ShaderType type;
+		RID shader;
 		int slot;
 		void* data;
 	};
 
 	struct SamplerStateBindData {
 		RID rid;
-		ShaderType type;
+		RID shader;
 	};
 	
 	struct TextureBindData {
 		RID rid;
-		ShaderType type;
+		RID shader;
 		int slot;
 	};
 
@@ -3485,7 +3720,17 @@ namespace ds {
 		RID instanceBuffer;
 	};
 
-	void* StateGroup::allocate(RID rid, uint16_t size) {
+	
+
+	void assertResourceType(RID rid, ResourceType type) {
+		int id = id_mask(rid);
+		if (id != NO_RID) {
+			int rt = type_mask(rid);
+			XASSERT(rt == type, "The selected resource %d is not the required type: %s", id, RESOURCE_NAMES[rt]);
+		}
+	}
+
+	void* StateGroupBuilder::allocate(RID rid, uint16_t size) {
 		uint16_t type = type_mask(rid);
 		if ((_num + 1 ) > _total) {
 			if (_types == 0) {
@@ -3529,150 +3774,204 @@ namespace ds {
 		return _data + _indices[_num - 1];
 	}
 
-	void StateGroup::bindShader(RID rid) {
+	void StateGroupBuilder::basicBinding(RID rid, ResourceType type) {
+		uint16_t id = id_mask(rid);
+		if (id == NO_RID) {
+			rid = NO_RID + (type << 16);
+		}
+		assertResourceType(rid, type);
 		RID* d = (RID*)allocate(rid, sizeof(RID));
 		*d = rid;
 	}
 
-	void StateGroup::bindInstancedVertexBuffer(RID rid, RID instanceBuffer) {
+	StateGroupBuilder& StateGroupBuilder::inputLayout(RID rid) {
+		basicBinding(rid, ResourceType::RT_VERTEX_DECLARATION);
+		return *this;
+	}
+
+	StateGroupBuilder& StateGroupBuilder::constantBuffer(RID rid, RID shader, int slot, void* data) {
+		ConstantBufferBindData* d = (ConstantBufferBindData*)allocate(rid, sizeof(ConstantBufferBindData));
+		d->rid = rid;
+		d->shader = shader;
+		d->data = data;
+		d->slot = slot;
+		return *this;
+	}
+
+	StateGroupBuilder& StateGroupBuilder::blendState(RID rid) {
+		basicBinding(rid, RT_BLENDSTATE);
+		return *this;
+	}
+
+	StateGroupBuilder& StateGroupBuilder::samplerState(RID rid, RID shader) {
+		SamplerStateBindData* d = (SamplerStateBindData*)allocate(rid, sizeof(SamplerStateBindData));
+		d->rid = rid;
+		d->shader = shader;
+		return *this;
+	}
+
+	StateGroupBuilder& StateGroupBuilder::vertexBuffer(RID rid) {
+		basicBinding(rid, RT_VERTEX_BUFFER);
+		return *this;
+	}
+
+	StateGroupBuilder& StateGroupBuilder::instancedVertexBuffer(RID rid, RID instanceBuffer) {
 		InstancedBindData* d = (InstancedBindData*)allocate(rid, sizeof(InstancedBindData));
 		d->rid = rid;
 		d->instanceBuffer = instanceBuffer;
+		return *this;
 	}
 
-	void StateGroup::bindVertexBuffer(RID rid) {
-		RID* d = (RID*)allocate(rid, sizeof(RID));
-		*d = rid;
+	StateGroupBuilder& StateGroupBuilder::vertexShader(RID rid) {
+		basicBinding(rid, RT_VERTEX_SHADER);
+		return *this;
 	}
 
-	void StateGroup::bindLayout(RID rid) {
-		RID* d = (RID*)allocate(rid,sizeof(RID));
-		*d = rid;
+	StateGroupBuilder& StateGroupBuilder::geometryShader(RID rid) {
+		basicBinding(rid, RT_GEOMETRY_SHADER);
+		return *this;
 	}
 
-	void StateGroup::bindTextureFromRenderTarget(RID rtID, ShaderType type, int slot) {
-		TextureBindData* d = (TextureBindData*)allocate(rtID, sizeof(TextureBindData));
-		d->rid = rtID;
-		d->type = type;
-		d->slot = slot;
+	StateGroupBuilder& StateGroupBuilder::pixelShader(RID rid) {
+		basicBinding(rid, RT_PIXEL_SHADER);
+		return *this;
 	}
 
-	void StateGroup::bindTexture(RID rid, ShaderType type, int slot) {
+	StateGroupBuilder& StateGroupBuilder::indexBuffer(RID rid) {
+		basicBinding(rid, ResourceType::RT_INDEX_BUFFER);
+		return *this;
+	}
+
+	StateGroupBuilder& StateGroupBuilder::texture(RID rid, RID shader, int slot) {
 		TextureBindData* d = (TextureBindData*)allocate(rid, sizeof(TextureBindData));
 		d->rid = rid;
-		d->type = type;
+		d->shader = shader;
 		d->slot = slot;
+		return *this;
 	}
 
-	void StateGroup::bindIndexBuffer(RID rid) {
-		RID* d = (RID*)allocate(rid, sizeof(RID));
-		*d = rid;
+	StateGroupBuilder& StateGroupBuilder::textureFromRenderTarget(RID rtID, RID shader, int slot) {
+		TextureBindData* d = (TextureBindData*)allocate(rtID, sizeof(TextureBindData));
+		d->rid = rtID;
+		d->shader = shader;
+		d->slot = slot;
+		return *this;
 	}
 
-	void StateGroup::bindBlendState(RID rid) {
-		RID* d = (RID*)allocate(rid, sizeof(RID));
-		*d = rid;
+	StateGroupBuilder& StateGroupBuilder::rasterizerState(RID rid) {
+		basicBinding(rid, ResourceType::RT_RASTERIZER_STATE);
+		return *this;
 	}
 
-	void StateGroup::bindRasterizerState(RID rid) {
-		RID* d = (RID*)allocate(rid, sizeof(RID));
-		*d = rid;
+	RID StateGroupBuilder::build() {
+		StateGroup* group = new StateGroup();
+		group->num = _num;
+		group->data = new char[_dataSize];
+		memcpy(group->data, _data, _dataSize * sizeof(char));
+		group->indices = new int[_num];
+		memcpy(group->indices, _indices, _num * sizeof(int));
+		group->types = new int[_num];
+		memcpy(group->types, _types, _num * sizeof(int));
+		RID rid = addResource(new StateGroupResource(group),RT_STATE_GROUP);
+		group->rid = rid;
+		return rid;
 	}
 
-	void StateGroup::bindSamplerState(RID rid, ShaderType type) {
-		SamplerStateBindData* d = (SamplerStateBindData*)allocate(rid, sizeof(SamplerStateBindData));
-		d->rid = rid;
-		d->type = type;
-	}
-
-	void StateGroup::bindConstantBuffer(RID rid, ShaderType type, int slot, void* data) {
-		ConstantBufferBindData* d = (ConstantBufferBindData*)allocate(rid, sizeof(ConstantBufferBindData));
-		d->rid = rid;
-		d->type = type;
-		d->data = data;
-		d->slot = 0;
-	}
-
-	void StateGroup::sortBindings() {
-		_mappings = new uint32_t[_num];
-	}
-
-	void StateGroup::apply(PipelineState* pipelineState) {
-		for (int i = 0; i < _num; ++i) {
-			if (_types[i] == ResourceType::RT_VERTEX_DECLARATION) {
-				RID* d = (RID*)(_data + _indices[i]);
+	static void apply(PipelineState* pipelineState, RID groupID) {
+		StateGroupResource* res = (StateGroupResource*)_ctx->_resources[id_mask(groupID)];
+		StateGroup* group = res->get();
+		for (int i = 0; i < group->num; ++i) {
+			if (group->types[i] == ResourceType::RT_VERTEX_DECLARATION) {
+				RID* d = (RID*)(group->data + group->indices[i]);
 				if (!pipelineState->isUsed(*d)) {
 					setVertexDeclaration(*d);
 					pipelineState->add(*d);
 				}
 			}
-			else if (_types[i] == ResourceType::RT_SAMPLER_STATE) {
-				SamplerStateBindData* d = (SamplerStateBindData*)(_data + _indices[i]);
-				if (!pipelineState->isUsed(d->rid, d->type,0)) {
-					setSamplerState(d->rid, d->type);
-					pipelineState->add(d->rid, d->type, 0);
+			else if (group->types[i] == ResourceType::RT_SAMPLER_STATE) {
+				SamplerStateBindData* d = (SamplerStateBindData*)(group->data + group->indices[i]);
+				if (!pipelineState->isUsed(d->rid, d->shader, 0)) {
+					setSamplerState(d->rid, d->shader);
+					pipelineState->add(d->rid, d->shader, 0);
 				}
 			}
-			else if (_types[i] == ResourceType::RT_BLENDSTATE) {
-				RID* d = (RID*)(_data + _indices[i]);
+			else if (group->types[i] == ResourceType::RT_BLENDSTATE) {
+				RID* d = (RID*)(group->data + group->indices[i]);
 				if (!pipelineState->isUsed(*d)) {
 					setBlendState(*d);
 					pipelineState->add(*d);
 				}
 			}
-			else if (_types[i] == ResourceType::RT_RASTERIZER_STATE) {
-				RID* d = (RID*)(_data + _indices[i]);
+			else if (group->types[i] == ResourceType::RT_RASTERIZER_STATE) {
+				RID* d = (RID*)(group->data + group->indices[i]);
 				if (!pipelineState->isUsed(*d)) {
 					setRasterizerState(*d);
 					pipelineState->add(*d);
 				}
 			}
-			else if (_types[i] == ResourceType::RT_VERTEX_BUFFER) {
-				RID* d = (RID*)(_data + _indices[i]);
+			else if (group->types[i] == ResourceType::RT_VERTEX_BUFFER) {
+				RID* d = (RID*)(group->data + group->indices[i]);
 				if (!pipelineState->isUsed(*d)) {
 					setVertexBuffer(*d);
 					pipelineState->add(*d);
 				}
 			}
-			else if (_types[i] == ResourceType::RT_INSTANCED_VERTEX_BUFFER) {
-				InstancedBindData* d = (InstancedBindData*)(_data + _indices[i]);
-				setVertexBuffer(d->rid,d->instanceBuffer);
+			else if (group->types[i] == ResourceType::RT_INSTANCED_VERTEX_BUFFER) {
+				InstancedBindData* d = (InstancedBindData*)(group->data + group->indices[i]);
+				setVertexBuffer(d->rid, d->instanceBuffer);
 			}
-			else if (_types[i] == ResourceType::RT_INDEX_BUFFER) {
-				RID* d = (RID*)(_data + _indices[i]);
+			else if (group->types[i] == ResourceType::RT_INDEX_BUFFER) {
+				RID* d = (RID*)(group->data + group->indices[i]);
 				if (!pipelineState->isUsed(*d)) {
 					setIndexBuffer(*d);
 					pipelineState->add(*d);
 				}
 			}
-			else if (_types[i] == ResourceType::RT_SHADER) {
-				RID* d = (RID*)(_data + _indices[i]);
+			else if (group->types[i] == ResourceType::RT_VERTEX_SHADER) {
+				RID* d = (RID*)(group->data + group->indices[i]);
 				if (!pipelineState->isUsed(*d)) {
-					setShader(*d);
+					setVertexShader(*d);
+					pipelineState->add(*d);
 				}
 			}
-			else if (_types[i] == ResourceType::RT_SRV) {
-				TextureBindData* d = (TextureBindData*)(_data + _indices[i]);
-				if (!pipelineState->isUsed(d->rid, d->type, d->slot)) {
-					setTexture(d->rid, d->type, d->slot);
-					pipelineState->add(d->rid, d->type, d->slot);
+			else if (group->types[i] == ResourceType::RT_GEOMETRY_SHADER) {
+				RID* d = (RID*)(group->data + group->indices[i]);
+				if (!pipelineState->isUsed(*d)) {
+					setGeometryShader(*d);
+					pipelineState->add(*d);
 				}
 			}
-			else if (_types[i] == ResourceType::RT_RENDER_TARGET) {
-				TextureBindData* d = (TextureBindData*)(_data + _indices[i]);
-				if (!pipelineState->isUsed(d->rid, d->type, d->slot)) {
-					setTextureFromRenderTarget(d->rid, d->type, d->slot);
-					pipelineState->add(d->rid, d->type, d->slot);
+			else if (group->types[i] == ResourceType::RT_PIXEL_SHADER) {
+				RID* d = (RID*)(group->data + group->indices[i]);
+				if (!pipelineState->isUsed(*d)) {
+					setPixelShader(*d);
+					pipelineState->add(*d);
 				}
 			}
-			else if (_types[i] == ResourceType::RT_CONSTANT_BUFFER) {
-				ConstantBufferBindData* d = (ConstantBufferBindData*)(_data + _indices[i]);
-				if (!pipelineState->isUsed(d->rid, d->type, d->slot)) {
+			else if (group->types[i] == ResourceType::RT_SRV) {
+				TextureBindData* d = (TextureBindData*)(group->data + group->indices[i]);
+				int type = type_mask(d->shader);
+				if (!pipelineState->isUsed(d->rid, type, d->slot)) {
+					setTexture(d->rid, d->shader, d->slot);
+					pipelineState->add(d->rid, type, d->slot);
+				}
+			}
+			else if (group->types[i] == ResourceType::RT_RENDER_TARGET) {
+				TextureBindData* d = (TextureBindData*)(group->data + group->indices[i]);
+				int type = type_mask(d->shader);
+				if (!pipelineState->isUsed(d->rid, type, d->slot)) {
+					setTextureFromRenderTarget(d->rid, d->shader, d->slot);
+					pipelineState->add(d->rid, type, d->slot);
+				}
+			}
+			else if (group->types[i] == ResourceType::RT_CONSTANT_BUFFER) {
+				ConstantBufferBindData* d = (ConstantBufferBindData*)(group->data + group->indices[i]);
+				if (!pipelineState->isUsed(d->rid, d->shader, d->slot)) {
 					if (d->data != 0) {
 						updateConstantBuffer(d->rid, d->data);
 					}
-					setConstantBuffer(d->rid, d->type, d->slot);
-					pipelineState->add(d->rid, d->type, d->slot);
+					setConstantBuffer(d->rid, d->shader, d->slot);
+					pipelineState->add(d->rid, d->shader, d->slot);
 				}
 			}
 		}
@@ -3957,9 +4256,9 @@ namespace ds {
 			k.type = IKT_SYSTEM;
 			k.value = value;
 		}
-		else {
-			printf("unknown: %d\n", keyCode);
-		}
+		//else {
+			//printf("unknown: %d\n", keyCode);
+		//}
 	}
 
 	int getNumInputKeys() {
@@ -3968,6 +4267,125 @@ namespace ds {
 
 	const InputKey& getInputKey(int index) {
 		return _ctx->inputKeys[index];
+	}
+
+	// ---------------------------------------
+	// DEBUG - print resources
+	// ---------------------------------------
+	static void log(FILE* fp,RID groupID) {
+		StateGroupResource* res = (StateGroupResource*)_ctx->_resources[id_mask(groupID)];
+		StateGroup* group = res->get();
+		fprintf(fp, "  Group: %d\n", id_mask(group->rid));
+		for (int i = 0; i < group->num; ++i) {
+			if (group->types[i] == ResourceType::RT_VERTEX_DECLARATION) {
+				RID* d = (RID*)(group->data + group->indices[i]);
+				fprintf(fp, "    VERTEX_DECLARATION %d\n", id_mask(*d));
+			}
+			else if (group->types[i] == ResourceType::RT_SAMPLER_STATE) {
+				SamplerStateBindData* d = (SamplerStateBindData*)(group->data + group->indices[i]);
+				fprintf(fp, "    SAMPLER_STATE      %d\n", id_mask(d->rid));
+			}
+			else if (group->types[i] == ResourceType::RT_BLENDSTATE) {
+				RID* d = (RID*)(group->data + group->indices[i]);
+				fprintf(fp, "    BLENDSTATE         %d\n", id_mask(*d));
+			}
+			else if (group->types[i] == ResourceType::RT_RASTERIZER_STATE) {
+				RID* d = (RID*)(group->data + group->indices[i]);
+				fprintf(fp, "    RASTERIZER_STATE   %d\n", id_mask(*d));
+			}
+			else if (group->types[i] == ResourceType::RT_VERTEX_BUFFER) {
+				RID* d = (RID*)(group->data + group->indices[i]);
+				fprintf(fp, "    VERTEX_BUFFER      %d\n", id_mask(*d));
+			}
+			else if (group->types[i] == ResourceType::RT_INSTANCED_VERTEX_BUFFER) {
+				InstancedBindData* d = (InstancedBindData*)(group->data + group->indices[i]);
+				//setVertexBuffer(d->rid, d->instanceBuffer);
+			}
+			else if (group->types[i] == ResourceType::RT_INDEX_BUFFER) {
+				RID* d = (RID*)(group->data + group->indices[i]);
+				fprintf(fp, "    INDEX_BUFFER       %d\n", id_mask(*d));
+			}
+			else if (group->types[i] == ResourceType::RT_VERTEX_SHADER) {
+				RID* d = (RID*)(group->data + group->indices[i]);
+				fprintf(fp, "    VERTEX_SHADER      %d\n", id_mask(*d));
+			}
+			else if (group->types[i] == ResourceType::RT_GEOMETRY_SHADER) {
+				RID* d = (RID*)(group->data + group->indices[i]);
+				fprintf(fp, "    GEOMETRY_SHADER    %d\n", id_mask(*d));
+			}
+			else if (group->types[i] == ResourceType::RT_PIXEL_SHADER) {
+				RID* d = (RID*)(group->data + group->indices[i]);
+				fprintf(fp, "    PIXEL_SHADER       %d\n", id_mask(*d));
+			}
+			else if (group->types[i] == ResourceType::RT_SRV) {
+				TextureBindData* d = (TextureBindData*)(group->data + group->indices[i]);
+				fprintf(fp, "    SRV                %d shader: %d slot: %d\n", id_mask(d->rid), id_mask(d->shader), d->slot);
+			}
+			else if (group->types[i] == ResourceType::RT_RENDER_TARGET) {
+				TextureBindData* d = (TextureBindData*)(group->data + group->indices[i]);
+			}
+			else if (group->types[i] == ResourceType::RT_CONSTANT_BUFFER) {
+				ConstantBufferBindData* d = (ConstantBufferBindData*)(group->data + group->indices[i]);
+				fprintf(fp, "    CONSTANT_BUFFER    %d type: %d slot %d\n", id_mask(d->rid), id_mask(d->shader), d->slot);
+			}
+		}
+	}
+
+	void printResources() {
+		FILE* fp = fopen("log.txt", "w");
+		for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
+			const BaseResource* res = _ctx->_resources[i];
+			RID rid = res->getRID();
+			fprintf(fp,"%8d(%3d) %s\n", rid, id_mask(rid), RESOURCE_NAMES[type_mask(rid)]);
+		}
+		for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
+			const BaseResource* br = _ctx->_resources[i];
+			if (br->getType() == RT_DRAW_ITEM) {				
+				const DrawItemResource* dir = (DrawItemResource*)_ctx->_resources[i];
+				const DrawItem* item = dir->get();
+				fprintf(fp,"DrawItem %d - items: %d\n", id_mask(br->getRID()),item->num);
+				for (int j = 0; j < item->num; ++j) {
+					RID group = item->groups[j];					
+					log(fp, group);					
+				}
+			}
+		}
+		fclose(fp);
+	}
+
+	// ---------------------------------------
+	//
+	// GPU profiling
+	//
+	// ---------------------------------------
+
+	namespace gpu {
+
+		void measure(int index) {
+			if (_ctx->profiler != 0) {
+				_ctx->profiler->Timestamp(index);
+			}
+		}
+
+		void waitForData() {
+			if (_ctx->profiler != 0) {
+				_ctx->profiler->WaitForDataAndUpdate(GetTotalSeconds());
+			}
+		}
+
+		float getAverageTime(int index) {
+			if (_ctx->profiler != 0) {
+				return _ctx->profiler->DtAvg(index);
+			}
+			return 0.0f;
+		}
+
+		float getTotalTime() {
+			if (_ctx->profiler != 0) {
+				return _ctx->profiler->getTotalTime();
+			}
+			return 0.0f;
+		}
 	}
 }
 #endif
