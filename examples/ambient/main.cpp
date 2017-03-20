@@ -118,12 +118,8 @@ int main(const char** args) {
 
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 
-	ds::ShaderDescriptor desc[] = {
-		{ ds::ShaderType::VERTEX, "AmbientLightning_vs.cso" },
-		{ ds::ShaderType::PIXEL, "AmbientLightning_ps.cso" }
-	};
-
-	RID shaderID = ds::createShader(desc, 2);
+	RID vertexShader = ds::loadVertexShader("AmbientLightning_vs.cso");
+	RID pixelShader = ds::loadPixelShader("AmbientLightning_ps.cso");
 
 	ds::VertexDeclaration decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
@@ -131,7 +127,7 @@ int main(const char** args) {
 		{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,3 }			
 	};
 
-	RID rid = ds::createVertexDeclaration(decl, 3, shaderID);
+	RID rid = ds::createVertexDeclaration(decl, 3, vertexShader);
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
 	RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer));
 	RID indexBuffer = ds::createQuadIndexBuffer(36);
@@ -145,38 +141,41 @@ int main(const char** args) {
 	ds::vec3 rotation(0.0f, 0.0f, 0.0f);
 	ds::vec3 pos(0.0f, 0.0f, 0.0f);
 
-	ds::StateGroup* basicGroup = ds::createStateGroup();
-	basicGroup->bindLayout(rid);
-	basicGroup->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, 0, &constantBuffer);
-	basicGroup->bindConstantBuffer(lightBufferID, ds::ShaderType::PIXEL, 0, &lightBuffer);
-	basicGroup->bindBlendState(bs_id);
-	basicGroup->bindSamplerState(ssid, ds::ShaderType::PIXEL);
-	basicGroup->bindShader(shaderID);
-	basicGroup->bindIndexBuffer(indexBuffer);
+	RID basicGroup = ds::StateGroupBuilder()
+		.inputLayout(rid)
+		.constantBuffer(cbid, vertexShader, 0, &constantBuffer)
+		.constantBuffer(lightBufferID, pixelShader, 0, &lightBuffer)
+		.vertexShader(vertexShader)
+		.pixelShader(pixelShader)
+		.indexBuffer(indexBuffer)
+		.build();
 
-	ds::StateGroup* floorGroup = ds::createStateGroup();
-	floorGroup->bindTexture(floorTexture, ds::ShaderType::PIXEL, 0);
-	floorGroup->bindVertexBuffer(floorBuffer);
+	RID floorGroup = ds::StateGroupBuilder()
+		.texture(floorTexture, pixelShader, 0)
+		.vertexBuffer(floorBuffer)
+		.build();
 
-	ds::StateGroup* ambientGroup = ds::createStateGroup();	
-	ambientGroup->bindTexture(textureID, ds::ShaderType::PIXEL, 0);
-	ambientGroup->bindVertexBuffer(cubeBuffer);
+	RID ambientGroup = ds::StateGroupBuilder()
+		.texture(textureID, pixelShader, 0)
+		.vertexBuffer(cubeBuffer)
+		.build();
 
-	ds::StateGroup* bulbGroup = ds::createStateGroup();
-	bulbGroup->bindTexture(floorTexture, ds::ShaderType::PIXEL, 0);
-	bulbGroup->bindVertexBuffer(bulbID);
+	RID bulbGroup = ds::StateGroupBuilder()
+		.texture(floorTexture, pixelShader, 0)
+		.vertexBuffer(bulbID)
+		.build();
 
 	ds::DrawCommand floorCmd = { 6, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
 	ds::DrawCommand drawCmd = { 36, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
 		
-	ds::StateGroup* floorStack[] = { basicGroup, floorGroup };
-	ds::DrawItem* floorItem = ds::compile(floorCmd, floorStack , 2);
+	RID floorStack[] = { basicGroup, floorGroup };
+	RID floorItem = ds::compile(floorCmd, floorStack , 2);
 
-	ds::StateGroup* cubeStack[] = { basicGroup, ambientGroup };
-	ds::DrawItem* cubeItem = ds::compile(drawCmd, cubeStack, 2);
+	RID cubeStack[] = { basicGroup, ambientGroup };
+	RID cubeItem = ds::compile(drawCmd, cubeStack, 2);
 
-	ds::StateGroup* bulbStack[] = { basicGroup, bulbGroup };
-	ds::DrawItem* bulbItem = ds::compile(drawCmd, bulbStack, 2);
+	RID bulbStack[] = { basicGroup, bulbGroup };
+	RID bulbItem = ds::compile(drawCmd, bulbStack, 2);
 
 	while (ds::isRunning()) {
 		ds::begin();

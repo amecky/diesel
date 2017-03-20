@@ -11,17 +11,10 @@ Particlesystem::Particlesystem(ParticlesystemDescriptor descriptor) : _descripto
 	ds::matrix viewMatrix = ds::matIdentity();
 	ds::matrix projectionMatrix = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
 	_viewprojectionMatrix = viewMatrix * projectionMatrix;
-	
 
-	RID blendState = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
-
-	ds::ShaderDescriptor desc[] = {
-		{ ds::ShaderType::VERTEX, "Particles_2D_vs.cso" },
-		{ ds::ShaderType::PIXEL, "Particles_2D_ps.cso" },
-		{ ds::ShaderType::GEOMETRY, "Particles_2D_gs.cso" }
-	};
-
-	RID gridShader = ds::createShader(desc, 3);
+	RID vertexShader = ds::loadVertexShader("Particles_2D_vs.cso");
+	RID pixelShader = ds::loadPixelShader("Particles_2D_ps.cso");
+	RID geoShader = ds::loadGeometryShader("Particles_2D_gs.cso");
 
 	// very special buffer layout 
 	ds::VertexDeclaration decl[] = {
@@ -31,22 +24,22 @@ Particlesystem::Particlesystem(ParticlesystemDescriptor descriptor) : _descripto
 		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
 	};
 
-	RID vertexDeclaration = ds::createVertexDeclaration(decl, 4, gridShader);
+	RID vertexDeclaration = ds::createVertexDeclaration(decl, 4, vertexShader);
 
 	RID constantBuffer = ds::createConstantBuffer(sizeof(ParticleConstantBuffer));
-	_vertexBuffer = ds::createVertexBuffer(ds::BufferType::DYNAMIC, descriptor.maxParticles, vertexDeclaration);
-	RID samplerState = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
+	_vertexBuffer = ds::createVertexBuffer(ds::BufferType::DYNAMIC, descriptor.maxParticles, sizeof(ParticleVertex));
 
-	ds::StateGroup* basicGroup = ds::createStateGroup();
-	basicGroup->bindLayout(vertexDeclaration);
-	basicGroup->bindShader(gridShader);
-	basicGroup->bindConstantBuffer(constantBuffer, ds::ShaderType::VERTEX, 0, &_constantBuffer);
-	basicGroup->bindConstantBuffer(constantBuffer, ds::ShaderType::GEOMETRY, 0, &_constantBuffer);
-	basicGroup->bindBlendState(blendState);
-	//basicGroup->bindSamplerState(ssid, ds::ShaderType::PIXEL);
-	basicGroup->bindTexture(descriptor.textureID, ds::ShaderType::PIXEL, 0);
+	RID basicGroup = ds::StateGroupBuilder()
+		.inputLayout(vertexDeclaration)
+		.vertexShader(vertexShader)
+		.geometryShader(geoShader)
+		.pixelShader(pixelShader)
+		.constantBuffer(constantBuffer, geoShader, 0, &_constantBuffer)
+		.texture(descriptor.textureID, pixelShader, 0)
+		.vertexBuffer(_vertexBuffer)
+		.build();
 	
-	basicGroup->bindVertexBuffer(_vertexBuffer);
+	
 
 	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::POINT_LIST };
 	
@@ -124,8 +117,7 @@ void Particlesystem::render() {
 	}
 	ds::mapBufferData(_vertexBuffer, _vertices, _array.countAlive * sizeof(ParticleVertex));
 
-	_drawItem->command.size = _array.countAlive;
-	ds::submit(_drawItem);
+	ds::submit(_drawItem, _array.countAlive);
 	ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
 
 }

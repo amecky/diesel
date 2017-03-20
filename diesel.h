@@ -851,53 +851,6 @@ namespace ds {
 		uint32_t* _mappings;
 	};
 	
-	/*
-	class StateGroup {
-
-	public:
-		StateGroup() : _types(0) , _indices(0) , _num(0) , _data(0) , _total(0), _mappings(0) {}
-		~StateGroup() {
-			if (_data != 0) {
-				delete[] _data;
-			}
-			if (_types != 0) {
-				delete[] _types;
-			}
-			if (_indices != 0) {
-				delete[] _indices;
-			}
-			if (_mappings != 0) {
-				delete[] _mappings;
-			}
-		}
-		void apply(PipelineState* state);
-		void bindLayout(RID rid);
-		void bindConstantBuffer(RID rid, ShaderType type, int slot = 0, void* data = 0);
-		void bindBlendState(RID rid);
-		void bindSamplerState(RID rid, ShaderType type);
-		void bindVertexBuffer(RID rid);
-		void bindInstancedVertexBuffer(RID rid, RID instanceBuffer);
-		void bindVertexShader(RID rid);
-		void bindGeometryShader(RID rid);
-		void bindPixelShader(RID rid);
-		void bindIndexBuffer(RID rid);
-		void bindTexture(RID rid, RID shader, int slot);
-		void bindTextureFromRenderTarget(RID rtID, RID shader, int slot);
-		void bindRasterizerState(RID rid);
-		void sortBindings();
-		void log(FILE* fp);
-	private:
-		void* allocate(RID rid, uint16_t size);
-		void basicBinding(RID rid, ResourceType rt);
-		int* _types;
-		int* _indices;
-		int _num;
-		int _total;
-		char* _data;
-		int _dataSize;
-		uint32_t* _mappings;
-	};
-	*/
 	// ---------------------------------------------------
 	// Draw Item
 	// ---------------------------------------------------
@@ -928,15 +881,9 @@ namespace ds {
 
 	RID compile(const DrawCommand cmd, RID group);
 
-	//StateGroup* createStateGroup();
+	void submit(RID drawItemID, int numElements = -1);
 
-	//void submit(const DrawCommand& cmd, StateGroup* group);
-
-	void submit(RID drawItemID);
-
-	void setNum(RID drawItemID, uint16_t size);
-
-	void submit(RID renderPass, RID drawItemID);
+	//void submit(RID renderPass, RID drawItemID);
 
 	bool init(const RenderSettings& settings);
 
@@ -1069,13 +1016,23 @@ namespace ds {
 
 	namespace gpu {
 
+		void init();
+
+		void beginFrame();
+
+		void endFrame();
+
 		void measure(int index);
 
 		void waitForData();
 
-		float getAverageTime(int index);
+		float dt(int index);
 
-		float getTotalTime();
+		float dtAvg(int index);
+
+		float totalTime();
+
+		void shutdown();
 	}
 
 	const DrawStatistics& getStatistics();
@@ -1147,7 +1104,6 @@ namespace ds {
 #include <random>
 #include <thread>
 #include <chrono>
-#include "GPUProfiler.h"
 
 namespace ds {
 
@@ -1888,7 +1844,6 @@ namespace ds {
 		PipelineState* pipelineState;
 		RID defaultStateGroup;
 
-		GPUProfiler* profiler;
 
 	} InternalContext;
 
@@ -2280,11 +2235,7 @@ namespace ds {
 			.build();
 
 		if (settings.useGPUProfiling) {
-			_ctx->profiler = new GPUProfiler(_ctx->d3dDevice,_ctx->d3dContext);
-			_ctx->profiler->Init();
-		}
-		else {
-			_ctx->profiler = 0;
+			gpu::init();
 		}
 		return true;
 	}
@@ -2563,10 +2514,7 @@ namespace ds {
 	void shutdown() {
 		if (_ctx != 0) {
 			delete _ctx->pipelineState;
-			if (_ctx->profiler != 0) {
-				_ctx->profiler->Shutdown();
-				delete _ctx->profiler;
-			}
+			gpu::shutdown();
 			for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
 				_ctx->_resources[i]->release();
 				delete _ctx->_resources[i];
@@ -2616,9 +2564,7 @@ namespace ds {
 	// begin rendering
 	// ------------------------------------------------------
 	void begin() {
-		if (_ctx->profiler != 0) {
-			_ctx->profiler->beginFrame();
-		}
+		gpu::beginFrame();
 		_ctx->d3dContext->OMSetRenderTargets(1, &_ctx->backBufferTarget, _ctx->depthStencilView);
 		_ctx->d3dContext->ClearRenderTargetView(_ctx->backBufferTarget, _ctx->clearColor);
 		_ctx->d3dContext->ClearDepthStencilView(_ctx->depthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -2644,9 +2590,7 @@ namespace ds {
 	void end() {
 		_ctx->swapChain->Present(0, 0);
 		_ctx->numInputKeys = 0;
-		if (_ctx->profiler != 0) {
-			_ctx->profiler->endFrame();
-		}
+		gpu::endFrame();
 	}
 
 	static const char* DXBufferAttributeNames[] = {
@@ -3160,7 +3104,7 @@ namespace ds {
 	// ------------------------------------------------------
 	// submit draw command
 	// ------------------------------------------------------
-	void submit(RID drawItemID) {
+	void submit(RID drawItemID, int numElements) {
 		uint16_t ridx = getResourceIndex(drawItemID, RT_DRAW_ITEM);
 		DrawItemResource* res = (DrawItemResource*)_ctx->_resources[ridx];
 		const DrawItem* item = res->get();
@@ -3169,14 +3113,18 @@ namespace ds {
 			apply(_ctx->pipelineState, item->groups[i]);
 		}
 		const DrawCommand& cmd = item->command;
+		int num = cmd.size;
+		if (numElements != -1) {
+			num = numElements;
+		}
 		_ctx->d3dContext->IASetPrimitiveTopology(PRIMITIVE_TOPOLOGIES[cmd.topology]);
 		switch (cmd.drawType) {
-			case DT_VERTICES: _ctx->d3dContext->Draw(cmd.size, 0); break;
-			case DT_INDEXED: _ctx->d3dContext->DrawIndexed(cmd.size, 0, 0); break;
-			case DT_INSTANCED: _ctx->d3dContext->DrawInstanced(cmd.size, cmd.instances, 0, 0); break;
+			case DT_VERTICES: _ctx->d3dContext->Draw(num, 0); break;
+			case DT_INDEXED: _ctx->d3dContext->DrawIndexed(num, 0, 0); break;
+			case DT_INSTANCED: _ctx->d3dContext->DrawInstanced(num, cmd.instances, 0, 0); break;
 		}
 	}
-
+	/*
 	void submit(const DrawCommand& cmd, RID group) {
 		_ctx->pipelineState->reset();
 		apply(_ctx->pipelineState, group);
@@ -3194,7 +3142,7 @@ namespace ds {
 		DrawItem* item = res->get();
 		item->command.size = size;
 	}
-	
+	*/
 	// ------------------------------------------------------
 	// create vertex shader
 	// ------------------------------------------------------
@@ -4358,33 +4306,172 @@ namespace ds {
 	// GPU profiling
 	//
 	// ---------------------------------------
-
 	namespace gpu {
 
-		void measure(int index) {
-			if (_ctx->profiler != 0) {
-				_ctx->profiler->Timestamp(index);
+		const int GTS_MAX = 64;
+
+		struct GPUProfilingContext {
+			int currFrame;
+			int lastFrame;
+			int currentMax;
+			ID3D11Query* disjointQuery[2];
+			ID3D11Query* timestampQuery[GTS_MAX][2];
+			float adT[GTS_MAX];
+			float adTAvg[GTS_MAX];
+			float adTTotalAvg[GTS_MAX];
+			int frameCountAvg;
+			float tBeginAvg;
+		};
+
+		static GPUProfilingContext* _gpCtx = 0;
+
+		void init() {
+			_gpCtx = new GPUProfilingContext;
+			_gpCtx->lastFrame = -1;
+			_gpCtx->frameCountAvg = 0;
+			_gpCtx->tBeginAvg = 0.0f;
+			_gpCtx->currentMax = 1;
+			_gpCtx->currFrame = 0;
+			memset(_gpCtx->adT, 0, sizeof(_gpCtx->adT));
+			memset(_gpCtx->adTAvg, 0, sizeof(_gpCtx->adT));
+			memset(_gpCtx->adTTotalAvg, 0, sizeof(_gpCtx->adT));
+			D3D11_QUERY_DESC queryDesc = { D3D11_QUERY_TIMESTAMP_DISJOINT, 0 };
+			for (int i = 0; i < 2; ++i) {
+				_ctx->d3dDevice->CreateQuery(&queryDesc, &_gpCtx->disjointQuery[i]);
+			}
+			queryDesc.Query = D3D11_QUERY_TIMESTAMP;
+			for (int i = 0; i < 2; ++i) {
+				for (int gts = 0; gts < GTS_MAX; ++gts) {
+					_ctx->d3dDevice->CreateQuery(&queryDesc, &_gpCtx->timestampQuery[gts][i]);
+				}
 			}
 		}
 
+		void beginFrame() {
+			if (_gpCtx != 0) {
+				_gpCtx->currentMax = 0;
+				_ctx->d3dContext->Begin(_gpCtx->disjointQuery[_gpCtx->currFrame]);
+				measure(0);
+			}
+		}
+
+		void measure(int gts) {
+			if (_gpCtx != 0) {
+				if ((gts + 1) > _gpCtx->currentMax) {
+					_gpCtx->currentMax = gts + 1;
+				}
+				_ctx->d3dContext->End(_gpCtx->timestampQuery[gts][_gpCtx->currFrame]);
+			}
+		}
+
+		void endFrame() {
+			if (_gpCtx != 0) {
+				measure(_gpCtx->currentMax);
+				_ctx->d3dContext->End(_gpCtx->disjointQuery[_gpCtx->currFrame]);
+				++_gpCtx->currFrame &= 1;
+			}
+		}
+
+		// Wait on GPU for last frame's data (not this frame's) to be available
 		void waitForData() {
-			if (_ctx->profiler != 0) {
-				_ctx->profiler->WaitForDataAndUpdate(GetTotalSeconds());
+			if (_gpCtx != 0) {
+				if (_gpCtx->lastFrame < 0) {
+					// Haven't run enough frames yet to have data
+					_gpCtx->lastFrame = 0;
+					return;
+				}
+
+				// Wait for data
+				while (_ctx->d3dContext->GetData(_gpCtx->disjointQuery[_gpCtx->lastFrame], NULL, 0, 0) == S_FALSE) {
+					//Sleep(1);
+					std::this_thread::sleep_for(std::chrono::microseconds(200));
+				}
+
+				int iFrame = _gpCtx->lastFrame;
+				++_gpCtx->lastFrame &= 1;
+
+				D3D11_QUERY_DATA_TIMESTAMP_DISJOINT timestampDisjoint;
+				HRESULT hr = _ctx->d3dContext->GetData(_gpCtx->disjointQuery[iFrame], &timestampDisjoint, sizeof(timestampDisjoint), 0);
+				if (hr != S_OK) {
+					//reportLastError("-- Couldn't retrieve timestamp disjoint query data", hr);
+					printf("-- Couldn't retrieve timestamp disjoint query data\n");
+					return;
+				}
+
+				if (timestampDisjoint.Disjoint) {
+					// Throw out this frame's data
+					printf("Timestamps disjoint\n");
+					return;
+				}
+
+				UINT64 timestampPrev;
+				if (_ctx->d3dContext->GetData(_gpCtx->timestampQuery[0][iFrame], &timestampPrev, sizeof(UINT64), 0) != S_OK) {
+					printf("Couldn't retrieve timestamp query data for GTS 0");
+					return;
+				}
+
+				for (int gts = 1; gts < _gpCtx->currentMax; ++gts) {
+					UINT64 timestamp;
+					if (_ctx->d3dContext->GetData(_gpCtx->timestampQuery[gts][iFrame], &timestamp, sizeof(UINT64), 0) != S_OK) {
+						printf("Couldn't retrieve timestamp query data for GTS 6\n");
+						return;
+					}
+
+					_gpCtx->adT[gts] = float(timestamp - timestampPrev) / float(timestampDisjoint.Frequency);
+					timestampPrev = timestamp;
+
+					_gpCtx->adTTotalAvg[gts] += _gpCtx->adT[gts];
+				}
+
+				++_gpCtx->frameCountAvg;
+				if (GetTotalSeconds() > _gpCtx->tBeginAvg + 0.5f) {
+					for (int gts = 0; gts < _gpCtx->currentMax; ++gts) {
+						_gpCtx->adTAvg[gts] = _gpCtx->adTTotalAvg[gts] / _gpCtx->frameCountAvg;
+						_gpCtx->adTTotalAvg[gts] = 0.0f;
+					}
+					_gpCtx->frameCountAvg = 0;
+					_gpCtx->tBeginAvg = GetTotalSeconds();
+				}
 			}
 		}
 
-		float getAverageTime(int index) {
-			if (_ctx->profiler != 0) {
-				return _ctx->profiler->DtAvg(index);
+		float dt(int gts) {
+			if (_gpCtx != 0) {
+				return _gpCtx->adT[gts];
 			}
 			return 0.0f;
 		}
 
-		float getTotalTime() {
-			if (_ctx->profiler != 0) {
-				return _ctx->profiler->getTotalTime();
+		float dtAvg(int gts) {
+			if (_gpCtx != 0) {
+				return _gpCtx->adTAvg[gts];
 			}
 			return 0.0f;
+		}
+
+		float totalTime() {
+			float dTDrawTotal = 0.0f;
+			if (_gpCtx != 0) {
+				for (int gts = 0; gts < _gpCtx->currentMax; ++gts) {
+					dTDrawTotal += dtAvg(gts);
+				}
+			}
+			return dTDrawTotal;
+		}
+		
+		void shutdown() {
+			if (_gpCtx != 0) {
+				for (int i = 0; i < 2; ++i) {
+					if (_gpCtx->disjointQuery[i]) {
+						_gpCtx->disjointQuery[i]->Release();
+					}
+					for (int gts = 0; gts < GTS_MAX; ++gts) {
+						if (_gpCtx->timestampQuery[gts][i]) {
+							_gpCtx->timestampQuery[gts][i]->Release();
+						}
+					}
+				}
+			}
 		}
 	}
 }

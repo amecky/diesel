@@ -29,6 +29,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.title = "Hello world";
 	rs.clearColor = ds::Color(0.1f, 0.1f, 0.1f, 1.0f);
 	rs.multisampling = 4;
+	rs.useGPUProfiling = false;
 	ds::init(rs);
 
 	ParticlesystemDescriptor descriptor;
@@ -56,12 +57,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID textureID = loadImage("..\\common\\cube_map.png");
 
-	ds::ShaderDescriptor desc[] = {
-		{ ds::ShaderType::VERTEX, "..\\common\\Textured_vs.cso" },
-		{ ds::ShaderType::PIXEL, "..\\common\\Textured_ps.cso" }
-	};
-
-	RID gridShader = ds::createShader(desc, 2);
+	RID vertexShader = ds::loadVertexShader("..\\common\\Textured_vs.cso");
+	RID pixelShader = ds::loadPixelShader("..\\common\\Textured_ps.cso");
 
 	Grid grid;
 	ds::vec3 gridPositions[] = {
@@ -70,7 +67,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::vec3(4.0f, -1.0f,  4.5f),
 		ds::vec3(4.0f, -1.0f, -3.5f)
 	};
-	grid.create(gridPositions, 2, gridShader, textureID);
+	grid.create(gridPositions, 2, vertexShader, pixelShader, textureID);
 
 	ds::setViewPosition(ds::vec3(0, 2, -5));
 

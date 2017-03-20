@@ -9,16 +9,12 @@ struct CubeConstantBuffer {
 
 RID vertexBufferID;
 
-ds::StateGroup* createStateGroup(int numVertices,CubeConstantBuffer* buffer) {
+RID createStateGroup(int numVertices,CubeConstantBuffer* buffer) {
 
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 
-	ds::ShaderDescriptor desc[] = {
-		{ ds::ShaderType::VERTEX, "Grid_vs.cso" },
-		{ ds::ShaderType::PIXEL, "Grid_ps.cso" }
-	};
-
-	RID shaderID = ds::createShader(desc, 2);
+	RID vertexShader = ds::loadVertexShader("Grid_vs.cso");
+	RID pixelShader = ds::loadPixelShader("Grid_ps.cso");
 
 	ds::VertexDeclaration decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
@@ -28,23 +24,23 @@ ds::StateGroup* createStateGroup(int numVertices,CubeConstantBuffer* buffer) {
 
 	int q = numVertices / 4 * 6;
 
-	RID rid = ds::createVertexDeclaration(decl, 3, shaderID);
+	RID rid = ds::createVertexDeclaration(decl, 3, vertexShader);
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
 	RID indexBufferID = ds::createQuadIndexBuffer(numVertices / 4);
 	vertexBufferID = ds::createVertexBuffer(ds::BufferType::DYNAMIC, numVertices, sizeof(GridVertex));
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 	
 
-	ds::StateGroup* sg = ds::createStateGroup();
-	sg->bindLayout(rid);	
-	sg->bindBlendState(bs_id);
-	sg->bindShader(shaderID);
-	sg->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, 0, buffer);
-	sg->bindSamplerState(ssid, ds::ShaderType::PIXEL);
-	sg->bindVertexBuffer(vertexBufferID);
-	sg->bindIndexBuffer(indexBufferID);
+	RID stateGroup = ds::StateGroupBuilder()
+		.inputLayout(rid)
+		.vertexShader(vertexShader)
+		.pixelShader(pixelShader)
+		.constantBuffer(cbid, vertexShader, 0, buffer)
+		.vertexBuffer(vertexBufferID)
+		.indexBuffer(indexBufferID)
+		.build();
 
-	return sg;
+	return stateGroup;
 	
 }
 // ---------------------------------------------------------------
@@ -87,10 +83,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	constantBuffer.viewprojectionMatrix = ds::matTranspose(viewprojectionMatrix);
 	constantBuffer.worldMatrix = ds::matTranspose(ds::matIdentity());
 
-	ds::StateGroup* stateGroup = createStateGroup(NUM, &constantBuffer);
+	RID stateGroup = createStateGroup(NUM, &constantBuffer);
 	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST, 0 };
 
-	ds::DrawItem* item = ds::compile(drawCmd, stateGroup);
+	RID item = ds::compile(drawCmd, stateGroup);
 
 	
 
@@ -114,9 +110,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 		ds::mapBufferData(vertexBufferID, vertices, num * sizeof(GridVertex));
 
-		item->command.size = num / 4 * 6;
-
-		ds::submit(item);
+		ds::submit(item, num / 4 * 6);
 
 		ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
 

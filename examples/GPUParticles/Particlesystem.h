@@ -123,6 +123,6 @@ private:
 	ParticleArray _array;
 	ParticleVertex* _vertices;
 	//ds::matrix _viewprojectionMatrix;
-	ds::DrawItem* _drawItem;
+	RID _drawItem;
 	RID _vertexBuffer;
 };

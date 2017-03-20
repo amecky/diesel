@@ -9,12 +9,9 @@ Particlesystem::Particlesystem(ParticlesystemDescriptor descriptor) : _descripto
 
 	RID blendState = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::ONE, ds::BlendStates::ONE, true);
 
-	ds::ShaderDescriptor desc[] = {
-		{ ds::ShaderType::VERTEX, "GPUParticles_vs.cso" },
-		{ ds::ShaderType::PIXEL, "GPUParticles_ps.cso" },
-		{ ds::ShaderType::GEOMETRY, "GPUParticles_gs.cso" }
-	};
-	RID shader = ds::createShader(desc, 3);
+	RID vertexShader = ds::loadVertexShader("GPUParticles_vs.cso");
+	RID pixelShader = ds::loadPixelShader("GPUParticles_ps.cso");
+	RID geoShader = ds::loadGeometryShader("GPUParticles_gs.cso");
 
 	// very special buffer layout 
 	ds::VertexDeclaration decl[] = {
@@ -24,22 +21,22 @@ Particlesystem::Particlesystem(ParticlesystemDescriptor descriptor) : _descripto
 		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
 	};
 
-	RID vertexDeclaration = ds::createVertexDeclaration(decl, 4, shader);
+	RID vertexDeclaration = ds::createVertexDeclaration(decl, 4, vertexShader);
 
 	RID constantBuffer = ds::createConstantBuffer(sizeof(ParticleConstantBuffer));
 	_vertexBuffer = ds::createVertexBuffer(ds::BufferType::DYNAMIC, descriptor.maxParticles, sizeof(ParticleVertex));
 	RID samplerState = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 
-	ds::StateGroup* basicGroup = ds::createStateGroup();
-	basicGroup->bindLayout(vertexDeclaration);	
-	basicGroup->bindConstantBuffer(constantBuffer, ds::ShaderType::VERTEX, 0, &_constantBuffer);
-	basicGroup->bindConstantBuffer(constantBuffer, ds::ShaderType::GEOMETRY, 0, &_constantBuffer);
-	basicGroup->bindBlendState(blendState);
-	basicGroup->bindShader(shader);
-	//basicGroup->bindSamplerState(ssid, ds::ShaderType::PIXEL);
-	basicGroup->bindTexture(descriptor.texture, ds::ShaderType::PIXEL, 0);
-
-	basicGroup->bindVertexBuffer(_vertexBuffer);
+	RID basicGroup = ds::StateGroupBuilder()
+		.inputLayout(vertexDeclaration)
+		.vertexBuffer(_vertexBuffer)
+		.constantBuffer(constantBuffer, vertexShader, 0, &_constantBuffer)
+		.constantBuffer(constantBuffer, geoShader, 0, &_constantBuffer)
+		.vertexShader(vertexShader)
+		.geometryShader(geoShader)
+		.pixelShader(pixelShader)
+		.texture(descriptor.texture, pixelShader, 0)
+		.build();
 
 	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::POINT_LIST, 0 };
 
@@ -92,8 +89,6 @@ void Particlesystem::render() {
 		_vertices[i] = ParticleVertex(_array.positions[i], _array.velocities[i], ds::vec2(_array.timers[i].x, _array.timers[i].y), _array.sizes[i]);
 	}
 	ds::mapBufferData(_vertexBuffer, _vertices, _array.countAlive * sizeof(ParticleVertex));
-
-	_drawItem->command.size = _array.countAlive;
-	ds::submit(_drawItem);
+	ds::submit(_drawItem, _array.countAlive);
 
 }

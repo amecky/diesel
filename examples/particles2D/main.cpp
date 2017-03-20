@@ -22,7 +22,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	ParticlesystemDescriptor descriptor;
 	descriptor.maxParticles = 1024;
-	descriptor.particleDimension = ds::vec2(32, 32);
+	descriptor.particleDimension = ds::vec2(64, 64);
 	// load image using stb_image
 	int x, y, n;
 	unsigned char *data = stbi_load("particles.png", &x, &y, &n, 4);
@@ -36,11 +36,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	particleDescriptor.color = ds::Color(244,165,41,255);
 	particleDescriptor.velocity = ds::vec2(20.0f, 0.0f);
 	particleDescriptor.friction = 0.5f;
-	particleDescriptor.scale = ds::vec2(1, 1);
-	particleDescriptor.growth = ds::vec2(-0.3f, -0.1f);
+	particleDescriptor.scale = ds::vec2(0.4f,0.2f);
+	particleDescriptor.growth = ds::vec2(1.2f, 0.0f);
 	particleDescriptor.alphaFading = true;
 	
-	int emitter = 64;
+	int emitter = 128;
 	float radius = 10.0f;
 	float t = 1.1f;
 
@@ -58,8 +58,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				float y = py + sin(angle) * radius;
 				particleDescriptor.ttl = ds::random(1.0f,2.0f);
 				particleDescriptor.rotation = angle;
-				particleDescriptor.rotationSpeed = ds::random(0.5f,2.0f) * ds::PI * 2.0f;
-				particleDescriptor.scale = ds::vec2(1.0f, 0.4f);
+				particleDescriptor.rotationSpeed = 0.0f;// ds::random(0.5f, 2.0f) * ds::PI * 2.0f;
+				//particleDescriptor.scale = ds::vec2(1.0f, 0.4f);
 				particleDescriptor.velocity = ds::random(80.0f,300.0f) * ds::vec2(cos(angle), sin(angle));				
 				system.add(ds::vec2(x, y), particleDescriptor);
 			}

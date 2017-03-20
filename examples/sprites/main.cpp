@@ -123,6 +123,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.title = "Hello world";
 	rs.clearColor = ds::Color(0.2f, 0.2f, 0.2f, 1.0f);
 	rs.multisampling = 4;
+	rs.useGPUProfiling = false;
 	ds::init(rs);
 
 	// load image using stb_image
@@ -132,15 +133,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	stbi_image_free(data);
 
 
-	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
-
-	ds::ShaderDescriptor desc[] = {
-		{ ds::ShaderType::VERTEX, "Sprites_vs.cso" },
-		{ ds::ShaderType::PIXEL, "Sprites_ps.cso" },
-		{ ds::ShaderType::GEOMETRY, "Sprites_gs.cso" }
-	};
-
-	RID shaderID = ds::createShader(desc, 3);
+	RID vertexShader = ds::loadVertexShader("Sprites_vs.cso");
+	RID pixelShader = ds::loadPixelShader("Sprites_ps.cso");
+	RID geoShader = ds::loadGeometryShader("Sprites_gs.cso");
 
 	// very special buffer layout 
 	ds::VertexDeclaration decl[] = {
@@ -150,11 +145,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
 	};
 
-	RID vertexDeclId = ds::createVertexDeclaration(decl, 4, shaderID);
+	RID vertexDeclId = ds::createVertexDeclaration(decl, 4, vertexShader);
 		
 	RID cbid = ds::createConstantBuffer(sizeof(SpriteConstantBuffer));
 	RID vertexBufferID = ds::createVertexBuffer(ds::BufferType::DYNAMIC, 64, sizeof(SpriteVertex));
-	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 
 	// create orthographic view
 	ds::matrix viewMatrix = ds::matIdentity();
@@ -164,17 +158,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::setViewMatrix(viewMatrix);
 	ds::setProjectionMatrix(projectionMatrix);
 
-	ds::StateGroup* sg = ds::createStateGroup();
-	sg->bindLayout(vertexDeclId);
-	sg->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, 0, &constantBuffer);
-	sg->bindConstantBuffer(cbid, ds::ShaderType::GEOMETRY, 0, &constantBuffer);
-	sg->bindBlendState(bs_id);
-	sg->bindSamplerState(ssid, ds::ShaderType::PIXEL);
-	sg->bindVertexBuffer(vertexBufferID);
-	sg->bindShader(shaderID);
-	sg->bindTexture(textureID, ds::ShaderType::PIXEL, 0);
+	RID stateGroup = ds::StateGroupBuilder()
+		.inputLayout(vertexDeclId)
+		.constantBuffer(cbid, vertexShader, 0, &constantBuffer)
+		.constantBuffer(cbid, geoShader, 0, &constantBuffer)
+		.vertexBuffer(vertexBufferID)
+		.vertexShader(vertexShader)
+		.geometryShader(geoShader)
+		.pixelShader(pixelShader)
+		.texture(textureID, pixelShader, 0)
+		.build();
 
 	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::POINT_LIST, 0 };
+
+	RID drawItem = ds::compile(drawCmd, stateGroup);
 
 	while (ds::isRunning()) {
 		// move sprites
@@ -204,7 +201,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		}
 		ds::mapBufferData(vertexBufferID, vertices, numSprites * sizeof(SpriteVertex));
 		drawCmd.size = numSprites;
-		ds::submit(drawCmd, sg);
+		ds::setNum(drawItem, numSprites);
+		ds::submit(drawItem);
 		ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
 		ds::end();
 	}

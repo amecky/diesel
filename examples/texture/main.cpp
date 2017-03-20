@@ -195,10 +195,10 @@ int main(int argc, char *argv[]) {
 		gui::start(ds::vec2(700, 750));
 		gui::begin("Timer", &state);
 		if (state == 1) {
-			gui::Value("DrawTime", 1000.0f * ds::gpu::getTotalTime(), "%0.4f");
-			gui::Value("DT1", 1000.0f * ds::gpu::getAverageTime(1), "%0.4f");
-			gui::Value("DT2", 1000.0f * ds::gpu::getAverageTime(2), "%0.4f");
-			gui::Value("DT3", 1000.0f * ds::gpu::getAverageTime(3), "%0.4f");
+			gui::Value("DrawTime", 1000.0f * ds::gpu::totalTime(), "%0.4f");
+			gui::Value("DT1", 1000.0f * ds::gpu::dtAvg(1), "%0.4f");
+			gui::Value("DT2", 1000.0f * ds::gpu::dtAvg(2), "%0.4f");
+			gui::Value("DT3", 1000.0f * ds::gpu::dtAvg(3), "%0.4f");
 		}
 		gui::end();
 		spriteBuffer.flush();

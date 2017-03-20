@@ -69,8 +69,7 @@ void SpriteBuffer::flush() {
 	if (_current > 0) {
 		ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
 		ds::mapBufferData(_vertexBufferID, _vertices, _current * sizeof(SpriteBufferVertex));
-		ds::setNum(_item,_current);		
-		ds::submit(_item);
+		ds::submit(_item, _current);
 		ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
 		_current = 0;
 	}

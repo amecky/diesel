@@ -65,12 +65,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID cubeTextureID = loadImage("..\\common\\grid.png");
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 
-	ds::ShaderDescriptor gridDesc[] = {
-		{ ds::ShaderType::VERTEX, "..\\common\\Textured_vs.cso" },
-		{ ds::ShaderType::PIXEL, "..\\common\\Textured_ps.cso" }
-	};
-
-	RID gridShader = ds::createShader(gridDesc, 2);
+	RID vertexShader = ds::loadVertexShader("..\\common\\Textured_vs.cso");
+	RID pixelShader = ds::loadPixelShader("..\\common\\Textured_ps.cso");
 
 	Grid grid;
 	ds::vec3 gridPositions[] = {
@@ -79,14 +75,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::vec3(4.0f, -1.0f,  4.5f),
 		ds::vec3(4.0f, -1.0f, -3.5f)
 	};
-	grid.create(gridPositions, 4, gridShader, textureID);
+	grid.create(gridPositions, 4, vertexShader, pixelShader, textureID);
 
 	ds::VertexDeclaration decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }
 	};
 
-	RID rid = ds::createVertexDeclaration(decl, 2, gridShader);
+	RID rid = ds::createVertexDeclaration(decl, 2, vertexShader);
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
 	RID indexBuffer = ds::createQuadIndexBuffer(256);
 	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v);
@@ -97,17 +93,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::vec3 rotation(0.0f, 0.0f, 0.0f);
 	ds::vec3 pos(0.0f, 0.0f, 0.0f);
 	FPSCamera camera(1024, 768);
-	camera.setPosition(ds::vec3(0, 2, -12));
+	camera.setPosition(ds::vec3(0, 1, -6));
 
-	ds::StateGroup* sg = ds::createStateGroup();
-	sg->bindLayout(rid);
-	sg->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, 0, &constantBuffer);
-	sg->bindBlendState(bs_id);
-	sg->bindSamplerState(ssid, ds::ShaderType::PIXEL);
-	sg->bindVertexBuffer(cubeBuffer);
-	sg->bindShader(gridShader);
-	sg->bindIndexBuffer(indexBuffer);
+	RID stateGroup = ds::StateGroupBuilder()
+		.inputLayout(rid)
+		.constantBuffer(cbid, vertexShader, 0, &constantBuffer)
+		.vertexBuffer(cubeBuffer)
+		.vertexShader(vertexShader)
+		.pixelShader(pixelShader)
+		.indexBuffer(indexBuffer)
+		.texture(cubeTextureID,pixelShader,0)
+		.build();
+
 	ds::DrawCommand drawCmd = { 36, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
+
+	RID drawItem = ds::compile(drawCmd, stateGroup);
 
 	while (ds::isRunning()) {
 		ds::begin();
@@ -128,8 +128,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::matrix s = ds::matScale(scale);
 		ds::matrix w = rotZ * rotY * rotX * s * world;
 		constantBuffer.worldMatrix = ds::matTranspose(w);
-		//ds::setTexture(cubeTextureID, ds::ShaderType::PIXEL);
-		ds::submit(drawCmd, sg);
+		ds::submit(drawItem);
 
 		ds::end();
 	}
