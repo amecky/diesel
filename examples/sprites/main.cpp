@@ -201,8 +201,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		}
 		ds::mapBufferData(vertexBufferID, vertices, numSprites * sizeof(SpriteVertex));
 		drawCmd.size = numSprites;
-		ds::setNum(drawItem, numSprites);
-		ds::submit(drawItem);
+		ds::submit(drawItem, numSprites);
 		ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
 		ds::end();
 	}

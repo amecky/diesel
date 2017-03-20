@@ -33,7 +33,8 @@ struct InstanceData {
 // ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
+//int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
+int main(int argc, char *argv[]) {
 	ds::vec3 rotation(ds::PI * 0.5f, 0.0f, 0.0f);
 	ds::matrix rotX = ds::matRotationX(rotation.x);
 	ObjVertex vertices[512];
@@ -61,12 +62,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 
-	ds::ShaderDescriptor desc[] = {
-		{ ds::ShaderType::VERTEX, "Mesh_vs.cso" },
-		{ ds::ShaderType::PIXEL, "Mesh_ps.cso" }
-	};
-
-	RID shaderID = ds::createShader(desc,2);
+	RID vertexShader = ds::loadVertexShader("Mesh_vs.cso");
+	RID pixelShader = ds::loadPixelShader("Mesh_ps.cso");
 
 	ds::InstanceLayoutDeclaration instDecl[] = {
 		{ "NORMAL", 1, ds::BufferAttributeType::FLOAT, 3 },
@@ -87,7 +84,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::vec3 lightPos = ds::vec3(0.0f, -0.5f, 1.0f);
 	lightBuffer.lightDirection = normalize(lightPos);
 	
-	RID rid = ds::createInstanceDeclaration(decl, 4, instDecl, 2, shaderID);
+	RID rid = ds::createInstanceDeclaration(decl, 4, instDecl, 2, vertexShader);
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
 	RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer));
 	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, num, sizeof(ObjVertex), vertices);
@@ -126,18 +123,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		}
 	}
 
-	ds::StateGroup* sg = ds::createStateGroup();
-	sg->bindLayout(rid);
-	sg->bindShader(shaderID);
-	sg->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, 0, &constantBuffer);
-	sg->bindConstantBuffer(lightBufferID, ds::ShaderType::PIXEL, 0, &lightBuffer);
-	sg->bindBlendState(bs_id);
-	sg->bindSamplerState(ssid,ds::ShaderType::PIXEL);
-	sg->bindInstancedVertexBuffer(vbid,idid);
+	RID stateGroup = ds::StateGroupBuilder()
+		.inputLayout(rid)
+		.vertexShader(vertexShader)
+		.pixelShader(pixelShader)
+		.constantBuffer(cbid, vertexShader, 0, &constantBuffer)
+		.constantBuffer(lightBufferID, pixelShader, 0, &lightBuffer)
+		.instancedVertexBuffer(vbid, idid)
+		.build();
 	
 	ds::DrawCommand drawCmd = { num, ds::DrawType::DT_INSTANCED, ds::PrimitiveTypes::TRIANGLE_LIST, TOTAL };
 
-	ds::DrawItem* drawItem = ds::compile(drawCmd, sg);
+	RID drawItem = ds::compile(drawCmd, stateGroup);
 
 	while (ds::isRunning()) {
 		ds::begin();

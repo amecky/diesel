@@ -3605,15 +3605,60 @@ namespace ds {
 	// -----------------------------------------------------------------
 	// StateGroup
 	// -----------------------------------------------------------------
-	enum PipielineStage {
+	enum PipelineStage {
 		PLS_IA, // input assembler
 		PLS_VS, // vertex shader
 		PLS_GS, // geometry shader
 		PLS_RS, // rasterizer
 		PLS_PS, // pixel shader
-		PLS_OM  // output merger
+		PLS_OM, // output merger
+		PLS_UNKNOWN
 	};
 
+	struct PipelineStageMapping {
+		ResourceType type;
+		int data;
+		PipelineStage stage;
+	};
+
+	const PipelineStageMapping STAGE_MAPPING[] = {
+		{ RT_VERTEX_BUFFER, -1 , PLS_IA },
+		{ RT_INDEX_BUFFER, -1, PLS_IA },
+		{ RT_VERTEX_SHADER, -1,PLS_VS },
+		{ RT_PIXEL_SHADER, -1,PLS_PS },
+		{ RT_GEOMETRY_SHADER, -1,PLS_GS },
+		{ RT_BLENDSTATE, -1, PLS_OM },
+		{ RT_VERTEX_DECLARATION, -1, PLS_IA},
+		{ RT_CONSTANT_BUFFER, 12, PLS_IA },
+		{ RT_CONSTANT_BUFFER, 13, PLS_GS },
+		{ RT_CONSTANT_BUFFER, 14, PLS_PS },
+		//RT_SAMPLER_STATE,
+		{ RT_SRV, 12, PLS_IA },
+		{ RT_SRV, 13, PLS_GS },
+		{ RT_SRV, 14, PLS_PS },
+		{ RT_RASTERIZER_STATE, -1, PLS_RS },
+		//RT_RENDER_TARGET,
+		//RT_RENDER_PASS,
+		//RT_INSTANCED_VERTEX_BUFFER,
+		//RT_DRAW_ITEM,
+		//RT_STATE_GROUP
+	};
+
+	static PipelineStage findStage(int rt, int type) {
+		for (int i = 0; i < 14; ++i) {
+			const PipelineStageMapping& current = STAGE_MAPPING[i];
+			if (current.type == rt) {
+				if (current.data == -1) {
+					return current.stage;
+				}
+				else if (current.data == type) {
+					return current.stage;
+				}
+			
+			}
+		}
+		return PLS_UNKNOWN;
+	}
 	// -----------------------------------------------------------------
 	// compile with array of StateGroups
 	// -----------------------------------------------------------------
@@ -3622,7 +3667,6 @@ namespace ds {
 		item->command = cmd;
 		item->groups = new RID[num + 1];
 		for (int i = 0; i < num; ++i) {
-			//groups[i]->sortBindings();
 			item->groups[i] = groups[i];
 		}
 		item->groups[num] = _ctx->defaultStateGroup;
@@ -3637,8 +3681,6 @@ namespace ds {
 		DrawItem* item = new DrawItem;
 		item->command = cmd;
 		item->groups = new RID[2];
-		//group->sortBindings();
-		// FIXME: sort by stages
 		item->groups[0] = group;
 		item->groups[1] = _ctx->defaultStateGroup;
 		item->num = 2;
@@ -3813,6 +3855,23 @@ namespace ds {
 
 	RID StateGroupBuilder::build() {
 		StateGroup* group = new StateGroup();
+		printf("-----------------------------\n");
+		int* stages = new int[_num];
+		for (int i = 0; i < _num; ++i) {
+			int type = 0;
+			if (_types[i] == RT_SRV) {
+				TextureBindData* d = (TextureBindData*)(_data + _indices[i]);
+				type = type_mask(d->shader);
+			}
+			else if (_types[i] == RT_CONSTANT_BUFFER) {
+				ConstantBufferBindData* d = (ConstantBufferBindData*)(_data + _indices[i]);
+				type = type_mask(d->shader);
+			}
+			PipelineStage stage = findStage(_types[i], type);
+			stages[i] = stage;
+			printf("type: %d stage: %d\n", _types[i], stage);
+		}
+		delete[] stages;
 		group->num = _num;
 		group->data = new char[_dataSize];
 		memcpy(group->data, _data, _dataSize * sizeof(char));
