@@ -135,20 +135,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 
-	ds::ShaderDescriptor desc[] = {
-		{ ds::ShaderType::VERTEX, "Sprites_vs.cso" },
-		{ ds::ShaderType::PIXEL, "Sprites_ps.cso" },
-		{ ds::ShaderType::GEOMETRY, "Sprites_gs.cso" }
-	};
+	RID spritesVS = ds::loadVertexShader("Sprites_vs.cso");
+	RID spritesPS = ds::loadPixelShader("Sprites_ps.cso");
+	RID spritesGS = ds::loadGeometryShader("Sprites_gs.cso");
 
-	RID shaderID = ds::createShader(desc, 3);
-
-	ds::ShaderDescriptor rpDesc[] = {
-		{ ds::ShaderType::VERTEX, "Ripple_vs.cso" },
-		{ ds::ShaderType::PIXEL, "Ripple_ps.cso" }
-	};
-
-	RID rippleShaderID = ds::createShader(rpDesc, 2);
+	RID rippleVS = ds::loadVertexShader("Ripple_vs.cso");
+	RID ripplePS = ds::loadPixelShader("Ripple_ps.cso");
 
 	// very special buffer layout 
 	ds::VertexDeclaration decl[] = {
@@ -158,7 +150,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
 	};
 
-	RID vertexDeclId = ds::createVertexDeclaration(decl, 4, shaderID);
+	RID vertexDeclId = ds::createVertexDeclaration(decl, 4, spritesVS);
 		
 	RID cbid = ds::createConstantBuffer(sizeof(SpriteConstantBuffer));
 	RID vertexBufferID = ds::createVertexBuffer(ds::BufferType::DYNAMIC, 64, sizeof(SpriteVertex));
@@ -173,33 +165,40 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::setProjectionMatrix(projectionMatrix);
 	constantBuffer.wvp = ds::matTranspose(viewProjectionMatrix);
 
-	ds::StateGroup* sg = ds::createStateGroup();
-	sg->bindLayout(vertexDeclId);
-	sg->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, 0, &constantBuffer);
-	sg->bindConstantBuffer(cbid, ds::ShaderType::GEOMETRY, 0, &constantBuffer);
-	sg->bindBlendState(bs_id);
-	sg->bindSamplerState(ssid, ds::ShaderType::PIXEL);
-	sg->bindVertexBuffer(vertexBufferID);
-	sg->bindShader(shaderID);
-	sg->bindTexture(textureID, ds::ShaderType::PIXEL, 0);
+	RID rippleStateGroup = ds::StateGroupBuilder()
+		.inputLayout(vertexDeclId)
+		.constantBuffer(cbid, spritesVS, 0, &constantBuffer)
+		.constantBuffer(cbid, spritesPS, 0, &constantBuffer)
+		.blendState(bs_id)
+		.samplerState(ssid, spritesPS)
+		.vertexBuffer(vertexBufferID)
+		.vertexShader(spritesVS)
+		.geometryShader(spritesGS)
+		.pixelShader(spritesPS)
+		.texture(textureID, spritesPS, 0)
+		.build();
 
 
 	RID rt = ds::createRenderTarget(1024, 768, ds::Color(0.0f,0.0f,0.0f,1.0f));
 
-	ds::StateGroup* bgStateGroup = ds::createStateGroup();
-	bgStateGroup->bindLayout(NO_RID);
-	bgStateGroup->bindIndexBuffer(NO_RID);
-	bgStateGroup->bindVertexBuffer(NO_RID);
-	bgStateGroup->bindBlendState(bs_id);
-	bgStateGroup->bindShader(rippleShaderID);
-	bgStateGroup->bindTextureFromRenderTarget(rt, ds::ShaderType::PIXEL, 0);
-	bgStateGroup->bindTexture(bgTextureID, ds::ShaderType::PIXEL, 1);
+	RID bgStateGroup = ds::StateGroupBuilder()
+		.inputLayout(NO_RID)
+		.indexBuffer(NO_RID)
+		.vertexBuffer(NO_RID)
+		.blendState(bs_id)
+		.vertexShader(rippleVS)
+		.pixelShader(ripplePS)
+		.textureFromRenderTarget(rt, ripplePS, 0)
+		.texture(bgTextureID, ripplePS, 1)
+		.build();
 
 	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::POINT_LIST, 0 };
 
+	RID rippleItem = ds::compile(drawCmd, rippleStateGroup);
+
 	ds::DrawCommand rtDrawCmd = { 3, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::TRIANGLE_LIST, 0 };
 
-	
+	RID bgItem = ds::compile(rtDrawCmd, bgStateGroup);
 
 	while (ds::isRunning()) {
 		// move sprites		
@@ -229,14 +228,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			vertices[i] = SpriteVertex(sprite.position, sprite.texture, ds::vec3(sprite.scale.x, sprite.scale.y, sprite.rotation), sprite.color);
 		}
 		ds::mapBufferData(vertexBufferID, vertices, numSprites * sizeof(SpriteVertex));
-		drawCmd.size = numSprites;
-		ds::submit(drawCmd, sg);
+		ds::submit(rippleItem, numSprites);
 
 		ds::restoreBackBuffer();
-		
-		
 
-		ds::submit(rtDrawCmd, bgStateGroup);
+		ds::submit(bgItem);
 		
 		ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
 

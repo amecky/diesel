@@ -791,7 +791,7 @@ namespace ds {
 
 	class PipelineState;
 	enum ResourceType;
-
+	enum PipelineStage;
 	// ---------------------------------------------------
 	// State group
 	// ---------------------------------------------------	
@@ -807,22 +807,22 @@ namespace ds {
 	// ---------------------------------------------------
 	// State group
 	// ---------------------------------------------------	
-	class StateGroupBuilder {
 
+	class StateGroupBuilder {
+		struct BuilderItem {
+			PipelineStage stage;
+			uint16_t index;
+			uint16_t type;
+			uint16_t size;
+		};
 	public:
-		StateGroupBuilder() : _types(0), _indices(0), _num(0), _data(0), _total(0), _mappings(0) {}
+		StateGroupBuilder() : _num(0), _data(0), _total(0), _items(0) {}
 		~StateGroupBuilder() {
 			if (_data != 0) {
 				delete[] _data;
 			}
-			if (_types != 0) {
-				delete[] _types;
-			}
-			if (_indices != 0) {
-				delete[] _indices;
-			}
-			if (_mappings != 0) {
-				delete[] _mappings;
+			if (_items != 0) {
+				delete[] _items;
 			}
 		}
 		StateGroupBuilder& inputLayout(RID rid);
@@ -842,13 +842,15 @@ namespace ds {
 	private:
 		void* allocate(RID rid, uint16_t size);
 		void basicBinding(RID rid, ResourceType rt);
-		int* _types;
-		int* _indices;
+		int partition(BuilderItem* a, int l, int r);
+		void quickSort(BuilderItem* a, int l, int r);
+		//int* _types;
+		//int* _indices;
 		int _num;
 		int _total;
 		char* _data;
 		int _dataSize;
-		uint32_t* _mappings;
+		BuilderItem* _items;
 	};
 	
 	// ---------------------------------------------------
@@ -3608,9 +3610,12 @@ namespace ds {
 	enum PipelineStage {
 		PLS_IA, // input assembler
 		PLS_VS, // vertex shader
+		PLS_VS_RES, // vertex shader resources
 		PLS_GS, // geometry shader
+		PLS_GS_RES, // geometry shader resources
 		PLS_RS, // rasterizer
 		PLS_PS, // pixel shader
+		PLS_PS_RES, // pixel shader resources
 		PLS_OM, // output merger
 		PLS_UNKNOWN
 	};
@@ -3629,23 +3634,18 @@ namespace ds {
 		{ RT_GEOMETRY_SHADER, -1,PLS_GS },
 		{ RT_BLENDSTATE, -1, PLS_OM },
 		{ RT_VERTEX_DECLARATION, -1, PLS_IA},
-		{ RT_CONSTANT_BUFFER, 12, PLS_IA },
-		{ RT_CONSTANT_BUFFER, 13, PLS_GS },
-		{ RT_CONSTANT_BUFFER, 14, PLS_PS },
-		//RT_SAMPLER_STATE,
-		{ RT_SRV, 12, PLS_IA },
-		{ RT_SRV, 13, PLS_GS },
-		{ RT_SRV, 14, PLS_PS },
-		{ RT_RASTERIZER_STATE, -1, PLS_RS },
-		//RT_RENDER_TARGET,
-		//RT_RENDER_PASS,
-		//RT_INSTANCED_VERTEX_BUFFER,
-		//RT_DRAW_ITEM,
-		//RT_STATE_GROUP
+		{ RT_CONSTANT_BUFFER, 12, PLS_VS_RES },
+		{ RT_CONSTANT_BUFFER, 13, PLS_GS_RES },
+		{ RT_CONSTANT_BUFFER, 14, PLS_PS_RES },
+		{ RT_SAMPLER_STATE, 13, PLS_PS_RES },
+		{ RT_SRV, 12, PLS_VS_RES },
+		{ RT_SRV, 13, PLS_GS_RES },
+		{ RT_SRV, 14, PLS_PS_RES },
+		{ RT_RASTERIZER_STATE, -1, PLS_RS }
 	};
 
 	static PipelineStage findStage(int rt, int type) {
-		for (int i = 0; i < 14; ++i) {
+		for (int i = 0; i < 15; ++i) {
 			const PipelineStageMapping& current = STAGE_MAPPING[i];
 			if (current.type == rt) {
 				if (current.data == -1) {
@@ -3723,32 +3723,25 @@ namespace ds {
 	void* StateGroupBuilder::allocate(RID rid, uint16_t size) {
 		uint16_t type = type_mask(rid);
 		if ((_num + 1 ) > _total) {
-			if (_types == 0) {
-				_types = new int[16];
-				_indices = new int[16];
-				_types[_num] = type;
+			if (_items == 0) {
+				_items = new BuilderItem[16];
 				_total = 16;
 			}
 			else {
 				_total += 16;
-				int* tt = new int[_total];
-				memcpy(tt, _types, _num);
-				delete[] _types;
-				_types = tt;
-				_types[_num] = type;
-				int* ii = new int[_total];
-				memcpy(ii, _indices, _num);
-				delete[] _indices;
-				_indices = ii;				
+				BuilderItem* tt = new BuilderItem[_total];
+				memcpy(tt, _items, _num * sizeof(BuilderItem));
+				delete[] _items;
+				_items = tt;
 			}
 		}
-		else {
-			_types[_num] = type;
-		}
+		_items[_num].stage = PLS_UNKNOWN;
+		_items[_num].size = size;
+		_items[_num].type = type;
 		if (_data == 0) {
 			_data = new char[size];
 			_dataSize = size;
-			_indices[_num] = 0;
+			_items[_num].index = 0;
 		}
 		else {
 			int newSize = _dataSize + size;
@@ -3756,12 +3749,12 @@ namespace ds {
 			memcpy(tmp, _data, _dataSize);
 			delete[] _data;
 			_data = tmp;
-			_indices[_num] = _dataSize;
+			_items[_num].index = _dataSize;
 			_dataSize = newSize;
 			
 		}
 		++_num;
-		return _data + _indices[_num - 1];
+		return _data + _items[_num - 1].index;
 	}
 
 	void StateGroupBuilder::basicBinding(RID rid, ResourceType type) {
@@ -3853,32 +3846,63 @@ namespace ds {
 		return *this;
 	}
 
+	int StateGroupBuilder::partition(BuilderItem* a, int l, int r) {
+		BuilderItem pivot;
+		int i, j;
+		BuilderItem t;
+		pivot = a[l];
+		i = l; j = r + 1;
+		while (1) {
+			do ++i; while (a[i].stage <= pivot.stage && i <= r);
+			do --j; while (a[j].stage > pivot.stage);
+			if (i >= j) break;
+			t = a[i]; a[i] = a[j]; a[j] = t;
+		}
+		t = a[l]; a[l] = a[j]; a[j] = t;
+		return j;
+	}
+
+	void StateGroupBuilder::quickSort(BuilderItem* a, int l, int r)	{
+		if (l < r)	{
+			// divide and conquer
+			int j = partition(a, l, r);
+			quickSort(a, l, j - 1);
+			quickSort(a, j + 1, r);
+		}
+	}
+
 	RID StateGroupBuilder::build() {
 		StateGroup* group = new StateGroup();
-		printf("-----------------------------\n");
-		int* stages = new int[_num];
 		for (int i = 0; i < _num; ++i) {
 			int type = 0;
-			if (_types[i] == RT_SRV) {
-				TextureBindData* d = (TextureBindData*)(_data + _indices[i]);
+			const BuilderItem& item = _items[i];
+			if (item.type == RT_SRV) {
+				TextureBindData* d = (TextureBindData*)(_data + item.index);
 				type = type_mask(d->shader);
 			}
-			else if (_types[i] == RT_CONSTANT_BUFFER) {
-				ConstantBufferBindData* d = (ConstantBufferBindData*)(_data + _indices[i]);
+			else if (item.type == RT_CONSTANT_BUFFER) {
+				ConstantBufferBindData* d = (ConstantBufferBindData*)(_data + item.index);
 				type = type_mask(d->shader);
 			}
-			PipelineStage stage = findStage(_types[i], type);
-			stages[i] = stage;
-			printf("type: %d stage: %d\n", _types[i], stage);
+			else if (item.type == RT_SAMPLER_STATE) {
+				SamplerStateBindData* d = (SamplerStateBindData*)(_data + item.index);
+				type = type_mask(d->shader);
+			}
+			PipelineStage stage = findStage(item.type, type);
+			_items[i].stage = stage;
 		}
-		delete[] stages;
+		quickSort(_items, 0, _num - 1);
 		group->num = _num;
 		group->data = new char[_dataSize];
 		memcpy(group->data, _data, _dataSize * sizeof(char));
-		group->indices = new int[_num];
-		memcpy(group->indices, _indices, _num * sizeof(int));
 		group->types = new int[_num];
-		memcpy(group->types, _types, _num * sizeof(int));
+		group->indices = new int[_num];
+		for (int i = 0; i < _num; ++i) {
+			const BuilderItem& item = _items[i];
+			group->indices[i] = item.index;
+			group->types[i] = item.type;
+
+		}
 		RID rid = addResource(new StateGroupResource(group),RT_STATE_GROUP);
 		group->rid = rid;
 		return rid;
@@ -4333,7 +4357,7 @@ namespace ds {
 			}
 			else if (group->types[i] == ResourceType::RT_CONSTANT_BUFFER) {
 				ConstantBufferBindData* d = (ConstantBufferBindData*)(group->data + group->indices[i]);
-				fprintf(fp, "    CONSTANT_BUFFER    %d type: %d slot %d\n", id_mask(d->rid), id_mask(d->shader), d->slot);
+				fprintf(fp, "    CONSTANT_BUFFER    %d shader: %d slot %d\n", id_mask(d->rid), id_mask(d->shader), d->slot);
 			}
 		}
 	}

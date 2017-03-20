@@ -83,23 +83,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.title = "Hello world";
 	rs.clearColor = ds::Color(0.2f, 0.2f, 0.2f, 1.0f);
 	rs.multisampling = 4;
+	rs.useGPUProfiling = false;
 	ds::init(rs);
 
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 
-	ds::ShaderDescriptor desc[] = {
-		{ ds::ShaderType::VERTEX, "Cube_vs.cso" },
-		{ ds::ShaderType::PIXEL, "Cube_ps.cso" }
-	};
+	RID vertexShader = ds::loadVertexShader("Cube_vs.cso");
+	RID pixelShader = ds::loadPixelShader("Cube_ps.cso");
 
-	RID shaderID = ds::createShader(desc, 2);
 
 	// create buffer input layout
 	ds::VertexDeclaration decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
 	};
-	RID rid = ds::createVertexDeclaration(decl, 2, shaderID);
+	RID rid = ds::createVertexDeclaration(decl, 2, vertexShader);
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
 	RID iid = ds::createIndexBuffer(36, ds::IndexType::UINT_32, ds::BufferType::STATIC, p_indices);
 	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v);
@@ -109,16 +107,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::setViewPosition(vp);
 
 
-	ds::StateGroup* sg = ds::createStateGroup();
-	sg->bindLayout(rid);
-	sg->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, 0, &constantBuffer);
-	sg->bindBlendState(bs_id);
-	sg->bindSamplerState(ssid, ds::ShaderType::PIXEL);
-	sg->bindVertexBuffer(vbid);
-	sg->bindShader(shaderID);
-	sg->bindIndexBuffer(iid);
+	RID stateGroup = ds::StateGroupBuilder()
+		.inputLayout(rid)
+		.constantBuffer(cbid, vertexShader, 0, &constantBuffer)
+		.blendState(bs_id)
+		.samplerState(ssid, pixelShader)
+		.vertexBuffer(vbid)
+		.vertexShader(vertexShader)
+		.pixelShader(pixelShader)
+		.indexBuffer(iid)
+		.build();
+
 	ds::DrawCommand drawCmd = { 36, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
 		
+	RID drawItem = ds::compile(drawCmd, stateGroup);
+
 	while (ds::isRunning()) {
 		ds::begin();
 		// move cube
@@ -132,7 +135,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix());
 		constantBuffer.worldMatrix = ds::matTranspose(w);
 
-		ds::submit(drawCmd, sg);
+		ds::submit(drawItem);
 
 		ds::end();
 	}

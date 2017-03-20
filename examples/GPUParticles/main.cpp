@@ -69,7 +69,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	};
 	grid.create(gridPositions, 2, vertexShader, pixelShader, textureID);
 
-	ds::setViewPosition(ds::vec3(0, 2, -5));
+	ds::setViewPosition(ds::vec3(0, 0, -4));
 
 	float dt = 1.0f / 60.0f;
 	float frequency = 200.0f * dt;
@@ -84,7 +84,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				accu -= 1.0f;
 				float angle = ds::random(0.0f, ds::TWO_PI);
 				float x = cos(angle) * radius;
-				float y = 0.0f;
+				float y = -1.0f;
 				float z = sin(angle) * radius;
 				particleDescriptor.ttl = ds::random(0.6f, 1.2f);
 				particleDescriptor.velocity = ds::vec3(ds::random(-0.4f,0.4f), ds::random(1.2f, 2.6f), ds::random(-0.4f, 0.4f));
