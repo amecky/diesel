@@ -81,7 +81,7 @@ int main(int argc, char *argv[]) {
 	lightBuffer.ambientColor = ds::Color(0.15f, 0.15f, 0.15f, 1.0f);
 	lightBuffer.diffuseColor = ds::Color(64,0,0,255);
 	lightBuffer.padding = 0.0f;
-	ds::vec3 lightPos = ds::vec3(0.0f, -0.5f, 1.0f);
+	ds::vec3 lightPos = ds::vec3(0.0f, 0.5f, 1.0f);
 	lightBuffer.lightDirection = normalize(lightPos);
 	
 	RID rid = ds::createInstanceDeclaration(decl, 4, instDecl, 2, vertexShader);
@@ -89,6 +89,7 @@ int main(int argc, char *argv[]) {
 	RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer), &lightBuffer);
 	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, num, sizeof(ObjVertex), vertices);
 	RID idid = ds::createVertexBuffer(ds::BufferType::DYNAMIC, 512, sizeof(InstanceData));
+	RID instanceBuffer = ds::createInstancedBuffer(vbid, idid);
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 	ds::vec3 vp = ds::vec3(0.0f, 3.0f, -6.0f);
 	ds::setViewPosition(vp);
@@ -104,7 +105,7 @@ int main(int argc, char *argv[]) {
 	grid.resize(20, 20);
 
 	float t = 0.0f;
-	Layout l(layout_pointy,ds::vec2(0.5f),ds::vec2(-6.0f,-1.0f));
+	Layout l(layout_pointy,ds::vec2(0.58f),ds::vec2(-6.0f,-1.0f));
 
 	GridItem items[WIDTH * HEIGHT];
 
@@ -129,7 +130,7 @@ int main(int argc, char *argv[]) {
 		.pixelShader(pixelShader)
 		.constantBuffer(cbid, vertexShader, 0)
 		.constantBuffer(lightBufferID, pixelShader, 0)
-		.instancedVertexBuffer(vbid, idid)
+		.instancedVertexBuffer(instanceBuffer)
 		.build();
 	
 	ds::DrawCommand drawCmd = { num, ds::DrawType::DT_INSTANCED, ds::PrimitiveTypes::TRIANGLE_LIST, TOTAL };

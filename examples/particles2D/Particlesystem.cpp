@@ -1,11 +1,10 @@
 #include "Particlesystem.h"
 
-// -------------------------------------------------------
+// ------------------------------------------------------ -
 // create new particlesystem
 // -------------------------------------------------------
-Particlesystem::Particlesystem(ParticlesystemDescriptor descriptor) : _descriptor(descriptor) {
-	_array.initialize(descriptor.maxParticles);
-	_vertices = new ParticleVertex[descriptor.maxParticles];
+ParticleManager::ParticleManager(int maxParticles, RID textureID) {
+	_vertices = new ParticleVertex[maxParticles];
 	_constantBuffer.screenDimension = ds::vec4(1024.0f, 768.0f, 128.0f, 128.0f);
 	_constantBuffer.screenCenter = ds::vec4(512.0f, 384.0f, 0.0f, 0.0f);
 	ds::matrix viewMatrix = ds::matIdentity();
@@ -13,7 +12,7 @@ Particlesystem::Particlesystem(ParticlesystemDescriptor descriptor) : _descripto
 	_viewprojectionMatrix = viewMatrix * projectionMatrix;
 
 	RID vertexShader = ds::loadVertexShader("Particles_2D_vs.cso");
-	RID pixelShader = ds::loadPixelShader("Particles_2D_ps.cso");
+	RID pixelShader = ds::loadPixelShader("Particles_2D_Tex_ps.cso");
 	RID geoShader = ds::loadGeometryShader("Particles_2D_gs.cso");
 
 	// very special buffer layout 
@@ -24,27 +23,62 @@ Particlesystem::Particlesystem(ParticlesystemDescriptor descriptor) : _descripto
 		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
 	};
 
+	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::ONE, ds::BlendStates::ONE, ds::BlendStates::ONE, true);
+
 	RID vertexDeclaration = ds::createVertexDeclaration(decl, 4, vertexShader);
 
 	RID constantBuffer = ds::createConstantBuffer(sizeof(ParticleConstantBuffer), &_constantBuffer);
-	_vertexBuffer = ds::createVertexBuffer(ds::BufferType::DYNAMIC, descriptor.maxParticles, sizeof(ParticleVertex));
+	_vertexBuffer = ds::createVertexBuffer(ds::BufferType::DYNAMIC, maxParticles, sizeof(ParticleVertex));
 
 	RID basicGroup = ds::StateGroupBuilder()
 		.inputLayout(vertexDeclaration)
 		.vertexShader(vertexShader)
+		//.blendState(bs_id)
 		.geometryShader(geoShader)
 		.pixelShader(pixelShader)
 		.constantBuffer(constantBuffer, geoShader, 0)
-		.texture(descriptor.textureID, pixelShader, 0)
+		.texture(textureID, pixelShader, 0)
 		.vertexBuffer(_vertexBuffer)
 		.build();
-	
-	
 
 	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::POINT_LIST };
-	
+
 	_drawItem = ds::compile(drawCmd, basicGroup);
 
+}
+
+void ParticleManager::add(Particlesystem* system) {
+	_systems.push_back(system);
+}
+
+void ParticleManager::tick(float dt) {
+	for (size_t p = 0; p < _systems.size(); ++p) {
+		_systems[p]->tick(dt);
+	}
+}
+
+void ParticleManager::render() {
+	ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
+	ds::matrix w = ds::matIdentity();
+	_constantBuffer.wvp = ds::matTranspose(_viewprojectionMatrix);
+	for (size_t p = 0; p < _systems.size(); ++p) {
+		const ParticleArray* array = _systems[p]->getArray();
+		const ParticlesystemDescriptor& desc = _systems[p]->getDescriptor();
+		for (int i = 0; i < array->countAlive; ++i) {
+			ds::vec4 t = ds::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+			_vertices[i] = ParticleVertex(array->positions[i], desc.particleDimension, ds::vec3(array->scales[i].x, array->scales[i].y, array->rotations[i]), array->colors[i]);
+		}
+		ds::mapBufferData(_vertexBuffer, _vertices, array->countAlive * sizeof(ParticleVertex));
+		ds::submit(_drawItem, array->countAlive);
+	}
+	ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
+}
+
+// -------------------------------------------------------
+// create new particlesystem
+// -------------------------------------------------------
+Particlesystem::Particlesystem(ParticlesystemDescriptor descriptor) : _descriptor(descriptor) {
+	_array.initialize(descriptor.maxParticles);
 }
 
 // -------------------------------------------------------
@@ -102,22 +136,4 @@ void Particlesystem::tick(float dt) {
 			_array.colors[i].a = 1.0f - _array.timers[i].z;
 		}
 	}
-}
-
-// -------------------------------------------------------
-// render particles
-// -------------------------------------------------------
-void Particlesystem::render() {
-	ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
-	ds::matrix w = ds::matIdentity();
-	_constantBuffer.wvp = ds::matTranspose(_viewprojectionMatrix);
-	for (int i = 0; i < _array.countAlive; ++i) {
-		ds::vec4 t = ds::vec4(0.0f, 0.0f, 1.0f, 1.0f);
-		_vertices[i] = ParticleVertex(_array.positions[i], _descriptor.particleDimension, ds::vec3(_array.scales[i].x, _array.scales[i].y, _array.rotations[i]), _array.colors[i]);
-	}
-	ds::mapBufferData(_vertexBuffer, _vertices, _array.countAlive * sizeof(ParticleVertex));
-
-	ds::submit(_drawItem, _array.countAlive);
-	ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
-
 }

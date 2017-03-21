@@ -794,7 +794,7 @@ namespace ds {
 		StateGroupBuilder& blendState(RID rid);
 		StateGroupBuilder& samplerState(RID rid, RID shader);
 		StateGroupBuilder& vertexBuffer(RID rid);
-		StateGroupBuilder& instancedVertexBuffer(RID rid, RID instanceBuffer);
+		StateGroupBuilder& instancedVertexBuffer(RID rid);
 		StateGroupBuilder& vertexShader(RID rid);
 		StateGroupBuilder& geometryShader(RID rid);
 		StateGroupBuilder& pixelShader(RID rid);
@@ -872,6 +872,8 @@ namespace ds {
 	RID createVertexBuffer(BufferType type, int numVertices, uint32_t vertexSize, void* data = 0);
 
 	void mapBufferData(RID rid, void* data, uint32_t size);
+
+	RID createInstancedBuffer(RID vertexBuffer, RID instanceBuffer);
 
 	// sampler state
 
@@ -1131,7 +1133,7 @@ namespace ds {
 		RT_RENDER_TARGET,
 		RT_RENDER_PASS,
 		RT_DRAW_ITEM,
-		RT_STATE_GROUP
+		RT_STATE_GROUP,
 	};
 
 	const char* RESOURCE_NAMES[] {
@@ -1479,6 +1481,28 @@ namespace ds {
 		int _size;
 		BufferType _type;
 		int _vertexSize;
+	};
+
+	struct InstancedBindData {
+		RID rid;
+		RID instanceBuffer;
+	};
+
+	class InstancedVertexBufferResource : public AbstractResource<InstancedBindData*> {
+
+	public:
+		InstancedVertexBufferResource(InstancedBindData* t) : AbstractResource(t) {}
+		virtual ~InstancedVertexBufferResource() {}
+
+		void release() {
+			if (_data != 0) {
+				delete _data;
+				_data = 0;
+			}
+		}
+		const ResourceType getType() const {
+			return RT_INSTANCED_VERTEX_BUFFER;
+		}
 	};
 
 	class IndexBufferResource : public AbstractResource<ID3D11Buffer*> {
@@ -2881,6 +2905,14 @@ namespace ds {
 		return addResource(res, RT_VERTEX_BUFFER);
 	}
 
+	RID createInstancedBuffer(RID vertexBuffer, RID instanceBuffer) {
+		InstancedBindData* data = new InstancedBindData;
+		data->rid = vertexBuffer;
+		data->instanceBuffer = instanceBuffer;
+		InstancedVertexBufferResource* res = new InstancedVertexBufferResource(data);
+		return addResource(res, RT_INSTANCED_VERTEX_BUFFER);
+	}
+
 	// ------------------------------------------------------
 	// list of primitive topologies
 	// ------------------------------------------------------
@@ -2914,11 +2946,12 @@ namespace ds {
 	// ------------------------------------------------------
 	// set vertex buffer
 	// ------------------------------------------------------
-	static void setVertexBuffer(RID first, RID second) {
-		uint16_t firstRidx = getResourceIndex(first, RT_VERTEX_BUFFER);
-		uint16_t secondRidx = getResourceIndex(second, RT_VERTEX_BUFFER);
-		VertexBufferResource* fr = (VertexBufferResource*)_ctx->_resources[firstRidx];
-		VertexBufferResource* sr = (VertexBufferResource*)_ctx->_resources[secondRidx];
+	static void setInstancedVertexBuffer(RID rid) {
+		uint16_t ridx = getResourceIndex(rid, RT_INSTANCED_VERTEX_BUFFER);
+		InstancedVertexBufferResource* ibr = (InstancedVertexBufferResource*)_ctx->_resources[ridx];
+		InstancedBindData* data = ibr->get();
+		VertexBufferResource* fr = (VertexBufferResource*)_ctx->_resources[id_mask(data->rid)];
+		VertexBufferResource* sr = (VertexBufferResource*)_ctx->_resources[id_mask(data->instanceBuffer)];
 		unsigned int strides[2] = { fr->getVertexSize(),sr->getVertexSize() };
 		unsigned int offsets[2] = { 0 };
 		ID3D11Buffer* bufferPointers[2];
@@ -3422,27 +3455,26 @@ namespace ds {
 		}
 	}
 
-	void setTextureFromRenderTarget(RID rtID, RID shader, uint8_t slot) {
+	void setTextureFromRenderTarget(RID rtID) {
 		uint16_t ridx = getResourceIndex(rtID, RT_RENDER_TARGET);
 		RenderTargetResource* res = (RenderTargetResource*)_ctx->_resources[ridx];
-		//ShaderResource* sRes = (ShaderResource*)_ctx->_resources[_ctx->selectedShaderId];
-		//Shader* s = sRes->get();
-		int type = type_mask(shader);
-		if (type == RT_PIXEL_SHADER) {
+		int stage = stage_mask(rtID);
+		int slot = slot_mask(rtID);
+		if (stage == PLS_PS_RES) {
 			//XASSERT(s->pixelShader != 0, "No pixel shader selected");
-			if (bindResource(rtID,slot,type)) {
+			if (bindResource(rtID,slot, stage)) {
 				_ctx->d3dContext->PSSetShaderResources(slot, 1, &res->get()->srv);
 			}
 		}
-		else if (type == RT_VERTEX_SHADER) {
+		else if (stage == PLS_VS_RES) {
 			//XASSERT(s->vertexShader != 0, "No vertex shader selected");
-			if (bindResource(rtID, slot, type)) {
+			if (bindResource(rtID, slot, stage)) {
 				_ctx->d3dContext->VSSetShaderResources(slot, 1, &res->get()->srv);
 			}
 		}
-		else if (type ==RT_GEOMETRY_SHADER) {
+		else if (stage == PLS_GS_RES) {
 			//XASSERT(s->geometryShader != 0, "No geometry shader selected");
-			if (bindResource(rtID, slot, type)) {
+			if (bindResource(rtID, slot, stage)) {
 				_ctx->d3dContext->GSSetShaderResources(slot, 1, &res->get()->srv);
 			}
 		}
@@ -3585,51 +3617,6 @@ namespace ds {
 	}
 
 	// -----------------------------------------------------------------
-	// StateGroup
-	// -----------------------------------------------------------------
-	
-
-	struct PipelineStageMapping {
-		ResourceType type;
-		int data;
-		PipelineStage stage;
-	};
-
-	const PipelineStageMapping STAGE_MAPPING[] = {
-		{ RT_VERTEX_BUFFER, -1 , PLS_IA },
-		{ RT_INDEX_BUFFER, -1, PLS_IA },
-		{ RT_VERTEX_SHADER, -1,PLS_VS },
-		{ RT_PIXEL_SHADER, -1,PLS_PS },
-		{ RT_GEOMETRY_SHADER, -1,PLS_GS },
-		{ RT_BLENDSTATE, -1, PLS_OM },
-		{ RT_VERTEX_DECLARATION, -1, PLS_IA},
-		{ RT_CONSTANT_BUFFER, 12, PLS_VS_RES },
-		{ RT_CONSTANT_BUFFER, 13, PLS_GS_RES },
-		{ RT_CONSTANT_BUFFER, 14, PLS_PS_RES },
-		{ RT_SAMPLER_STATE, 13, PLS_PS_RES },
-		{ RT_SRV, 12, PLS_VS_RES },
-		{ RT_SRV, 13, PLS_GS_RES },
-		{ RT_SRV, 14, PLS_PS_RES },
-		{ RT_RASTERIZER_STATE, -1, PLS_RS }
-	};
-
-	static PipelineStage findStage(int rt, int type) {
-		for (int i = 0; i < 15; ++i) {
-			const PipelineStageMapping& current = STAGE_MAPPING[i];
-			if (current.type == rt) {
-				if (current.data == -1) {
-					return current.stage;
-				}
-				else if (current.data == type) {
-					return current.stage;
-				}
-			
-			}
-		}
-		return PLS_UNKNOWN;
-	}
-
-	// -----------------------------------------------------------------
 	// extract PipelineStage from shader RID
 	// -----------------------------------------------------------------
 	static PipelineStage extractFromShader(RID shader) {
@@ -3670,13 +3657,6 @@ namespace ds {
 		return addResource(new DrawItemResource(item), RT_DRAW_ITEM);
 	}
 	
-	struct InstancedBindData {
-		RID rid;
-		RID instanceBuffer;
-	};
-
-	
-
 	void assertResourceType(RID rid, ResourceType type) {
 		int id = id_mask(rid);
 		if (id != NO_RID) {
@@ -3685,6 +3665,9 @@ namespace ds {
 		}
 	}
 
+	// -----------------------------------------------------------------
+	// StateGroupBuilder
+	// -----------------------------------------------------------------
 	void StateGroupBuilder::add(uint16_t index, ResourceType type, int stage, int slot) {
 		if ((_num + 1 ) > _total) {
 			if (_items == 0) {
@@ -3730,9 +3713,6 @@ namespace ds {
 	StateGroupBuilder& StateGroupBuilder::samplerState(RID rid, RID shader) {
 		int stage = extractFromShader(shader);
 		basicBinding(rid, ResourceType::RT_SAMPLER_STATE, stage, 0);
-		//SamplerStateBindData* d = (SamplerStateBindData*)allocate(rid, sizeof(SamplerStateBindData));
-		//d->rid = rid;
-		//d->shader = shader;
 		return *this;
 	}
 
@@ -3741,10 +3721,8 @@ namespace ds {
 		return *this;
 	}
 
-	StateGroupBuilder& StateGroupBuilder::instancedVertexBuffer(RID rid, RID instanceBuffer) {
-		//InstancedBindData* d = (InstancedBindData*)allocate(rid, sizeof(InstancedBindData));
-		//d->rid = rid;
-		//d->instanceBuffer = instanceBuffer;
+	StateGroupBuilder& StateGroupBuilder::instancedVertexBuffer(RID rid) {
+		basicBinding(rid, RT_INSTANCED_VERTEX_BUFFER, PLS_IA);
 		return *this;
 	}
 
@@ -3784,11 +3762,7 @@ namespace ds {
 			case RT_PIXEL_SHADER: st = 2; stage = PLS_PS_RES; break;
 		}
 		RID r = buildRID(id_mask(rtID), type_mask(rtID), stage, slot);
-		basicBinding(r, ResourceType::RT_SRV, stage);
-		//TextureBindData* d = (TextureBindData*)allocate(rtID, sizeof(TextureBindData));
-		//d->rid = rtID;
-		//d->shader = shader;
-		//d->slot = slot;
+		basicBinding(r, ResourceType::RT_RENDER_TARGET, stage);
 		return *this;
 	}
 
@@ -3815,7 +3789,6 @@ namespace ds {
 
 	void StateGroupBuilder::quickSort(RID* a, int l, int r)	{
 		if (l < r)	{
-			// divide and conquer
 			int j = partition(a, l, r);
 			quickSort(a, l, j - 1);
 			quickSort(a, j + 1, r);
@@ -3856,8 +3829,7 @@ namespace ds {
 					setVertexBuffer(current);
 				}
 				else if (type == ResourceType::RT_INSTANCED_VERTEX_BUFFER) {
-					//InstancedBindData* d = (InstancedBindData*)(group->data + group->indices[i]);
-					//setVertexBuffer(d->rid, d->instanceBuffer);
+					setInstancedVertexBuffer(current);
 				}
 				else if (type == ResourceType::RT_INDEX_BUFFER) {
 					setIndexBuffer(current);
@@ -3875,7 +3847,7 @@ namespace ds {
 					setTexture(current);
 				}
 				else if (type == ResourceType::RT_RENDER_TARGET) {
-					//setTextureFromRenderTarget(current);
+					setTextureFromRenderTarget(current);
 				}
 				else if (type == ResourceType::RT_CONSTANT_BUFFER) {
 					setConstantBuffer(current);

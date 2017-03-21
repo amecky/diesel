@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include "..\..\diesel.h"
+#include <vector>
 
 // ---------------------------------------------------------------
 // The sprite vertex
@@ -133,11 +134,31 @@ public:
 	Particlesystem(ParticlesystemDescriptor descriptor);
 	void add(const ds::vec2& pos, ParticleDescriptor descriptor);
 	void tick(float dt);
-	void render();
+	const ParticleArray* getArray() const {
+		return &_array;
+	}
+	const ParticlesystemDescriptor& getDescriptor() const {
+		return _descriptor;
+	}
 private:
 	ParticlesystemDescriptor _descriptor;
-	ParticleConstantBuffer _constantBuffer;
 	ParticleArray _array;
+};
+
+// -------------------------------------------------------
+// ParticlesystemRenderer
+// -------------------------------------------------------
+class ParticleManager {
+
+public:
+	ParticleManager(int maxParticles, RID textureID);
+	void add(Particlesystem* system);
+	void tick(float dt);
+	void render();
+private:
+	std::vector<Particlesystem*> _systems;
+	ParticleConstantBuffer _constantBuffer;
+	
 	ParticleVertex* _vertices;
 	ds::matrix _viewprojectionMatrix;
 	RID _drawItem;

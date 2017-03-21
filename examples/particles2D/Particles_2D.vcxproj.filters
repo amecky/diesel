@@ -12,5 +12,6 @@
     <FxCompile Include="Particles_2D_gs.hlsl" />
     <FxCompile Include="Particles_2D_ps.hlsl" />
     <FxCompile Include="Particles_2D_vs.hlsl" />
+    <FxCompile Include="Particles_2D_Tex_ps.hlsl" />
   </ItemGroup>
 </Project>

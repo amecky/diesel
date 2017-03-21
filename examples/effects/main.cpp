@@ -38,6 +38,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.title = "Postprocess demo";
 	rs.clearColor = ds::Color(0.1f, 0.1f, 0.1f, 1.0f);
 	rs.multisampling = 4;
+	rs.useGPUProfiling = false;
 	ds::init(rs);
 
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
@@ -57,6 +58,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	};
 
 	CubeConstantBuffer constantBuffer;
+	ds::vec3 vp = ds::vec3(0.0f, 0.0f, -1.0f);
+	ds::setViewPosition(vp);
+	constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix());
+	constantBuffer.worldMatrix = ds::matTranspose(ds::matIdentity());
 
 	RID rid = ds::createVertexDeclaration(decl, 2, objVertexShader);
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
@@ -76,10 +81,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID rtID = ds::createRenderTarget(1024, 768, ds::Color(0.0f,0.0f,0.0f,1.0f));
 		
 	RID rasterizerStateID = ds::createRasterizerState(ds::CullMode::BACK, ds::FillMode::SOLID, true, false, 0.0f, 0.0f);
-	ds::vec3 vp = ds::vec3(0.0f, 0.0f, -4.0f);
-	ds::setViewPosition(vp);
-	constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix());
-	constantBuffer.worldMatrix = ds::matTranspose(ds::matIdentity());
+
+	
 
 	RID staticGroup = ds::StateGroupBuilder()
 		.inputLayout(rid)
@@ -88,6 +91,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		.vertexShader(objVertexShader)
 		.pixelShader(objPixelShader)
 		.vertexBuffer(floorBuffer)
+		.samplerState(ssid,objPixelShader)
 		.texture(textureID, objPixelShader, 0)
 		.build();
 
@@ -103,6 +107,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		.textureFromRenderTarget(rtID, fsPixelShader, 0)
 		.vertexShader(fsVertexShader)
 		.pixelShader(fsPixelShader)
+		.samplerState(ssid,fsPixelShader)
 		.constantBuffer(ppCBID, fsPixelShader, 0)
 		.build();
 	
@@ -111,6 +116,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::DrawCommand ppCmd = { 3, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::TRIANGLE_LIST };
 	RID ppItem = ds::compile(ppCmd, ppGroup);
 	
+	ds::printResources();
+
 	while (ds::isRunning()) {
 		ds::begin();
 		t += static_cast<float>(ds::getElapsedSeconds());

@@ -152,7 +152,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID vertexDeclId = ds::createVertexDeclaration(decl, 4, spritesVS);
 		
-	RID cbid = ds::createConstantBuffer(sizeof(SpriteConstantBuffer));
+	RID cbid = ds::createConstantBuffer(sizeof(SpriteConstantBuffer), &constantBuffer);
 	RID vertexBufferID = ds::createVertexBuffer(ds::BufferType::DYNAMIC, 64, sizeof(SpriteVertex));
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 
@@ -167,8 +167,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID rippleStateGroup = ds::StateGroupBuilder()
 		.inputLayout(vertexDeclId)
-		.constantBuffer(cbid, spritesVS, 0, &constantBuffer)
-		.constantBuffer(cbid, spritesPS, 0, &constantBuffer)
+		.constantBuffer(cbid, spritesVS, 0)
+		.constantBuffer(cbid, spritesPS, 0)
 		.blendState(bs_id)
 		.samplerState(ssid, spritesPS)
 		.vertexBuffer(vertexBufferID)
