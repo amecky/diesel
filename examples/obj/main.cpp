@@ -29,6 +29,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.title = "Hello world";
 	rs.clearColor = ds::Color(0.0f, 0.0f, 0.0f, 1.0f);
 	rs.multisampling = 4;
+	rs.useGPUProfiling = false;
 	ds::init(rs);
 
 	int x, y, n;
@@ -39,20 +40,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 
-	ds::ShaderDescriptor desc[] = {
-		{ ds::ShaderType::VERTEX, "Obj_vs.cso" },
-		{ ds::ShaderType::PIXEL, "Obj_ps.cso" }
-	};
-
-	RID shaderID = ds::createShader(desc, 2);
+	RID vertexShader = ds::loadVertexShader("Obj_vs.cso");
+	RID pixelShader = ds::loadPixelShader("Obj_ps.cso");
 
 	ds::VertexDeclaration decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }
 	};
 
-	RID rid = ds::createVertexDeclaration(decl, 2, shaderID);
-	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
+	RID rid = ds::createVertexDeclaration(decl, 2, vertexShader);
+	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
 	RID indexBufferID = ds::createQuadIndexBuffer(num / 4);
 	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, num, sizeof(ObjVertex), vertices);
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
@@ -66,17 +63,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	int q = num / 4 * 6;
 	float t = 0.0f;
 
-	ds::StateGroup* sg = ds::createStateGroup();
-	sg->bindLayout(rid);
-	sg->bindConstantBuffer(cbid, ds::ShaderType::VERTEX, 0, &constantBuffer);
-	sg->bindBlendState(bs_id);
-	sg->bindShader(shaderID);
-	sg->bindSamplerState(ssid, ds::ShaderType::PIXEL);
-	sg->bindVertexBuffer(vbid);
-	sg->bindIndexBuffer(indexBufferID);
-	sg->bindTexture(textureID, ds::ShaderType::PIXEL, 0);
+	RID stateGroup = ds::StateGroupBuilder()
+		.inputLayout(rid)
+		.constantBuffer(cbid, vertexShader, 0)
+		.blendState(bs_id)
+		.vertexShader(vertexShader)
+		.pixelShader(pixelShader)
+		.samplerState(ssid, pixelShader)
+		.vertexBuffer(vbid)
+		.indexBuffer(indexBufferID)
+		.texture(textureID, pixelShader, 0)
+		.build();
 
 	ds::DrawCommand drawCmd = { q, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
+
+	RID drawItem = ds::compile(drawCmd, stateGroup);
 
 	while (ds::isRunning()) {
 		ds::begin();
@@ -95,7 +96,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		
 		constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix());
 		constantBuffer.worldMatrix = ds::matTranspose(w);
-		ds::submit(drawCmd, sg);
+		ds::submit(drawItem);
 
 		ds::end();
 	}

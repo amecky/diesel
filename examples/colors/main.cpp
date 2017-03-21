@@ -72,12 +72,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	
 	initialize();
 
-	SpriteBuffer spriteBuffer(512);
+	
 	// load image using stb_image
 	int x, y, n;
 	unsigned char *data = stbi_load("TextureArray.png", &x, &y, &n, 4);
 	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
 	stbi_image_free(data);
+
+	SpriteBuffer spriteBuffer(512, textureID);
 
 	// prepare the game settings
 	GameSettings settings;
@@ -116,8 +118,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 		spriteBuffer.begin();
 
-		spriteBuffer.add(ds::vec2(512, 714), textureID, ds::vec4(0, 720, 1024, 68));
-		spriteBuffer.add(ds::vec2(512, 16), textureID, ds::vec4(0, 800, 1024, 68));
+		spriteBuffer.add(ds::vec2(512, 714), ds::vec4(0, 720, 1024, 68));
+		spriteBuffer.add(ds::vec2(512, 16), ds::vec4(0, 800, 1024, 68));
 		board->render();
 
 		if (mode == GM_MENU) {

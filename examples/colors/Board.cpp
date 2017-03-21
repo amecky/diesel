@@ -52,9 +52,9 @@ void Board::fill(int maxColors) {
 // Draw
 // -------------------------------------------------------
 void Board::render() {
-	_buffer->add(ds::vec2(295, 362), _textureID, m_GridTex[0]);
-	_buffer->add(ds::vec2(670, 362), _textureID, m_GridTex[1]);
-	_buffer->add(ds::vec2(885, 362), _textureID, m_GridTex[2]);
+	_buffer->add(ds::vec2(295, 362), m_GridTex[0]);
+	_buffer->add(ds::vec2(670, 362), m_GridTex[1]);
+	_buffer->add(ds::vec2(885, 362), m_GridTex[2]);
 	// pieces
 	for (int x = 0; x < MAX_X; ++x) {
 		for (int y = 0; y < MAX_Y; ++y) {
@@ -65,10 +65,10 @@ void Board::render() {
 					ds::vec2 wp = grid::convertFromGrid(x, y);
 					ds::vec2 sp = wp;
 					sp.y += _settings->moveInYAdd + y * _settings->moveInYOffset;
-					_buffer->add(tweening::interpolate(&tweening::linear, sp, wp, m_Timer,_settings->moveInTTL),_textureID, e.texture);
+					_buffer->add(tweening::interpolate(&tweening::linear, sp, wp, m_Timer,_settings->moveInTTL), e.texture);
 				}
 				else if (!e.hidden) {
-					_buffer->add(grid::convertFromGrid(x, y),_textureID,e.texture,ds::vec2(e.scale));
+					_buffer->add(grid::convertFromGrid(x, y),e.texture,ds::vec2(e.scale));
 				}
 			}
 		}
@@ -76,7 +76,7 @@ void Board::render() {
 
 	// moving cells
 	for (size_t i = 0; i < m_MovingCells.size(); ++i) {
-		_buffer->add(m_MovingCells[i].current, _textureID, m_MovingCells[i].texture);
+		_buffer->add(m_MovingCells[i].current, m_MovingCells[i].texture);
 	}
 }
 

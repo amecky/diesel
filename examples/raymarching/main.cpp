@@ -37,25 +37,26 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 
-	ds::ShaderDescriptor desc[] = {
-		{ ds::ShaderType::VERTEX, "raymarching_vs.cso" },
-		{ ds::ShaderType::PIXEL, "raymarching_ps.cso" }
-	};
-
-	RID shaderID = ds::createShader(desc, 2);
+	RID rayVS = ds::loadVertexShader("raymarching_vs.cso");
+	RID rayPS = ds::loadPixelShader("raymarching_ps.cso");
 
 	ds::VertexDeclaration decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }
 	};
 
-	RID rid = ds::createVertexDeclaration(decl, 2, shaderID);
+	RID rid = ds::createVertexDeclaration(decl, 2, rayVS);
 	RID indexBuffer = ds::createQuadIndexBuffer(1);
 
-	RID ppCBID = ds::createConstantBuffer(sizeof(PostProcessBuffer));
-	RID ccbID = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
+	PostProcessBuffer ppBuffer;
+	ppBuffer.data = ds::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 
 	CubeConstantBuffer constantBuffer;
+
+	RID ppCBID = ds::createConstantBuffer(sizeof(PostProcessBuffer), &ppBuffer);
+	RID ccbID = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
+
+	
 
 	ds::matrix viewMatrix = ds::matIdentity();
 	ds::matrix projectionMatrix = ds::matOrthoLH(800.0f, 600.0f, 0.1f, 1.0f);
@@ -68,7 +69,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::matrix world = ds::matIdentity();
 	constantBuffer.worldMatrix = ds::matTranspose(world);
 
-	PostProcessBuffer ppBuffer;
+	
 
 	Vertex vertices[4] = {
 		{ ds::vec3(-400,-300,1),ds::vec2(0,1) },
@@ -77,19 +78,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		{ ds::vec3( 400,-300,1),ds::vec2(1,1) },
 	};
 	RID gridBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 4, sizeof(Vertex), vertices);
-	ds::StateGroup* ppGroup = ds::createStateGroup();
-	ppGroup->bindLayout(rid);
-	ppGroup->bindIndexBuffer(indexBuffer);
-	ppGroup->bindVertexBuffer(gridBuffer);
-	ppGroup->bindBlendState(bs_id);
-	ppGroup->bindShader(shaderID);
-	ppGroup->bindSamplerState(ssid, ds::ShaderType::PIXEL);
-	ppBuffer.data = ds::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-	ppGroup->bindConstantBuffer(ppCBID,ds::ShaderType::PIXEL, 0, &ppBuffer);
-	ppGroup->bindConstantBuffer(ccbID, ds::ShaderType::VERTEX, 0, &constantBuffer);
+	RID ppGroup = ds::StateGroupBuilder()
+		.inputLayout(rid)
+		.indexBuffer(indexBuffer)
+		.vertexBuffer(gridBuffer)
+		.blendState(bs_id)
+		.vertexShader(rayVS)
+		.pixelShader(rayPS)
+		.samplerState(ssid, rayPS)
+		.constantBuffer(ppCBID, rayPS, 0)
+		.constantBuffer(ccbID, rayVS, 0)
+		.build();
 
 	ds::DrawCommand ppCmd = { 6, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
-	ds::DrawItem* ppItem = ds::compile(ppCmd, ppGroup);
+	RID ppItem = ds::compile(ppCmd, ppGroup);
 
 	float t = 0.0f;
 	

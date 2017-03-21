@@ -146,7 +146,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		{ ds::vec3( sx, sy, -sz), ds::vec2(uvMax,0.0f),  ds::vec3(0.0f,-1.0f,0.0f), ds::vec3(1.0f,0.0f,0.0f), ds::vec3(0.0f,0.0f,1.0f) },
 		{ ds::vec3( sx, sy,  sz), ds::vec2(uvMax,uvMax), ds::vec3(0.0f,-1.0f,0.0f), ds::vec3(1.0f,0.0f,0.0f), ds::vec3(0.0f,0.0f,1.0f) }
 	};
-
+	/*
 	CubeConstantBuffer constantBuffer;
 	float t = 0.0f;
 	ds::RenderSettings rs;
@@ -218,5 +218,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 		ds::end();
 	}
+	*/
 	ds::shutdown();
 }

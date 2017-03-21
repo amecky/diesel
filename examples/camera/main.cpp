@@ -83,7 +83,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	};
 
 	RID rid = ds::createVertexDeclaration(decl, 2, vertexShader);
-	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
+	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
 	RID indexBuffer = ds::createQuadIndexBuffer(256);
 	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v);
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::WRAP, ds::TextureFilters::LINEAR);
@@ -97,7 +97,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID stateGroup = ds::StateGroupBuilder()
 		.inputLayout(rid)
-		.constantBuffer(cbid, vertexShader, 0, &constantBuffer)
+		.constantBuffer(cbid, vertexShader, 0)
 		.vertexBuffer(cubeBuffer)
 		.vertexShader(vertexShader)
 		.pixelShader(pixelShader)

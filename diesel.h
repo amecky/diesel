@@ -1296,30 +1296,27 @@ namespace ds {
 			_index = 0;
 		}
 		bool isUsed(RID rid) {
-			return isUsed(rid, 0, 0);
-		}
-		bool isUsed(RID rid, uint8_t slot, uint8_t data) {
 			int type = type_mask(rid);
+			int slot = slot_mask(rid);
+			int stage = stage_mask(rid);
 			for (int i = 0; i < _index; ++i) {
 				const RID& e = _entries[i];
 				uint16_t rt = type_mask(e);
 				uint8_t rs = slot_mask(e);
 				uint8_t rd = stage_mask(e);
-				if (rt == type && rs == slot && rd == data) {
+				if (rt == type && rs == slot && rd == stage) {
 					return true;
 				}
 			}
 			return false;
 		}
+
 		void add(RID rid) {
-			add(rid, 0, 0);
-		}
-		void add(RID rid, uint8_t slot, uint8_t data) {
-			if (!isUsed(rid, slot, data)) {
+			if (!isUsed(rid)) {
 				if ((_index + 1) > _capacity) {
 					alloc(_capacity * 2);
 				}
-				_entries[_index++] = buildRID(0,type_mask(rid),slot,data);
+				_entries[_index++] = rid;
 			}
 		}
 	private:
@@ -4185,13 +4182,14 @@ namespace ds {
 	// ---------------------------------------
 	void printResources() {
 		FILE* fp = fopen("log.txt", "w");
-		fprintf(fp, " id      | index | resource type\n");
-		fprintf(fp, "-----------------------------------------\n");
+		fprintf(fp, " index | resource type\n");
+		fprintf(fp, "-------------------------------\n");
 		for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
 			const BaseResource* res = _ctx->_resources[i];
 			RID rid = res->getRID();			
-			fprintf(fp,"%8d |  %3d  | %s\n", rid, id_mask(rid), RESOURCE_NAMES[type_mask(rid)]);
+			fprintf(fp," %3d  | %s\n", id_mask(rid), RESOURCE_NAMES[type_mask(rid)]);
 		}
+		fprintf(fp, "\n");
 		for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
 			const BaseResource* br = _ctx->_resources[i];
 			if (br->getType() == RT_DRAW_ITEM) {				
@@ -4202,12 +4200,12 @@ namespace ds {
 					RID groupID = item->groups[j];					
 					StateGroupResource* res = (StateGroupResource*)_ctx->_resources[id_mask(groupID)];
 					StateGroup* group = res->get();
-					fprintf(fp, "  Group: %d\n", id_mask(group->rid));
-					fprintf(fp, "    resource type        | id    | stage    | slot\n");
-					fprintf(fp, "    ----------------------------------------------\n");
+					fprintf(fp, "Group: %d\n", id_mask(group->rid));
+					fprintf(fp, "resource type        | id    | stage    | slot\n");
+					fprintf(fp, "----------------------------------------------\n");
 					for (int k = 0; k < group->num; ++k) {
 						RID current = group->items[k];
-						fprintf(fp, "    %-20s | %5d | %-8s | %2d\n", RESOURCE_NAMES[type_mask(current)], id_mask(current), PIPELINE_STAGE_NAMES[stage_mask(current)], slot_mask(current));
+						fprintf(fp, "%-20s | %5d | %-8s | %2d\n", RESOURCE_NAMES[type_mask(current)], id_mask(current), PIPELINE_STAGE_NAMES[stage_mask(current)], slot_mask(current));
 					}
 				}
 			}

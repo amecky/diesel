@@ -12,7 +12,7 @@ namespace font {
 			int idx = (int)txt[i] - 32;
 			if (idx >= 0 && idx < 127) {
 				const ds::vec4& r = FONT_RECTS[idx];
-				buffer->add(p, textureID, r);
+				buffer->add(p, r);
 				p.x += r.z + 6.0f;
 			}
 		}

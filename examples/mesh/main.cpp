@@ -85,8 +85,8 @@ int main(int argc, char *argv[]) {
 	lightBuffer.lightDirection = normalize(lightPos);
 	
 	RID rid = ds::createInstanceDeclaration(decl, 4, instDecl, 2, vertexShader);
-	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
-	RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer));
+	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
+	RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer), &lightBuffer);
 	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, num, sizeof(ObjVertex), vertices);
 	RID idid = ds::createVertexBuffer(ds::BufferType::DYNAMIC, 512, sizeof(InstanceData));
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
@@ -127,8 +127,8 @@ int main(int argc, char *argv[]) {
 		.inputLayout(rid)
 		.vertexShader(vertexShader)
 		.pixelShader(pixelShader)
-		.constantBuffer(cbid, vertexShader, 0, &constantBuffer)
-		.constantBuffer(lightBufferID, pixelShader, 0, &lightBuffer)
+		.constantBuffer(cbid, vertexShader, 0)
+		.constantBuffer(lightBufferID, pixelShader, 0)
 		.instancedVertexBuffer(vbid, idid)
 		.build();
 	

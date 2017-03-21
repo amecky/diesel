@@ -123,7 +123,7 @@ namespace gui {
 	void end() {
 		for (size_t i = 0; i < _guiCtx->calls.size(); ++i) {
 			const DrawCall& call = _guiCtx->calls[i];
-			_guiCtx->buffer->add(call.pos, _guiCtx->textureID, call.rect);
+			_guiCtx->buffer->add(call.pos, call.rect);
 		}
 	}
 

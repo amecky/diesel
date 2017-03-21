@@ -23,15 +23,15 @@ Particlesystem::Particlesystem(ParticlesystemDescriptor descriptor) : _descripto
 
 	RID vertexDeclaration = ds::createVertexDeclaration(decl, 4, vertexShader);
 
-	RID constantBuffer = ds::createConstantBuffer(sizeof(ParticleConstantBuffer));
+	RID constantBuffer = ds::createConstantBuffer(sizeof(ParticleConstantBuffer), &_constantBuffer);
 	_vertexBuffer = ds::createVertexBuffer(ds::BufferType::DYNAMIC, descriptor.maxParticles, sizeof(ParticleVertex));
 	RID samplerState = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 
 	RID basicGroup = ds::StateGroupBuilder()
 		.inputLayout(vertexDeclaration)
 		.vertexBuffer(_vertexBuffer)
-		.constantBuffer(constantBuffer, vertexShader, 0, &_constantBuffer)
-		.constantBuffer(constantBuffer, geoShader, 0, &_constantBuffer)
+		.constantBuffer(constantBuffer, vertexShader, 0)
+		.constantBuffer(constantBuffer, geoShader, 0)
 		.vertexShader(vertexShader)
 		.geometryShader(geoShader)
 		.pixelShader(pixelShader)

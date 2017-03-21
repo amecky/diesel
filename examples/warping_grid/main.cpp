@@ -25,7 +25,7 @@ RID createStateGroup(int numVertices,CubeConstantBuffer* buffer) {
 	int q = numVertices / 4 * 6;
 
 	RID rid = ds::createVertexDeclaration(decl, 3, vertexShader);
-	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
+	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), buffer);
 	RID indexBufferID = ds::createQuadIndexBuffer(numVertices / 4);
 	vertexBufferID = ds::createVertexBuffer(ds::BufferType::DYNAMIC, numVertices, sizeof(GridVertex));
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
@@ -35,7 +35,7 @@ RID createStateGroup(int numVertices,CubeConstantBuffer* buffer) {
 		.inputLayout(rid)
 		.vertexShader(vertexShader)
 		.pixelShader(pixelShader)
-		.constantBuffer(cbid, vertexShader, 0, buffer)
+		.constantBuffer(cbid, vertexShader, 0)
 		.vertexBuffer(vertexBufferID)
 		.indexBuffer(indexBufferID)
 		.build();

@@ -147,7 +147,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID vertexDeclId = ds::createVertexDeclaration(decl, 4, vertexShader);
 		
-	RID cbid = ds::createConstantBuffer(sizeof(SpriteConstantBuffer));
+	RID cbid = ds::createConstantBuffer(sizeof(SpriteConstantBuffer), &constantBuffer);
 	RID vertexBufferID = ds::createVertexBuffer(ds::BufferType::DYNAMIC, 64, sizeof(SpriteVertex));
 
 	// create orthographic view
@@ -160,8 +160,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID stateGroup = ds::StateGroupBuilder()
 		.inputLayout(vertexDeclId)
-		.constantBuffer(cbid, vertexShader, 0, &constantBuffer)
-		.constantBuffer(cbid, geoShader, 0, &constantBuffer)
+		.constantBuffer(cbid, vertexShader)
+		.constantBuffer(cbid, geoShader, 0)
 		.vertexBuffer(vertexBufferID)
 		.vertexShader(vertexShader)
 		.geometryShader(geoShader)

@@ -128,8 +128,8 @@ int main(const char** args) {
 	};
 
 	RID rid = ds::createVertexDeclaration(decl, 3, vertexShader);
-	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
-	RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer));
+	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
+	RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer), &lightBuffer);
 	RID indexBuffer = ds::createQuadIndexBuffer(36);
 	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v);
 	RID floorBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 4, sizeof(Vertex), floorVertices);
@@ -143,8 +143,8 @@ int main(const char** args) {
 
 	RID basicGroup = ds::StateGroupBuilder()
 		.inputLayout(rid)
-		.constantBuffer(cbid, vertexShader, 0, &constantBuffer)
-		.constantBuffer(lightBufferID, pixelShader, 0, &lightBuffer)
+		.constantBuffer(cbid, vertexShader, 0)
+		.constantBuffer(lightBufferID, pixelShader, 0)
 		.vertexShader(vertexShader)
 		.pixelShader(pixelShader)
 		.indexBuffer(indexBuffer)

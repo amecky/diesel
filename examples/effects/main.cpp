@@ -56,8 +56,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }
 	};
 
+	CubeConstantBuffer constantBuffer;
+
 	RID rid = ds::createVertexDeclaration(decl, 2, objVertexShader);
-	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer));
+	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
 	RID indexBufferID = ds::createQuadIndexBuffer(6);
 	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, 4, sizeof(Vertex), vertices);
 	RID floorBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 4, sizeof(Vertex), vertices);
@@ -66,13 +68,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID fsVertexShader = ds::loadVertexShader("Fullscreen_vs.cso");
 	RID fsPixelShader = ds::loadPixelShader("Fullscreen_ps.cso");
 
-	RID ppCBID = ds::createConstantBuffer(sizeof(PostProcessBuffer));
 	PostProcessBuffer ppBuffer;
+	RID ppCBID = ds::createConstantBuffer(sizeof(PostProcessBuffer), &ppBuffer);
+	
 	float t = 0.0f;
 
 	RID rtID = ds::createRenderTarget(1024, 768, ds::Color(0.0f,0.0f,0.0f,1.0f));
-
-	CubeConstantBuffer constantBuffer;
 		
 	RID rasterizerStateID = ds::createRasterizerState(ds::CullMode::BACK, ds::FillMode::SOLID, true, false, 0.0f, 0.0f);
 	ds::vec3 vp = ds::vec3(0.0f, 0.0f, -4.0f);
@@ -83,7 +84,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID staticGroup = ds::StateGroupBuilder()
 		.inputLayout(rid)
 		.indexBuffer(indexBufferID)
-		.constantBuffer(cbid, objVertexShader, 0, &constantBuffer)
+		.constantBuffer(cbid, objVertexShader, 0)
 		.vertexShader(objVertexShader)
 		.pixelShader(objPixelShader)
 		.vertexBuffer(floorBuffer)
@@ -99,10 +100,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		.inputLayout(NO_RID)
 		.indexBuffer(NO_RID)
 		.vertexBuffer(NO_RID)
-		.textureFromRenderTarget(rtID, ds::ShaderType::PIXEL, 0)
+		.textureFromRenderTarget(rtID, fsPixelShader, 0)
 		.vertexShader(fsVertexShader)
 		.pixelShader(fsPixelShader)
-		.constantBuffer(ppCBID, fsPixelShader, 0, &ppBuffer)
+		.constantBuffer(ppCBID, fsPixelShader, 0)
 		.build();
 	
 	

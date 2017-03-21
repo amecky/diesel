@@ -72,18 +72,18 @@ void HUD::render() {
 	
 	ds::vec2 p(103, 13);
 	for (int i = 0; i < 6; ++i) {
-		_buffer->add(p, _textureID, ds::vec4(340 + _numbers[i] * 48, 0, 46, 42));
+		_buffer->add(p, ds::vec4(340 + _numbers[i] * 48, 0, 46, 42));
 		p.x += 48.0f;
 	}
 	p.x = 725.0f;
 	for (int i = 0; i < 2; ++i) {
-		_buffer->add(p, _textureID, ds::vec4(340 + _minutes[i] * 48, 0, 46, 42));
+		_buffer->add(p, ds::vec4(340 + _minutes[i] * 48, 0, 46, 42));
 		p.x += 48.0f;
 	}
-	_buffer->add(p, _textureID, ds::vec4(820, 0, 46, 42));
+	_buffer->add(p, ds::vec4(820, 0, 46, 42));
 	p.x += 48.0f;
 	for (int i = 0; i < 2; ++i) {
-		_buffer->add(p, _textureID, ds::vec4(340 + _seconds[i] * 48, 0, 46, 42));
+		_buffer->add(p, ds::vec4(340 + _seconds[i] * 48, 0, 46, 42));
 		p.x += 48.0f;
 	}
 }

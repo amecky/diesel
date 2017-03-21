@@ -26,7 +26,7 @@ Particlesystem::Particlesystem(ParticlesystemDescriptor descriptor) : _descripto
 
 	RID vertexDeclaration = ds::createVertexDeclaration(decl, 4, vertexShader);
 
-	RID constantBuffer = ds::createConstantBuffer(sizeof(ParticleConstantBuffer));
+	RID constantBuffer = ds::createConstantBuffer(sizeof(ParticleConstantBuffer), &_constantBuffer);
 	_vertexBuffer = ds::createVertexBuffer(ds::BufferType::DYNAMIC, descriptor.maxParticles, sizeof(ParticleVertex));
 
 	RID basicGroup = ds::StateGroupBuilder()
@@ -34,7 +34,7 @@ Particlesystem::Particlesystem(ParticlesystemDescriptor descriptor) : _descripto
 		.vertexShader(vertexShader)
 		.geometryShader(geoShader)
 		.pixelShader(pixelShader)
-		.constantBuffer(constantBuffer, geoShader, 0, &_constantBuffer)
+		.constantBuffer(constantBuffer, geoShader, 0)
 		.texture(descriptor.textureID, pixelShader, 0)
 		.vertexBuffer(_vertexBuffer)
 		.build();
