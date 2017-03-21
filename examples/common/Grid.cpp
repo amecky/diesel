@@ -16,7 +16,7 @@ void Grid::create(ds::vec3* positions, int numCells, RID vertexShader, RID pixel
 	};
 
 	RID vertexDeclaration = ds::createVertexDeclaration(decl, 2, vertexShader);
-	RID bufferID = ds::createConstantBuffer(sizeof(GridConstantBuffer));
+	RID bufferID = ds::createConstantBuffer(sizeof(GridConstantBuffer), &_constantBuffer);
 	RID indexBuffer = ds::createQuadIndexBuffer(1);
 	RID gridBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 4, sizeof(GridVertex), _vertices);
 	RID samplerState = ds::createSamplerState(ds::TextureAddressModes::WRAP, ds::TextureFilters::LINEAR);
@@ -29,7 +29,7 @@ void Grid::create(ds::vec3* positions, int numCells, RID vertexShader, RID pixel
 		.vertexShader(vertexShader)
 		.pixelShader(pixelShader)
 		.texture(textureID, pixelShader, 0)
-		.constantBuffer(bufferID, vertexShader, 0, &_constantBuffer)
+		.constantBuffer(bufferID, vertexShader, 0)
 		.build();
 
 	ds::DrawCommand drawCmd = { 6, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };

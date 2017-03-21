@@ -21,7 +21,7 @@ SpriteBuffer::SpriteBuffer(int maxSprites, RID textureID) : _max(maxSprites) {
 
 	RID vertexDeclId = ds::createVertexDeclaration(decl, 4, vertexShader);
 
-	RID cbid = ds::createConstantBuffer(sizeof(SpriteBufferConstantBuffer));
+	RID cbid = ds::createConstantBuffer(sizeof(SpriteBufferConstantBuffer), &_constantBuffer);
 	_vertexBufferID = ds::createVertexBuffer(ds::BufferType::DYNAMIC, maxSprites, sizeof(SpriteBufferVertex));
 
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::POINT);
@@ -38,7 +38,7 @@ SpriteBuffer::SpriteBuffer(int maxSprites, RID textureID) : _max(maxSprites) {
 		.vertexShader(vertexShader)
 		.geometryShader(geoShader)
 		.pixelShader(_pixelShader)
-		.constantBuffer(cbid, geoShader, 0, &_constantBuffer)
+		.constantBuffer(cbid, geoShader, 0)
 		.texture(textureID, _pixelShader, 0)
 		.samplerState(ssid, _pixelShader)
 		.build();
