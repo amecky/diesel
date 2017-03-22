@@ -1,10 +1,34 @@
 #pragma once
 #include <stdint.h>
 #include <stdio.h>
+
+// ------------------------------------------------------------------------------------
+// MIT License
+// 
+// Copyright(c) 2017 Andreas Mecky (amecky@gmail.com)
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files(the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions :
+// 
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+// ------------------------------------------------------------------------------------
 // https://www.dropbox.com/sh/4uvmgy14je7eaxv/AABboa6UE5Pzfg3d9updwUexa?dl=0&preview=Designing+a+Modern+GPU+Interface.pdf
 
 
-//#define DS_IMPLEMENTATION
+#define DS_IMPLEMENTATION
 
 // ----------------------------------------------------
 // RID - resource identifier
@@ -802,6 +826,7 @@ namespace ds {
 		StateGroupBuilder& texture(RID rid, RID shader, int slot);
 		StateGroupBuilder& textureFromRenderTarget(RID rtID, RID shader, int slot);
 		StateGroupBuilder& rasterizerState(RID rid);
+		StateGroupBuilder& noResource(ResourceType type, int stage, int slot);
 		RID build();
 	private:
 		void add(uint16_t index, ResourceType type, int stage, int slot = 0);
@@ -1278,13 +1303,14 @@ namespace ds {
 		return id + (resourceType << 16) + (stage << 22) + (slot << 26);
 	}
 
-	// ------------------------------------------------------
+	// ******************************************************
+	//
 	// Internal pipeline state
 	//
 	// This is used when the StateGroups are applied to keep
 	// track which resources have already been binded.
 	//
-	// ------------------------------------------------------
+	// ******************************************************
 	class PipelineState {
 
 	public:
@@ -1369,9 +1395,11 @@ namespace ds {
 		ds::Color clearColor;
 	};
 
-	// ------------------------------------------------------
+	// ******************************************************
+	//
 	// Resource management
-	// ------------------------------------------------------	
+	//
+	// ******************************************************
 	class BaseResource {
 
 	public:
@@ -1389,6 +1417,9 @@ namespace ds {
 		RID _rid;
 	};
 
+	// ------------------------------------------------------
+	// Abstract resource
+	// ------------------------------------------------------
 	template<class T>
 	class AbstractResource : public BaseResource {
 
@@ -1407,6 +1438,9 @@ namespace ds {
 		T _data;
 	};
 
+	// ------------------------------------------------------
+	// ConstantBufferResource
+	// ------------------------------------------------------
 	class ConstantBufferResource : public AbstractResource<ID3D11Buffer*> {
 
 	public:
@@ -1432,6 +1466,9 @@ namespace ds {
 		void* _bufferPtr;
 	};
 
+	// ------------------------------------------------------
+	// InputLayoutResource
+	// ------------------------------------------------------
 	class InputLayoutResource : public AbstractResource<ID3D11InputLayout*> {
 
 	public:
@@ -1453,6 +1490,9 @@ namespace ds {
 		int _size;
 	};
 
+	// ------------------------------------------------------
+	// VertexBufferResource
+	// ------------------------------------------------------
 	class VertexBufferResource : public AbstractResource<ID3D11Buffer*> {
 
 	public:
@@ -1483,11 +1523,14 @@ namespace ds {
 		int _vertexSize;
 	};
 
+	// ------------------------------------------------------
+	// InstancedVertexBufferResource
+	// ------------------------------------------------------
 	struct InstancedBindData {
 		RID rid;
 		RID instanceBuffer;
 	};
-
+	
 	class InstancedVertexBufferResource : public AbstractResource<InstancedBindData*> {
 
 	public:
@@ -1505,6 +1548,9 @@ namespace ds {
 		}
 	};
 
+	// ------------------------------------------------------
+	// IndexBufferResource
+	// ------------------------------------------------------
 	class IndexBufferResource : public AbstractResource<ID3D11Buffer*> {
 
 	public:
@@ -1535,6 +1581,9 @@ namespace ds {
 		BufferType _type;
 	};
 
+	// ------------------------------------------------------
+	// ShaderResourceViewResource
+	// ------------------------------------------------------
 	class ShaderResourceViewResource : public AbstractResource<InternalTexture*> {
 
 	public:
@@ -1560,6 +1609,9 @@ namespace ds {
 		ds::vec2 _size;
 	};
 
+	// ------------------------------------------------------
+	// BlendStateResource
+	// ------------------------------------------------------
 	class BlendStateResource : public AbstractResource<ID3D11BlendState*> {
 
 	public:
@@ -1576,6 +1628,9 @@ namespace ds {
 		}
 	};
 
+	// ------------------------------------------------------
+	// SamplerStateResource
+	// ------------------------------------------------------
 	class SamplerStateResource : public AbstractResource<ID3D11SamplerState*> {
 
 	public:
@@ -1592,6 +1647,9 @@ namespace ds {
 		}
 	};
 
+	// ------------------------------------------------------
+	// RasterizerStateResource
+	// ------------------------------------------------------
 	class RasterizerStateResource : public AbstractResource<ID3D11RasterizerState*> {
 
 	public:
@@ -1608,6 +1666,9 @@ namespace ds {
 		}
 	};
 
+	// ------------------------------------------------------
+	// VertexShaderResource
+	// ------------------------------------------------------
 	class VertexShaderResource : public AbstractResource<VertexShader*> {
 
 	public:
@@ -1631,6 +1692,9 @@ namespace ds {
 		}
 	};
 
+	// ------------------------------------------------------
+	// GeometryShaderResource
+	// ------------------------------------------------------
 	class GeometryShaderResource : public AbstractResource<ID3D11GeometryShader*> {
 
 	public:
@@ -1647,6 +1711,9 @@ namespace ds {
 		}
 	};
 
+	// ------------------------------------------------------
+	// PixelShaderResource
+	// ------------------------------------------------------
 	class PixelShaderResource : public AbstractResource<ID3D11PixelShader*> {
 
 	public:
@@ -1663,6 +1730,9 @@ namespace ds {
 		}
 	};
 
+	// ------------------------------------------------------
+	// RenderTargetResource
+	// ------------------------------------------------------
 	class RenderTargetResource : public AbstractResource<RenderTarget*> {
 
 	public:
@@ -1693,6 +1763,9 @@ namespace ds {
 		}
 	};
 
+	// ------------------------------------------------------
+	// RenderPassResource
+	// ------------------------------------------------------
 	class RenderPassResource : public AbstractResource<RenderPass*> {
 
 	public:
@@ -1704,10 +1777,13 @@ namespace ds {
 			}
 		}
 		const ResourceType getType() const {
-			return RT_RENDER_TARGET;
+			return RT_RENDER_PASS;
 		}
 	};
 
+	// ------------------------------------------------------
+	// DrawItemResource
+	// ------------------------------------------------------
 	class DrawItemResource : public AbstractResource<DrawItem*> {
 
 	public:
@@ -1736,10 +1812,6 @@ namespace ds {
 		virtual ~StateGroupResource() {}
 		void release() {
 			if (_data != 0) {
-				// FIXME: delete all
-				//for (int i = 0; i < _data->num; ++i) {
-				//delete _data->groups[i];
-				//}
 				delete _data;
 			}
 		}
@@ -1748,23 +1820,13 @@ namespace ds {
 		}
 	};
 
-	struct BindedResource {
-		RID rid;
-		int slot;
-		int data;
-	};
-
-
-
-	bool operator == (const BindedResource& first, const BindedResource& other) {
-		return first.rid == other.rid && first.slot == other.slot && first.data == other.data;
-	}
-
 	class GPUProfiler;
 
-	// ------------------------------------------------------
+	// ******************************************************
+	//
 	// Internal context
-	// ------------------------------------------------------
+	//
+	// ******************************************************
 	typedef struct {
 		HWND hwnd;
 		HINSTANCE instance;
@@ -1821,20 +1883,7 @@ namespace ds {
 
 		char errorBuffer[256];
 		bool broken;
-
-		BindedResource bindedResources[256];
-		uint8_t numBindedResources;
-
-		uint32_t selectedShaderId[3];
-		uint32_t selectedVertexDeclaration;
-		uint32_t selectedIndexBuffer;
-		uint32_t selectedVertexBuffer;
-		uint32_t selectedRasterizerState;
-
-		//uint32_t selectedPSTextures[16];
-		//uint32_t selectedVSTextures[16];
-		//uint32_t selectedGSTextures[16];
-
+		
 		InputKey inputKeys[256];
 		int numInputKeys;
 
@@ -1845,7 +1894,6 @@ namespace ds {
 	} InternalContext;
 
 	static InternalContext* _ctx;
-
 	
 
 	static void assert_resource(RID rid, ResourceType type) {
@@ -2222,7 +2270,9 @@ namespace ds {
 		_ctx->defaultStateGroup = StateGroupBuilder()
 			.blendState(bs_id)
 			//.samplerState(ssid, ds::ShaderType::PIXEL)
-			//.texture(NO_RID, ds::ShaderType::PIXEL, 0)
+			.noResource(RT_SRV, PLS_VS_RES, 0)
+			.noResource(RT_SRV, PLS_GS_RES, 0)
+			.noResource(RT_SRV, PLS_PS_RES, 0)
 			.vertexShader(NO_RID)
 			.geometryShader(NO_RID)
 			.pixelShader(NO_RID)
@@ -2490,21 +2540,6 @@ namespace ds {
 		return initializeDevice(settings);
 	}
 
-	static void resetBindedResources() {
-		_ctx->numBindedResources = 0;
-	}
-
-	static bool bindResource(RID rid, uint8_t slot, uint8_t data) {
-		BindedResource current = { rid,slot,data };
-		for (uint8_t i = 0; i < _ctx->numBindedResources; ++i) {
-			if (_ctx->bindedResources[i] == current) {
-				return false;
-			}
-		}
-		_ctx->bindedResources[_ctx->numBindedResources++] = current;
-		return true;
-	}
-
 	// ------------------------------------------------------
 	// shutdown
 	// ------------------------------------------------------
@@ -2567,14 +2602,6 @@ namespace ds {
 		_ctx->d3dContext->ClearDepthStencilView(_ctx->depthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 		_ctx->d3dContext->OMSetDepthStencilState(_ctx->depthEnabledStencilState, 1);
 		_ctx->depthBufferState = DepthBufferState::ENABLED;
-		resetBindedResources();
-		_ctx->selectedShaderId[0] = INVALID_RID;
-		_ctx->selectedShaderId[1] = INVALID_RID;
-		_ctx->selectedShaderId[2] = INVALID_RID;
-		_ctx->selectedVertexDeclaration = INVALID_RID;
-		_ctx->selectedIndexBuffer = INVALID_RID;
-		_ctx->selectedRasterizerState = INVALID_RID;
-		_ctx->selectedVertexBuffer = INVALID_RID;
 	}
 
 	// ------------------------------------------------------
@@ -2708,15 +2735,12 @@ namespace ds {
 	// ------------------------------------------------------
 	static void setVertexDeclaration(RID rid) {
 		uint16_t ridx = getResourceIndex(rid, RT_VERTEX_DECLARATION);		
-		if (_ctx->selectedVertexDeclaration != rid) {
-			if (ridx == NO_RID) {
-				_ctx->d3dContext->IASetInputLayout(NULL);
-			}
-			else {				
-				InputLayoutResource* res = (InputLayoutResource*)_ctx->_resources[ridx];
-				_ctx->d3dContext->IASetInputLayout(res->get());
-			}
-			_ctx->selectedVertexDeclaration = ridx;
+		if (ridx == NO_RID) {
+			_ctx->d3dContext->IASetInputLayout(NULL);
+		}
+		else {				
+			InputLayoutResource* res = (InputLayoutResource*)_ctx->_resources[ridx];
+			_ctx->d3dContext->IASetInputLayout(res->get());
 		}
 	}
 
@@ -2837,15 +2861,12 @@ namespace ds {
 	// ------------------------------------------------------
 	static void setIndexBuffer(RID rid) {
 		uint16_t ridx = getResourceIndex(rid, RT_INDEX_BUFFER);
-		if (ridx != _ctx->selectedIndexBuffer) {
-			if (ridx != NO_RID) {
-				IndexBufferResource* res = (IndexBufferResource*)_ctx->_resources[ridx];
-				_ctx->d3dContext->IASetIndexBuffer(res->get(), res->getFormat(), 0);
-			}
-			else {
-				_ctx->d3dContext->IASetIndexBuffer(NULL, DXGI_FORMAT_UNKNOWN, 0);
-			}
-			_ctx->selectedIndexBuffer = ridx;
+		if (ridx != NO_RID) {
+			IndexBufferResource* res = (IndexBufferResource*)_ctx->_resources[ridx];
+			_ctx->d3dContext->IASetIndexBuffer(res->get(), res->getFormat(), 0);
+		}
+		else {
+			_ctx->d3dContext->IASetIndexBuffer(NULL, DXGI_FORMAT_UNKNOWN, 0);
 		}
 	}
 
@@ -2928,18 +2949,15 @@ namespace ds {
 	// ------------------------------------------------------
 	static void setVertexBuffer(RID rid) {
 		uint16_t ridx = getResourceIndex(rid, RT_VERTEX_BUFFER);		
-		if ( ridx != _ctx->selectedVertexBuffer) {
-			if (ridx == NO_RID) {
-				_ctx->d3dContext->IASetVertexBuffers(0, 0, NULL, NULL, NULL);
-			}
-			else {
-				VertexBufferResource* res = (VertexBufferResource*)_ctx->_resources[ridx];
-				unsigned int stride = res->getVertexSize();
-				unsigned int offset = 0;
-				ID3D11Buffer* buffer = res->get();
-				_ctx->d3dContext->IASetVertexBuffers(0, 1, &buffer, &stride, &offset);
-			}
-			_ctx->selectedVertexBuffer = ridx;
+		if (ridx == NO_RID) {
+			_ctx->d3dContext->IASetVertexBuffers(0, 0, NULL, NULL, NULL);
+		}
+		else {
+			VertexBufferResource* res = (VertexBufferResource*)_ctx->_resources[ridx];
+			unsigned int stride = res->getVertexSize();
+			unsigned int offset = 0;
+			ID3D11Buffer* buffer = res->get();
+			_ctx->d3dContext->IASetVertexBuffers(0, 1, &buffer, &stride, &offset);
 		}
 	}
 
@@ -3138,25 +3156,7 @@ namespace ds {
 			case DT_INSTANCED: _ctx->d3dContext->DrawInstanced(num, cmd.instances, 0, 0); break;
 		}
 	}
-	/*
-	void submit(const DrawCommand& cmd, RID group) {
-		_ctx->pipelineState->reset();
-		apply(_ctx->pipelineState, group);
-		_ctx->d3dContext->IASetPrimitiveTopology(PRIMITIVE_TOPOLOGIES[cmd.topology]);
-		switch (cmd.drawType) {
-			case DT_VERTICES: _ctx->d3dContext->Draw(cmd.size, 0); break;
-			case DT_INDEXED: _ctx->d3dContext->DrawIndexed(cmd.size, 0, 0); break;
-			case DT_INSTANCED: _ctx->d3dContext->DrawInstanced(cmd.size, cmd.instances, 0, 0); break;
-		}
-	}
-
-	void setNum(RID drawItemID, uint16_t size) {
-		uint16_t ridx = getResourceIndex(drawItemID, RT_DRAW_ITEM);
-		DrawItemResource* res = (DrawItemResource*)_ctx->_resources[ridx];
-		DrawItem* item = res->get();
-		item->command.size = size;
-	}
-	*/
+	
 	// ------------------------------------------------------
 	// create vertex shader
 	// ------------------------------------------------------
@@ -3273,20 +3273,17 @@ namespace ds {
 	// ------------------------------------------------------
 	static void setPixelShader(RID rid) {
 		uint16_t ridx = getResourceIndex(rid, RT_PIXEL_SHADER);
-		if (ridx != _ctx->selectedShaderId[2]) {
-			if (ridx == NO_RID) {
-				_ctx->d3dContext->VSSetShader(NULL, NULL, 0);
+		if (ridx == NO_RID) {
+			_ctx->d3dContext->VSSetShader(NULL, NULL, 0);
+		}
+		else {
+			PixelShaderResource* res = (PixelShaderResource*)_ctx->_resources[ridx];
+			if (res->get() != 0) {
+				_ctx->d3dContext->PSSetShader(res->get(), 0, 0);
 			}
 			else {
-				PixelShaderResource* res = (PixelShaderResource*)_ctx->_resources[ridx];
-				if (res->get() != 0) {
-					_ctx->d3dContext->PSSetShader(res->get(), 0, 0);
-				}
-				else {
-					_ctx->d3dContext->PSSetShader(NULL, NULL, 0);
-				}
+				_ctx->d3dContext->PSSetShader(NULL, NULL, 0);
 			}
-			_ctx->selectedShaderId[2] = ridx;
 		}
 	}
 
@@ -3295,20 +3292,17 @@ namespace ds {
 	// ------------------------------------------------------
 	static void setGeometryShader(RID rid) {
 		uint16_t ridx = getResourceIndex(rid, RT_GEOMETRY_SHADER);
-		if (ridx != _ctx->selectedShaderId[1]) {
-			if (ridx == NO_RID) {
-				_ctx->d3dContext->GSSetShader(NULL, NULL, 0);
+		if (ridx == NO_RID) {
+			_ctx->d3dContext->GSSetShader(NULL, NULL, 0);
+		}
+		else {
+			GeometryShaderResource* res = (GeometryShaderResource*)_ctx->_resources[ridx];
+			if (res->get() != 0) {
+				_ctx->d3dContext->GSSetShader(res->get(), 0, 0);
 			}
 			else {
-				GeometryShaderResource* res = (GeometryShaderResource*)_ctx->_resources[ridx];
-				if (res->get() != 0) {
-					_ctx->d3dContext->GSSetShader(res->get(), 0, 0);
-				}
-				else {
-					_ctx->d3dContext->GSSetShader(NULL, NULL, 0);
-				}
+				_ctx->d3dContext->GSSetShader(NULL, NULL, 0);
 			}
-			_ctx->selectedShaderId[1] = ridx;
 		}
 	}
 
@@ -3317,21 +3311,18 @@ namespace ds {
 	// ------------------------------------------------------
 	static void setVertexShader(RID rid) {
 		uint16_t ridx = getResourceIndex(rid, RT_VERTEX_SHADER);
-		if (ridx != _ctx->selectedShaderId[0]) {
-			if (ridx == NO_RID) {
-				_ctx->d3dContext->VSSetShader(NULL, NULL, 0);
+		if (ridx == NO_RID) {
+			_ctx->d3dContext->VSSetShader(NULL, NULL, 0);
+		}
+		else {
+			VertexShaderResource* res = (VertexShaderResource*)_ctx->_resources[ridx];
+			VertexShader* s = res->get();
+			if (s->vertexShader != 0) {
+				_ctx->d3dContext->VSSetShader(s->vertexShader, 0, 0);
 			}
 			else {
-				VertexShaderResource* res = (VertexShaderResource*)_ctx->_resources[ridx];
-				VertexShader* s = res->get();
-				if (s->vertexShader != 0) {
-					_ctx->d3dContext->VSSetShader(s->vertexShader, 0, 0);
-				}
-				else {
-					_ctx->d3dContext->VSSetShader(NULL, NULL, 0);
-				}
+				_ctx->d3dContext->VSSetShader(NULL, NULL, 0);
 			}
-			_ctx->selectedShaderId[0] = ridx;
 		}
 	}
 
@@ -3416,42 +3407,21 @@ namespace ds {
 	// ------------------------------------------------------
 	static void setTexture(RID rid) {
 		uint16_t ridx = getResourceIndex(rid, RT_SRV);
-		XASSERT(ridx != NO_RID, "Invalid texture selected");
 		int stage = stage_mask(rid);
 		int slot = slot_mask(rid);
-		if (stage == PLS_VS_RES) {
-			XASSERT(_ctx->selectedShaderId[0] != INVALID_RID, "Invalid or no vertex shader selected");
-		}
-		else if (stage == PLS_GS_RES) {
-			XASSERT(_ctx->selectedShaderId[1] != INVALID_RID, "Invalid or no geometry shader selected");
-		}
-		else if (stage == PLS_PS_RES) {
-			XASSERT(_ctx->selectedShaderId[2] != INVALID_RID, "Invalid or no pixel shader selected");
-		}
 		ID3D11ShaderResourceView* srv = 0;
 		if (ridx != NO_RID) {
 			ShaderResourceViewResource* res = (ShaderResourceViewResource*)_ctx->_resources[ridx];
 			srv = res->get()->srv;
 		}
 		if (stage == PLS_PS_RES) {
-			//PixelShaderResource* sRes = (ShaderResource*)_ctx->_resources[_ctx->selectedShaderId];
-			//Shader* s = sRes->get();
-			//XASSERT(s->pixelShader != 0, "No pixel shader selected");
-			if (bindResource(rid, slot, stage)) {
-				_ctx->d3dContext->PSSetShaderResources(slot, 1, &srv);
-			}
+			_ctx->d3dContext->PSSetShaderResources(slot, 1, &srv);
 		}
 		else if (stage == PLS_VS_RES) {
-			//XASSERT(s->vertexShader != 0, "No vertex shader selected");
-			if (bindResource(rid, slot, stage)) {
-				_ctx->d3dContext->VSSetShaderResources(slot, 1, &srv);				
-			}
+			_ctx->d3dContext->VSSetShaderResources(slot, 1, &srv);
 		}
 		else if (stage == PLS_GS_RES) {
-			//XASSERT(s->geometryShader != 0, "No geometry shader selected");
-			if (bindResource(rid, slot, stage)) {
-				_ctx->d3dContext->GSSetShaderResources(slot, 1, &srv);
-			}
+			_ctx->d3dContext->GSSetShaderResources(slot, 1, &srv);
 		}
 	}
 
@@ -3461,22 +3431,13 @@ namespace ds {
 		int stage = stage_mask(rtID);
 		int slot = slot_mask(rtID);
 		if (stage == PLS_PS_RES) {
-			//XASSERT(s->pixelShader != 0, "No pixel shader selected");
-			if (bindResource(rtID,slot, stage)) {
-				_ctx->d3dContext->PSSetShaderResources(slot, 1, &res->get()->srv);
-			}
+			_ctx->d3dContext->PSSetShaderResources(slot, 1, &res->get()->srv);
 		}
 		else if (stage == PLS_VS_RES) {
-			//XASSERT(s->vertexShader != 0, "No vertex shader selected");
-			if (bindResource(rtID, slot, stage)) {
-				_ctx->d3dContext->VSSetShaderResources(slot, 1, &res->get()->srv);
-			}
+			_ctx->d3dContext->VSSetShaderResources(slot, 1, &res->get()->srv);
 		}
 		else if (stage == PLS_GS_RES) {
-			//XASSERT(s->geometryShader != 0, "No geometry shader selected");
-			if (bindResource(rtID, slot, stage)) {
-				_ctx->d3dContext->GSSetShaderResources(slot, 1, &res->get()->srv);
-			}
+			_ctx->d3dContext->GSSetShaderResources(slot, 1, &res->get()->srv);
 		}
 	}
 
@@ -3665,9 +3626,11 @@ namespace ds {
 		}
 	}
 
-	// -----------------------------------------------------------------
+	// ******************************************************
+	//
 	// StateGroupBuilder
-	// -----------------------------------------------------------------
+	//
+	// ******************************************************
 	void StateGroupBuilder::add(uint16_t index, ResourceType type, int stage, int slot) {
 		if ((_num + 1 ) > _total) {
 			if (_items == 0) {
@@ -3766,6 +3729,11 @@ namespace ds {
 		return *this;
 	}
 
+	StateGroupBuilder& StateGroupBuilder::noResource(ResourceType type, int stage, int slot) {
+		basicBinding(NO_RID, type, stage, slot);
+		return *this;
+	}
+
 	StateGroupBuilder& StateGroupBuilder::rasterizerState(RID rid) {
 		basicBinding(rid, ResourceType::RT_RASTERIZER_STATE, PLS_RS);
 		return *this;
@@ -3857,6 +3825,9 @@ namespace ds {
 		}
 	}
 
+	// ******************************************************
+	// Render pass
+	// ******************************************************
 	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state) {
 		RenderPass* rp = new RenderPass();
 		rp->viewMatrix = viewMatrix;
@@ -3880,9 +3851,11 @@ namespace ds {
 	}
 
 
-	// -----------------------------------------------------------------
+	// ******************************************************
+	//
 	// Math
-	// -----------------------------------------------------------------
+	//
+	// ******************************************************
 	matrix matIdentity() {
 		matrix m(
 			1.0f, 0.0f, 0.0f, 0.0f,
@@ -4092,11 +4065,11 @@ namespace ds {
 		return vec3(tmp.x, tmp.y, tmp.z);
 	}
 
-	// ---------------------------------------
+	// ******************************************************
 	//
 	// Input handling
 	//
-	// ---------------------------------------
+	// ******************************************************
 	void addInputCharacter(char c) {
 		if (c >= 32) {
 			InputKey& k = _ctx->inputKeys[_ctx->numInputKeys++];
@@ -4149,9 +4122,11 @@ namespace ds {
 		return _ctx->inputKeys[index];
 	}
 
-	// ---------------------------------------
+	// ******************************************************
+	//
 	// DEBUG - print resources
-	// ---------------------------------------
+	//
+	// ******************************************************
 	void printResources() {
 		FILE* fp = fopen("log.txt", "w");
 		fprintf(fp, " index | resource type\n");
@@ -4185,11 +4160,11 @@ namespace ds {
 		fclose(fp);
 	}
 
-	// ---------------------------------------
+	// ******************************************************
 	//
 	// GPU profiling
 	//
-	// ---------------------------------------
+	// ******************************************************
 	namespace gpu {
 
 		const int GTS_MAX = 64;
