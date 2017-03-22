@@ -28,7 +28,7 @@
 // https://www.dropbox.com/sh/4uvmgy14je7eaxv/AABboa6UE5Pzfg3d9updwUexa?dl=0&preview=Designing+a+Modern+GPU+Interface.pdf
 
 
-//#define DS_IMPLEMENTATION
+#define DS_IMPLEMENTATION
 
 // ----------------------------------------------------
 // RID - resource identifier
@@ -1326,15 +1326,9 @@ namespace ds {
 			_index = 0;
 		}
 		bool isUsed(RID rid) {
-			int type = type_mask(rid);
-			int slot = slot_mask(rid);
-			int stage = stage_mask(rid);
+			uint16_t mask = (rid >> 16);
 			for (int i = 0; i < _index; ++i) {
-				const RID& e = _entries[i];
-				uint16_t rt = type_mask(e);
-				uint8_t rs = slot_mask(e);
-				uint8_t rd = stage_mask(e);
-				if (rt == type && rs == slot && rd == stage) {
+				if ( mask == _entries[i]) {
 					return true;
 				}
 			}
@@ -1346,25 +1340,59 @@ namespace ds {
 				if ((_index + 1) > _capacity) {
 					alloc(_capacity * 2);
 				}
-				_entries[_index++] = rid;
+				uint16_t mask = (rid >> 16);
+				_entries[_index++] = mask;
 			}
+		}
+
+		uint16_t size() const {
+			return _index;
+		}
+
+		uint16_t get(uint16_t idx) const {
+			return _entries[idx];
+		}
+
+		uint16_t* getPtr() const {
+			return &_entries[0];
+		}
+
+		int diff(const PipelineState& other, uint16_t* entries, int max) {
+			// everything is equals
+			if (_index == other.size() && memcmp(_entries, other.getPtr(), _index * sizeof(uint16_t))) {
+				return 0;
+			}
+			int num = 0;
+			for (uint16_t i = 0; i < other.size(); ++i) {
+				uint16_t current = other.get(i);
+				bool found = false;
+				for (uint16_t j = 0; j < _index; ++j) {
+					if (!found && _entries[j] == current) {
+						found = true;
+					}
+				}
+				if (!found && num < max ) {
+					entries[num++] = current;
+				}
+			}
+			return num;
 		}
 	private:
 		void alloc(uint16_t newCapacity) {
 			if (_entries == 0) {
 				_capacity = 16;
-				_entries = new RID[_capacity];
+				_entries = new uint16_t[_capacity];
 				_index = 0;
 			}
 			else {
-				RID* tmp = new RID[newCapacity];
-				memcpy(tmp, _entries, _index*sizeof(RID));
+				uint16_t* tmp = new uint16_t[newCapacity];
+				memcpy(tmp, _entries, _index*sizeof(uint16_t));
 				delete[] _entries;
 				_entries = tmp;
 				_capacity = newCapacity;
 			}
 		}
-		RID* _entries;
+		uint16_t* _entries;
 		uint16_t _capacity;
 		uint16_t _index;
 	};
@@ -1889,6 +1917,10 @@ namespace ds {
 		InputKey inputKeys[256];
 		int numInputKeys;
 
+		PipelineState pipelineStates[2];
+		int currentDrawCall;
+		int lastDrawCall;
+
 		PipelineState* pipelineState;
 		RID defaultStateGroup;
 
@@ -2280,6 +2312,9 @@ namespace ds {
 		RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 		RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 		RID rasterizerStateID = ds::createRasterizerState(ds::CullMode::BACK, ds::FillMode::SOLID, true, false, 0.0f, 0.0f);
+
+		_ctx->currentDrawCall = 0;
+		_ctx->lastDrawCall = -1;
 
 		_ctx->defaultStateGroup = StateGroupBuilder()
 			.blendState(bs_id)
