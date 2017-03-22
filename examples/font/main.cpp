@@ -186,12 +186,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::POINT);
 
 	// create orthographic view
-	ds::matrix viewMatrix = ds::matIdentity();
-	ds::matrix projectionMatrix = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
-	ds::matrix viewprojectionMatrix = viewMatrix * projectionMatrix;
-
-	ds::setViewMatrix(viewMatrix);
-	ds::setProjectionMatrix(projectionMatrix);
+	ds::matrix orthoView = ds::matIdentity();
+	ds::matrix orthoProjection = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
+	ds::matrix viewprojectionMatrix = orthoView * orthoProjection;
+	RID orthoPass = ds::createRenderPass(orthoView, orthoProjection, ds::DepthBufferState::DISABLED);
 
 	RID stateGroup = ds::StateGroupBuilder()
 		.inputLayout(vertexDeclId)
@@ -243,7 +241,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			textColor.a = 1.0f;
 		}
 		// disbale depth buffer
-		ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
+		
 		ds::matrix w = ds::matIdentity();
 		constantBuffer.wvp = ds::matTranspose(viewprojectionMatrix);
 		numVertices = 0;
@@ -258,9 +256,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		}
 		ds::mapBufferData(vertexBufferID, vertices, numVertices * sizeof(SpriteVertex));
 		drawCmd.size = numSprites;
-		ds::submit(drawItem);
+		ds::submit(orthoPass, drawItem);
 		// enable depth buffer
-		ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
+		
 		ds::end();
 	}
 	ds::shutdown();

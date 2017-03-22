@@ -72,6 +72,7 @@
     <IncludePath>$(IncludePath);$(DXSDK_DIR)Include   </IncludePath>
     <ReferencePath>$(DXSDK_DIR)Lib\x86;$(ReferencePath)</ReferencePath>
     <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x86</LibraryPath>
+    <OutDir>$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(IncludePath);$(DXSDK_DIR)Include;..\common</IncludePath>

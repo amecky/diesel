@@ -25,11 +25,6 @@ SpriteBuffer::SpriteBuffer(int maxSprites, RID textureID) : _max(maxSprites) {
 	_vertexBufferID = ds::createVertexBuffer(ds::BufferType::DYNAMIC, maxSprites, sizeof(SpriteBufferVertex));
 
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::POINT);
-	// create orthographic view
-	ds::matrix viewMatrix = ds::matIdentity();
-	// FIXME: get screen size
-	ds::matrix projectionMatrix = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
-	ds::matrix viewprojectionMatrix = viewMatrix * projectionMatrix;
 
 	RID spriteStateGroup = ds::StateGroupBuilder()
 		.inputLayout(vertexDeclId)
@@ -44,11 +39,15 @@ SpriteBuffer::SpriteBuffer(int maxSprites, RID textureID) : _max(maxSprites) {
 		.build();
 	
 	ds::vec2 textureSize = ds::getTextureSize(textureID);
-	_constantBuffer.wvp = ds::matTranspose(viewprojectionMatrix);
-	_constantBuffer.screenDimension = ds::vec4(1024.0f, 768.0f, textureSize.x, textureSize.y);
+	_constantBuffer.screenDimension = ds::vec4(ds::getScreenWidth(), ds::getScreenHeight(), textureSize.x, textureSize.y);
 
 	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::POINT_LIST, 0 };
 	_item = ds::compile(drawCmd, spriteStateGroup);
+
+	ds::matrix orthoView = ds::matIdentity();
+	ds::matrix orthoProjection = ds::matOrthoLH(ds::getScreenWidth(), ds::getScreenHeight(), 0.1f, 1.0f);
+	_orthoPass = ds::createRenderPass(orthoView, orthoProjection, ds::DepthBufferState::DISABLED);
+	_constantBuffer.wvp = ds::matTranspose(orthoView * orthoProjection);
 
 	_current = 0;
 }
@@ -67,10 +66,8 @@ void SpriteBuffer::add(const ds::vec2& position, const ds::vec4& rect, const ds:
 
 void SpriteBuffer::flush() {
 	if (_current > 0) {
-		ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
 		ds::mapBufferData(_vertexBufferID, _vertices, _current * sizeof(SpriteBufferVertex));
-		ds::submit(_item, _current);
-		ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
+		ds::submit(_orthoPass, _item, _current);
 		_current = 0;
 	}
 }

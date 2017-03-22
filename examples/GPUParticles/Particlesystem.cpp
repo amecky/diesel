@@ -3,7 +3,7 @@
 // -------------------------------------------------------
 // create new particlesystem
 // -------------------------------------------------------
-Particlesystem::Particlesystem(ParticlesystemDescriptor descriptor) : _descriptor(descriptor) {
+Particlesystem::Particlesystem(ParticlesystemDescriptor descriptor, RID renderPass) : _descriptor(descriptor) , _renderPass(renderPass) {
 	_array.initialize(descriptor.maxParticles);
 	_vertices = new ParticleVertex[descriptor.maxParticles];
 
@@ -79,16 +79,16 @@ void Particlesystem::render() {
 
 	// prepare constant buffers
 	ds::matrix w = ds::matIdentity();
-	_constantBuffer.wvp = ds::matTranspose(ds::getViewProjectionMatrix());
+	_constantBuffer.wvp = ds::matTranspose(ds::getViewProjectionMatrix(_renderPass));
 	_constantBuffer.startColor = _descriptor.startColor;
 	_constantBuffer.endColor = _descriptor.endColor;
-	_constantBuffer.eyePos = ds::getViewPosition();
+	_constantBuffer.eyePos = ds::getViewPosition(_renderPass);
 	_constantBuffer.padding = 0.0f;
 	_constantBuffer.world = ds::matTranspose(w);
 	for (int i = 0; i < _array.countAlive; ++i) {
 		_vertices[i] = ParticleVertex(_array.positions[i], _array.velocities[i], ds::vec2(_array.timers[i].x, _array.timers[i].y), _array.sizes[i]);
 	}
 	ds::mapBufferData(_vertexBuffer, _vertices, _array.countAlive * sizeof(ParticleVertex));
-	ds::submit(_drawItem, _array.countAlive);
+	ds::submit(_renderPass, _drawItem, _array.countAlive);
 
 }

@@ -5,7 +5,7 @@
 class FPSCamera {
 
 public:
-	FPSCamera(float screenWidth, float screenHeight);
+	FPSCamera(RID renderPass);
 	virtual ~FPSCamera();
 	void setPosition(const ds::vec3& pos);
 	void setPosition(const ds::vec3& pos, const ds::vec3& lookAt);
@@ -62,6 +62,7 @@ private:
 	ds::vec3 _up;
 	ds::vec3 _right;
 	float _speed;
+	RID _renderPass;
 	ds::vec2 _lastMousePos;
 	ds::matrix _viewMatrix;
 	ds::matrix _projectionMatrix;

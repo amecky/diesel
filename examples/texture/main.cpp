@@ -79,6 +79,10 @@ int main(int argc, char *argv[]) {
 	rs.useGPUProfiling = true;
 	ds::init(rs);
 
+	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 2.0f, -8.0f), ds::vec3(0,0,0), ds::vec3(0,1,0));
+	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
+	RID basicPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED);
+
 	RID textureID = loadImage("..\\common\\cube_map.png");
 	RID cubeTextureID = loadImage("..\\common\\grid.png");
 	
@@ -94,7 +98,7 @@ int main(int argc, char *argv[]) {
 		ds::vec3( gridWidth, -1.0f,  gridHeight),
 		ds::vec3( gridWidth, -1.0f, -gridHeight)
 	};
-	grid.create(gridPositions, 6, vertexShader, pixelShader, cubeTextureID);
+	grid.create(gridPositions, 6, vertexShader, pixelShader, cubeTextureID, basicPass);
 
 	ds::VertexDeclaration decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
@@ -106,16 +110,6 @@ int main(int argc, char *argv[]) {
 	RID indexBuffer = ds::createQuadIndexBuffer(256);
 	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v);
 	RID staticCubes = ds::createVertexBuffer(ds::BufferType::STATIC, totalCubeVertices, sizeof(Vertex), sv);
-	ds::vec3 vp = ds::vec3(0.0f, 2.0f, -8.0f);
-	ds::setViewPosition(vp);
-
-	RID basicPass = ds::createRenderPass(ds::getViewMatrix(), ds::getProjectionMatrix(), ds::DepthBufferState::ENABLED);
-	// create orthographic render pass
-	ds::matrix orthoView = ds::matIdentity();
-	ds::matrix orthoProjection = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
-	RID orthoPass = ds::createRenderPass(orthoView, orthoProjection, ds::DepthBufferState::DISABLED);
-
-	
 
 	worldMatrix wm;
 
@@ -163,16 +157,16 @@ int main(int argc, char *argv[]) {
 		// grid
 		grid.render();
 		// static cubes
-		constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix());
+		constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix(basicPass));
 		ds::matrix world = ds::matIdentity();
 		constantBuffer.worldMatrix = ds::matTranspose(world);
-		ds::submit(staticItem);
+		ds::submit(basicPass, staticItem);
 		ds::gpu::measure(1);
 		// spinning cube
 		wm.setRotation(rotation);
 		wm.setPosition(position);
 		constantBuffer.worldMatrix = wm.getTransposedMatrix();
-		ds::submit(cubeItem);
+		ds::submit(basicPass, cubeItem);
 		ds::gpu::measure(2);
 
 		// GUI

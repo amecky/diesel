@@ -59,6 +59,10 @@ int main(int argc, char *argv[]) {
 
 	InstanceData instances[512];
 
+	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 3.0f, -6.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
+	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
+	RID basicPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED);
+
 
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 
@@ -91,14 +95,12 @@ int main(int argc, char *argv[]) {
 	RID idid = ds::createVertexBuffer(ds::BufferType::DYNAMIC, 512, sizeof(InstanceData));
 	RID instanceBuffer = ds::createInstancedBuffer(vbid, idid);
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
-	ds::vec3 vp = ds::vec3(0.0f, 3.0f, -6.0f);
-	ds::setViewPosition(vp);
 
 	ds::vec3 scale(1.0f, 1.0f, 1.0f);
 	
 	ds::vec3 pos(0.0f, 0.0f, 0.0f);
 
-	FPSCamera camera(1024, 768);
+	FPSCamera camera(basicPass);
 	camera.setPosition(ds::vec3(0, 2, -12));
 
 	ds::HexGrid<int> grid;
@@ -150,7 +152,7 @@ int main(int argc, char *argv[]) {
 		constantBuffer.viewprojectionMatrix = ds::matTranspose(vpm);
 		ds::matrix world = ds::matIdentity();
 		constantBuffer.worldMatrix = ds::matTranspose(world);
-		ds::submit(drawItem);
+		ds::submit(basicPass, drawItem);
 		ds::end();
 	}
 	ds::shutdown();

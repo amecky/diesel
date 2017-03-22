@@ -32,6 +32,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.useGPUProfiling = false;
 	ds::init(rs);
 
+	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 3.0f, -6.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
+	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
+	RID basicPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED);
+
 	int x, y, n;
 	unsigned char *data = stbi_load("..\\common\\cube_map.png", &x, &y, &n, 4);
 	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
@@ -53,8 +57,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID indexBufferID = ds::createQuadIndexBuffer(num / 4);
 	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, num, sizeof(ObjVertex), vertices);
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
-	ds::vec3 vp = ds::vec3(0.0f, 3.0f, -6.0f);
-	ds::setViewPosition(vp);
 
 	ds::vec3 scale(1.0f, 1.0f, 1.0f);
 	ds::vec3 rotation(0.0f, 0.0f, 0.0f);
@@ -94,9 +96,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::matrix s = ds::matScale(scale);
 		ds::matrix w = rotZ * rotY * rotX * s * world;
 		
-		constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix());
+		constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix(basicPass));
 		constantBuffer.worldMatrix = ds::matTranspose(w);
-		ds::submit(drawItem);
+		ds::submit(basicPass, drawItem);
 
 		ds::end();
 	}

@@ -91,6 +91,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID vertexShader = ds::loadVertexShader("Cube_vs.cso");
 	RID pixelShader = ds::loadPixelShader("Cube_ps.cso");
 
+	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 2.0f, -6.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
+	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
+	RID basicPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED);
 
 	// create buffer input layout
 	ds::VertexDeclaration decl[] = {
@@ -102,10 +105,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID iid = ds::createIndexBuffer(36, ds::IndexType::UINT_32, ds::BufferType::STATIC, p_indices);
 	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v);
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
-
-	ds::vec3 vp = ds::vec3(0.0f, 2.0f, -6.0f);
-	ds::setViewPosition(vp);
-
 
 	RID stateGroup = ds::StateGroupBuilder()
 		.inputLayout(rid)
@@ -132,10 +131,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::matrix s = ds::matScale(ds::vec3(scale));
 		ds::matrix w = bY * s * ds::matTranslate(cp);
 		
-		constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix());
+		constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix(basicPass));
 		constantBuffer.worldMatrix = ds::matTranspose(w);
 
-		ds::submit(drawItem);
+		ds::submit(basicPass, drawItem);
 
 		ds::end();
 	}

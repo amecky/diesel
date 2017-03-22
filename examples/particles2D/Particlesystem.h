@@ -163,4 +163,5 @@ private:
 	ds::matrix _viewprojectionMatrix;
 	RID _drawItem;
 	RID _vertexBuffer;
+	RID _orthoPass;
 };

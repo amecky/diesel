@@ -39,6 +39,7 @@ private:
 	RID _item;
 	RID _pixelShader;
 	RID _textureID;
+	RID _orthoPass;
 	SpriteBufferVertex* _vertices;
 	//ds::matrix _viewprojectionMatrix;
 };

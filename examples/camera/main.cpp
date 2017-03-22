@@ -61,6 +61,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.multisampling = 1;
 	ds::init(rs);
 
+	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 2.0f, -6.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
+	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
+	RID basicPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED);
+
 	RID textureID = loadImage("..\\common\\cube_map.png");
 	RID cubeTextureID = loadImage("..\\common\\grid.png");
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
@@ -75,7 +79,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::vec3(4.0f, -1.0f,  4.5f),
 		ds::vec3(4.0f, -1.0f, -3.5f)
 	};
-	grid.create(gridPositions, 4, vertexShader, pixelShader, textureID);
+	grid.create(gridPositions, 4, vertexShader, pixelShader, textureID, basicPass);
 
 	ds::VertexDeclaration decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
@@ -87,12 +91,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID indexBuffer = ds::createQuadIndexBuffer(256);
 	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v);
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::WRAP, ds::TextureFilters::LINEAR);
-	ds::vec3 vp = ds::vec3(0.0f, 2.0f, -6.0f);
-	ds::setViewPosition(vp);
+
 	ds::vec3 scale(1.0f, 1.0f, 1.0f);
 	ds::vec3 rotation(0.0f, 0.0f, 0.0f);
 	ds::vec3 pos(0.0f, 0.0f, 0.0f);
-	FPSCamera camera(1024, 768);
+	FPSCamera camera(basicPass);
 	camera.setPosition(ds::vec3(0, 1, -6));
 
 	RID stateGroup = ds::StateGroupBuilder()
@@ -128,7 +131,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::matrix s = ds::matScale(scale);
 		ds::matrix w = rotZ * rotY * rotX * s * world;
 		constantBuffer.worldMatrix = ds::matTranspose(w);
-		ds::submit(drawItem);
+		ds::submit(basicPass, drawItem);
 
 		ds::end();
 	}

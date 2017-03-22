@@ -41,6 +41,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.useGPUProfiling = false;
 	ds::init(rs);
 
+	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 2.0f, -8.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
+	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
+	RID basicPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED);
+
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 
 	int x, y, n;
@@ -122,11 +126,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::begin();
 		t += static_cast<float>(ds::getElapsedSeconds());
 		ds::setRenderTarget(rtID);		
-		ds::submit(staticItem);
+		ds::submit(basicPass, staticItem);
 		ds::restoreBackBuffer();
 		ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
 		ppBuffer.data = ds::vec4(abs(sin(t*0.5f)), 0.0f, 0.0f, 0.0f);
-		ds::submit(ppItem);		
+		ds::submit(basicPass, ppItem);		
 		ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
 		ds::end();
 	}

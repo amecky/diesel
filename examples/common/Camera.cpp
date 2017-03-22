@@ -1,7 +1,7 @@
 #include "Camera.h"
 
-FPSCamera::FPSCamera(float screenWidth, float screenHeight)  {
-	_projectionMatrix = ds::matPerspectiveFovLH(ds::PI * 0.25f, screenWidth / screenHeight, 0.01f, 100.0f);
+FPSCamera::FPSCamera(RID renderPass) : _renderPass(renderPass) {
+	_projectionMatrix = ds::matPerspectiveFovLH(ds::PI * 0.25f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
 	_position = ds::vec3(0, 2, -4);
 	_lastMousePos = ds::getMousePosition();
 	_target = ds::vec3(0, 0, 1);
@@ -11,7 +11,7 @@ FPSCamera::FPSCamera(float screenWidth, float screenHeight)  {
 	_yaw = 0.0f;
 	_pitch = 0.0f;
 	_viewMatrix = ds::matLookAtLH(_position, _target, _up);
-	ds::setProjectionMatrix(_projectionMatrix);
+	ds::setProjectionMatrix(_renderPass,_projectionMatrix);
 	_viewprojectionMatrix = _viewMatrix * _projectionMatrix;
 	buildView();
 }
@@ -150,5 +150,5 @@ void FPSCamera::buildView() {
 
 	_viewprojectionMatrix = _viewMatrix * _projectionMatrix;
 
-	ds::setViewMatrix(_viewMatrix);
+	ds::setViewMatrix(_renderPass, _viewMatrix);
 }

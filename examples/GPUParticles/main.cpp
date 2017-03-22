@@ -37,12 +37,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	descriptor.particleDimension = ds::vec2(32, 32);
 	// load image using stb_image
 	descriptor.texture = loadImage("particles.png");
+
+	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 0.0f, -4.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
+	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
+	RID basicPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED);
+	RID particlePass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::DISABLED);
 	
 	
 	descriptor.startColor = ds::Color(192, 192, 0, 255);
 	descriptor.endColor = ds::Color(192, 16, 0, 255);
 
-	Particlesystem system(descriptor);
+	Particlesystem system(descriptor, particlePass);
 
 	ParticleDescriptor particleDescriptor;
 	particleDescriptor.ttl = 0.4f;
@@ -67,9 +72,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::vec3(4.0f, -1.0f,  4.5f),
 		ds::vec3(4.0f, -1.0f, -3.5f)
 	};
-	grid.create(gridPositions, 2, vertexShader, pixelShader, textureID);
-
-	ds::setViewPosition(ds::vec3(0, 0, -4));
+	grid.create(gridPositions, 2, vertexShader, pixelShader, textureID, basicPass);
 
 	float dt = 1.0f / 60.0f;
 	float frequency = 200.0f * dt;
@@ -94,10 +97,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		}
 		ds::begin();
 		grid.render();
-		ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
 		system.tick(static_cast<float>(ds::getElapsedSeconds()));
 		system.render();
-		ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
 		ds::end();
 	}
 	ds::shutdown();

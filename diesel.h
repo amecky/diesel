@@ -28,7 +28,7 @@
 // https://www.dropbox.com/sh/4uvmgy14je7eaxv/AABboa6UE5Pzfg3d9updwUexa?dl=0&preview=Designing+a+Modern+GPU+Interface.pdf
 
 
-#define DS_IMPLEMENTATION
+//#define DS_IMPLEMENTATION
 
 // ----------------------------------------------------
 // RID - resource identifier
@@ -591,11 +591,11 @@ namespace ds {
 		_44 = m44;
 	}
 
-	// ----------------------------------------------------------------------
+	// **********************************************************************
 	//
 	// The rendering API
 	//
-	// ----------------------------------------------------------------------
+	// **********************************************************************
 
 
 	const float PI = 3.141592654f;
@@ -848,6 +848,9 @@ namespace ds {
 	};
 
 	struct RenderPass {
+		ds::vec3 viewPosition;
+		ds::vec3 lookAt;
+		ds::vec3 up;
 		matrix viewMatrix;
 		matrix projectionMatrix;
 		matrix viewProjectionMatrix;
@@ -861,16 +864,13 @@ namespace ds {
 
 	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state, RID* renderTargets,int numRenderTargets);
 
-	//RenderPass* getRenderPass(RID rid);
-
 	// items, groups, passes
+
 	RID compile(const DrawCommand cmd, RID* groups, int num);
 
 	RID compile(const DrawCommand cmd, RID group);
 
-	void submit(RID drawItemID, int numElements = -1);
-
-	//void submit(RID renderPass, RID drawItemID);
+	void submit(RID renderPass, RID drawItemID, int numElements = -1);
 
 	bool init(const RenderSettings& settings);
 
@@ -910,7 +910,7 @@ namespace ds {
 
 	RID createAlphaBlendState(BlendStates srcBlend, BlendStates destBlend);
 
-	void setBlendState(RID rid, float* blendFactor,uint32_t mask);
+	//void setBlendState(RID rid, float* blendFactor,uint32_t mask);
 
 	// shader
 
@@ -930,7 +930,7 @@ namespace ds {
 
 	RID createTexture(int width, int height, uint8_t channels, void* data, TextureFormat format);
 
-	void setTextureFromRenderTarget(RID rtID, RID shader, uint8_t slot);
+	//void setTextureFromRenderTarget(RID rtID, RID shader, uint8_t slot);
 
 	ds::vec2 getTextureSize(RID rid);
 
@@ -945,7 +945,7 @@ namespace ds {
 	// rasterizer state
 	RID createRasterizerState(CullMode cullMode, FillMode fillMode, bool multiSample, bool scissor, float depthBias, float slopeDepthBias);
 
-	void setDepthBufferState(DepthBufferState state);
+	//void setDepthBufferState(DepthBufferState state);
 
 	// drawing
 	
@@ -959,25 +959,27 @@ namespace ds {
 
 	// view and projection matrix
 
-	const matrix& getViewMatrix();
+	const matrix& getViewMatrix(RID renderPass);
 
-	void setViewMatrix(const matrix& m);
+	void setViewMatrix(RID pass, const matrix& m);
 
-	const matrix& getProjectionMatrix();
+	void setProjectionMatrix(RID pass, const matrix& m);
 
-	const matrix& getViewProjectionMatrix();
+	const matrix& getProjectionMatrix(RID renderPass);
 
-	void setViewPosition(const vec3& viewPos);
+	const matrix& getViewProjectionMatrix(RID renderPass);
 
-	vec3 getViewPosition();
+	void setViewPosition(RID renderPass, const vec3& viewPos);
 
-	void lookAt(const vec3& pos);
+	vec3 getViewPosition(RID renderPass);
 
-	void setProjectionMatrix(const matrix& m);
+	void lookAt(RID renderPass, const vec3& pos);
 
-	void setProjectionMatrix(float fieldOfView, float aspectRatio);
+	uint16_t getScreenWidth();
 
-	void setProjectionMatrix(float fieldOfView, float aspectRatio, float minDepth, float maxDepth);
+	uint16_t getScreenHeight();
+
+	float getScreenAspectRatio();
 
 	// input
 
@@ -1850,16 +1852,16 @@ namespace ds {
 		ID3D11DepthStencilState* depthDisabledStencilState;
 		ID3D11DepthStencilState* depthEnabledStencilState;
 
-		matrix viewMatrix;
-		matrix projectionMatrix;
-		matrix viewProjectionMatrix;
+		//matrix viewMatrix;
+		//matrix projectionMatrix;
+		//matrix viewProjectionMatrix;
 
 		std::vector<BaseResource*> _resources;
 		std::vector<StateGroup*> _groups;
 
-		vec3 viewPosition;
-		vec3 lookAt;
-		vec3 up;
+		//vec3 viewPosition;
+		//vec3 lookAt;
+		//vec3 up;
 
 		int mouseButtonState[2];
 		int keyState[256];
@@ -1895,6 +1897,17 @@ namespace ds {
 
 	static InternalContext* _ctx;
 	
+	uint16_t getScreenWidth() {
+		return _ctx->screenWidth;
+	}
+
+	uint16_t getScreenHeight() {
+		return _ctx->screenHeight;
+	}
+
+	float getScreenAspectRatio() {
+		return static_cast<float>(_ctx->screenWidth) / static_cast<float>(_ctx->screenHeight);
+	}
 
 	static void assert_resource(RID rid, ResourceType type) {
 		XASSERT(type_mask(rid) == type,"The selected resource %d is not the required type %s", rid, RESOURCE_NAMES[type]);
@@ -2248,7 +2261,7 @@ namespace ds {
 			REPORT("failed to create depth stencil state", result);
 			return false;
 		}
-
+		/*
 		_ctx->viewMatrix = matIdentity();
 
 		_ctx->viewPosition = vec3(0, 0, -6);
@@ -2260,6 +2273,7 @@ namespace ds {
 		float screenAspect = (float)_ctx->screenWidth / (float)_ctx->screenHeight;
 		_ctx->projectionMatrix = matPerspectiveFovLH(fieldOfView, screenAspect, 0.01f, 100.0f);
 		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
+		*/
 		_ctx->pipelineState = new PipelineState;
 
 		// create default state group
@@ -2287,28 +2301,38 @@ namespace ds {
 		return true;
 	}
 
+	static RenderPass* getRenderPass(RID rid) {
+		int ridx = getResourceIndex(rid, RT_RENDER_PASS);
+		RenderPassResource* res = (RenderPassResource*)_ctx->_resources[ridx];
+		return res->get();
+	}
+
 	// ------------------------------------------------------
 	// set view position
 	// ------------------------------------------------------
-	void setViewPosition(const vec3& viewPos) {
-		_ctx->viewPosition = viewPos;
-		_ctx->viewMatrix = matLookAtLH(_ctx->viewPosition, _ctx->lookAt, _ctx->up);
-		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
+	void setViewPosition(RID renderPass, const vec3& viewPos) {
+		RenderPass* pass = getRenderPass(renderPass);
+		pass->viewPosition = viewPos;
+		pass->viewMatrix = matLookAtLH(pass->viewPosition, pass->lookAt, pass->up);
+		pass->viewProjectionMatrix = pass->viewMatrix * pass->projectionMatrix;
 	}
 
-	vec3 getViewPosition() {
-		return _ctx->viewPosition;
+	vec3 getViewPosition(RID renderPass) {
+		RenderPass* pass = getRenderPass(renderPass);
+		return pass->viewPosition;
 	}
 
 	// ------------------------------------------------------
 	// look at
 	// ------------------------------------------------------
-	void lookAt(const vec3& pos) {
-		_ctx->lookAt = pos;
-		_ctx->viewMatrix = matLookAtLH(_ctx->viewPosition, _ctx->lookAt, _ctx->up);
-		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
+	void lookAt(RID renderPass, const vec3& pos) {
+		RenderPass* pass = getRenderPass(renderPass);
+		pass->lookAt = pos;
+		pass->viewMatrix = matLookAtLH(pass->viewPosition, pass->lookAt, pass->up);
+		pass->viewProjectionMatrix = pass->viewMatrix * pass->projectionMatrix;
 	}
 
+	/*
 	// ------------------------------------------------------
 	// set projection matrix
 	// ------------------------------------------------------
@@ -2329,7 +2353,7 @@ namespace ds {
 		_ctx->projectionMatrix = matPerspectiveFovLH(fieldOfView, aspectRatio, minDepth, maxDepth);
 		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
 	}
-
+	*/
 	// ------------------------------------------------------
 	// internal windows procedure
 	// ------------------------------------------------------
@@ -2569,27 +2593,37 @@ namespace ds {
 	// ------------------------------------------------------
 	// get view matrix
 	// ------------------------------------------------------
-	const matrix& getViewMatrix() {
-		return _ctx->viewMatrix;
+	const matrix& getViewMatrix(RID renderPass) {
+		RenderPass* pass = getRenderPass(renderPass);
+		return pass->viewMatrix;
 	}
 
-	void setViewMatrix(const matrix& m) {
-		_ctx->viewMatrix = m;
-		_ctx->viewProjectionMatrix = m * _ctx->projectionMatrix;
+	void setViewMatrix(RID renderPass, const matrix& m) {
+		RenderPass* pass = getRenderPass(renderPass);
+		pass->viewMatrix = m;
+		pass->viewProjectionMatrix = m * pass->projectionMatrix;
+	}
+
+	void setProjectionMatrix(RID renderPass, const matrix& m) {
+		RenderPass* pass = getRenderPass(renderPass);
+		pass->projectionMatrix = m;
+		pass->viewProjectionMatrix = pass->viewMatrix * pass->projectionMatrix;
 	}
 
 	// ------------------------------------------------------
 	// get projection matrix
 	// ------------------------------------------------------
-	const matrix& getProjectionMatrix() {
-		return _ctx->projectionMatrix;
+	const matrix& getProjectionMatrix(RID renderPass) {
+		RenderPass* pass = getRenderPass(renderPass);
+		return pass->projectionMatrix;
 	}
 
 	// ------------------------------------------------------
 	// get view projection matrix
 	// ------------------------------------------------------
-	const matrix& getViewProjectionMatrix() {
-		return _ctx->viewProjectionMatrix;
+	const matrix& getViewProjectionMatrix(RID renderPass) {
+		RenderPass* pass = getRenderPass(renderPass);
+		return pass->viewProjectionMatrix;
 	}
 
 	// ------------------------------------------------------
@@ -3134,9 +3168,33 @@ namespace ds {
 	}
 
 	// ------------------------------------------------------
+	// set depth buffer state
+	// ------------------------------------------------------
+	static void setDepthBufferState(DepthBufferState state) {
+		if (_ctx->depthBufferState != state) {
+			if (state == DepthBufferState::ENABLED) {
+				_ctx->d3dContext->OMSetDepthStencilState(_ctx->depthEnabledStencilState, 1);
+			}
+			else {
+				_ctx->d3dContext->OMSetDepthStencilState(_ctx->depthDisabledStencilState, 1);
+			}
+		}
+		_ctx->depthBufferState = state;
+	}
+
+	// ------------------------------------------------------
 	// submit draw command
 	// ------------------------------------------------------
-	void submit(RID drawItemID, int numElements) {
+	void submit(RID renderPass, RID drawItemID, int numElements) {
+		uint16_t pidx = getResourceIndex(renderPass, RT_RENDER_PASS);
+		RenderPassResource* rpRes = (RenderPassResource*)_ctx->_resources[pidx];
+		RenderPass* pass = rpRes->get();
+		//_ctx->viewMatrix = pass->viewMatrix;
+		//_ctx->projectionMatrix = pass->projectionMatrix;
+		//_ctx->viewProjectionMatrix = pass->viewProjectionMatrix;
+		setDepthBufferState(pass->depthState);
+		// FIXME: set render targets
+
 		uint16_t ridx = getResourceIndex(drawItemID, RT_DRAW_ITEM);
 		DrawItemResource* res = (DrawItemResource*)_ctx->_resources[ridx];
 		const DrawItem* item = res->get();
@@ -3439,21 +3497,6 @@ namespace ds {
 		else if (stage == PLS_GS_RES) {
 			_ctx->d3dContext->GSSetShaderResources(slot, 1, &res->get()->srv);
 		}
-	}
-
-	// ------------------------------------------------------
-	// set depth buffer state
-	// ------------------------------------------------------
-	void setDepthBufferState(DepthBufferState state) {
-		if (_ctx->depthBufferState != state) {
-			if (state == DepthBufferState::ENABLED) {
-				_ctx->d3dContext->OMSetDepthStencilState(_ctx->depthEnabledStencilState, 1);
-			}
-			else {
-				_ctx->d3dContext->OMSetDepthStencilState(_ctx->depthDisabledStencilState, 1);
-			}
-		}
-		_ctx->depthBufferState = state;
 	}
 
 	// ------------------------------------------------------
@@ -3830,6 +3873,9 @@ namespace ds {
 	// ******************************************************
 	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state) {
 		RenderPass* rp = new RenderPass();
+		rp->viewPosition = vec3(0, 0, -6);
+		rp->lookAt = vec3(0, 0, 0);
+		rp->up = vec3(0, 1, 0);
 		rp->viewMatrix = viewMatrix;
 		rp->projectionMatrix = projectionMatrix;
 		rp->viewProjectionMatrix = viewMatrix * projectionMatrix;
@@ -3841,6 +3887,9 @@ namespace ds {
 
 	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state, RenderTarget* renderTargets, int numRenderTargets) {
 		RenderPass* rp = new RenderPass();
+		rp->viewPosition = vec3(0, 0, -6);
+		rp->lookAt = vec3(0, 0, 0);
+		rp->up = vec3(0, 1, 0);
 		rp->viewMatrix = viewMatrix;
 		rp->projectionMatrix = projectionMatrix;
 		rp->viewProjectionMatrix = viewMatrix * projectionMatrix;

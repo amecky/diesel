@@ -45,6 +45,12 @@ ParticleManager::ParticleManager(int maxParticles, RID textureID) {
 
 	_drawItem = ds::compile(drawCmd, basicGroup);
 
+	// create orthographic view
+	ds::matrix orthoView = ds::matIdentity();
+	ds::matrix orthoProjection = ds::matOrthoLH(ds::getScreenWidth(), ds::getScreenHeight(), 0.1f, 1.0f);
+	_orthoPass = ds::createRenderPass(orthoView, orthoProjection, ds::DepthBufferState::DISABLED);
+	//constantBuffer.wvp = ds::matTranspose(orthoView * orthoProjection);
+
 }
 
 void ParticleManager::add(Particlesystem* system) {
@@ -58,7 +64,7 @@ void ParticleManager::tick(float dt) {
 }
 
 void ParticleManager::render() {
-	ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
+	//ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
 	ds::matrix w = ds::matIdentity();
 	_constantBuffer.wvp = ds::matTranspose(_viewprojectionMatrix);
 	for (size_t p = 0; p < _systems.size(); ++p) {
@@ -69,9 +75,9 @@ void ParticleManager::render() {
 			_vertices[i] = ParticleVertex(array->positions[i], desc.particleDimension, ds::vec3(array->scales[i].x, array->scales[i].y, array->rotations[i]), array->colors[i]);
 		}
 		ds::mapBufferData(_vertexBuffer, _vertices, array->countAlive * sizeof(ParticleVertex));
-		ds::submit(_drawItem, array->countAlive);
+		ds::submit(_orthoPass, _drawItem, array->countAlive);
 	}
-	ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
+	//ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
 }
 
 // -------------------------------------------------------

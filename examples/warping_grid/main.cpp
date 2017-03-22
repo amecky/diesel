@@ -72,15 +72,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	GridVertex* vertices = new GridVertex[NUM];
 
-	ds::matrix viewMatrix = ds::matIdentity();
-	ds::matrix projectionMatrix = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
-	ds::matrix viewprojectionMatrix = viewMatrix * projectionMatrix;
-
-	ds::setViewMatrix(viewMatrix);
-	ds::setProjectionMatrix(projectionMatrix);
+	// create orthographic view
+	ds::matrix orthoView = ds::matIdentity();
+	ds::matrix orthoProjection = ds::matOrthoLH(ds::getScreenWidth(), ds::getScreenHeight(), 0.1f, 1.0f);
+	RID orthoPass = ds::createRenderPass(orthoView, orthoProjection, ds::DepthBufferState::DISABLED);
+	//constantBuffer.wvp = ds::matTranspose(orthoView * orthoProjection);
 
 	CubeConstantBuffer constantBuffer;
-	constantBuffer.viewprojectionMatrix = ds::matTranspose(viewprojectionMatrix);
+	constantBuffer.viewprojectionMatrix = ds::matTranspose(orthoView * orthoProjection);
 	constantBuffer.worldMatrix = ds::matTranspose(ds::matIdentity());
 
 	RID stateGroup = createStateGroup(NUM, &constantBuffer);
@@ -104,15 +103,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 		grid.tick(static_cast<float>(ds::getElapsedSeconds()));
 
-		ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
+		//ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
 
 		int num = grid.mapData(vertices, NUM);
 
 		ds::mapBufferData(vertexBufferID, vertices, num * sizeof(GridVertex));
 
-		ds::submit(item, num / 4 * 6);
+		ds::submit(orthoPass, item, num / 4 * 6);
 
-		ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
+		//ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
 
 		ds::end();
 	}

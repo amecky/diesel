@@ -148,6 +148,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.multisampling = 1;
 	ds::init(rs);
 
+	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 2.0f, -6.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
+	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
+	RID basicPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED);
+
 	RID textureID = loadImage("..\\common\\cube_map.png", ds::TextureFormat::R8G8B8A8_UNORM);
 	RID cubeTextureID = loadImage("Hex.png", ds::TextureFormat::R8G8B8A8_UNORM_SRGB);
 	RID cubeNormalID = loadImage("Hex_Normal.png", ds::TextureFormat::R8G8B8A8_UNORM_SRGB);
@@ -167,7 +171,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::vec3(4.0f, -1.0f,  4.5f),
 		ds::vec3(4.0f, -1.0f, -3.5f)
 	};
-	grid.create(gridPositions, 2, texturedVS, texturedPS, textureID);
+	grid.create(gridPositions, 2, texturedVS, texturedPS, textureID, basicPass);
 
 	ds::VertexDeclaration decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
@@ -181,12 +185,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID indexBuffer = ds::createQuadIndexBuffer(256);
 	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v);
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
-	ds::vec3 vp = ds::vec3(0.0f, 2.0f, -6.0f);
-	ds::setViewPosition(vp);
 
 	worldMatrix wm;
 
-	FPSCamera camera(1024, 768);
+	FPSCamera camera(basicPass);
 	camera.setPosition(ds::vec3(0, 2, -12));
 
 	RID stateGroup = ds::StateGroupBuilder()
@@ -222,7 +224,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		constantBuffer.eyePos = camera.getPosition();
 		constantBuffer.padding = 0.0f;
 		
-		ds::submit(drawItem);
+		ds::submit(basicPass, drawItem);
 
 		ds::end();
 	}

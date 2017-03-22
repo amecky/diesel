@@ -121,6 +121,10 @@ int main(const char** args) {
 	RID vertexShader = ds::loadVertexShader("AmbientLightning_vs.cso");
 	RID pixelShader = ds::loadPixelShader("AmbientLightning_ps.cso");
 
+	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 2.0f, -6.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
+	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
+	RID basicPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED);
+
 	ds::VertexDeclaration decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 },
@@ -135,8 +139,7 @@ int main(const char** args) {
 	RID floorBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 4, sizeof(Vertex), floorVertices);
 	RID bulbID = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), lv);
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
-	ds::vec3 vp = ds::vec3(0.0f, 2.0f, -6.0f);
-	ds::setViewPosition(vp);
+
 	ds::vec3 scale(1.0f, 1.0f, 1.0f);
 	ds::vec3 rotation(0.0f, 0.0f, 0.0f);
 	ds::vec3 pos(0.0f, 0.0f, 0.0f);
@@ -182,12 +185,12 @@ int main(const char** args) {
 
 		t += static_cast<float>(ds::getElapsedSeconds());
 
-		constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix());
+		constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix(basicPass));
 			
 		// floor
 		ds::matrix world = ds::matIdentity();
 		constantBuffer.worldMatrix = ds::matTranspose(world);
-		ds::submit(floorItem);
+		ds::submit(basicPass, floorItem);
 		
 		// draw the light as small cube
 		lightPos.x = cos(t);
@@ -197,7 +200,7 @@ int main(const char** args) {
 		ds::matrix bY = ds::matRotationY(t);
 		w = bY * ds::matTranslate(lp);		
 		constantBuffer.worldMatrix = ds::matTranspose(w);
-		ds::submit(bulbItem);
+		ds::submit(basicPass, bulbItem);
 		
 		// spinning cube
 		world = ds::matIdentity();
@@ -209,7 +212,7 @@ int main(const char** args) {
 		ds::matrix s = ds::matScale(scale);
 		ds::matrix w = rotZ * rotY * rotX * s * world;
 		constantBuffer.worldMatrix = ds::matTranspose(w);
-		ds::submit(cubeItem);
+		ds::submit(basicPass, cubeItem);
 
 		ds::end();
 	}

@@ -20,10 +20,11 @@ class Grid {
 public:
 	Grid() {}
 	~Grid() {}
-	void create(ds::vec3* positions, int numCells, RID vertexShader, RID pixelShader, RID textureID);
+	void create(ds::vec3* positions, int numCells, RID vertexShader, RID pixelShader, RID textureID, RID renderPass);
 	void render();
 private:
 	GridVertex _vertices[4];
 	GridConstantBuffer _constantBuffer;
 	RID _drawItem;
+	RID _renderPass;
 };

@@ -113,11 +113,12 @@ struct ParticleDescriptor {
 class Particlesystem {
 
 public:
-	Particlesystem(ParticlesystemDescriptor descriptor);
+	Particlesystem(ParticlesystemDescriptor descriptor, RID renderPass);
 	void add(const ds::vec3& pos, ParticleDescriptor descriptor);
 	void tick(float dt);
 	void render();
 private:
+	RID _renderPass;
 	ParticlesystemDescriptor _descriptor;
 	ParticleConstantBuffer _constantBuffer;
 	ParticleArray _array;

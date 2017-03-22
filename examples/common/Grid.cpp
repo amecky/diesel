@@ -2,7 +2,8 @@
 
 
 
-void Grid::create(ds::vec3* positions, int numCells, RID vertexShader, RID pixelShader, RID textureID) {
+void Grid::create(ds::vec3* positions, int numCells, RID vertexShader, RID pixelShader, RID textureID, RID renderPass) {
+	_renderPass = renderPass;
 	float uvMax = static_cast<float>(numCells);
 	ds::vec2 uvs[] = { ds::vec2(0.0f,uvMax),ds::vec2(0.0f,0.0f),ds::vec2(uvMax,0.0f),ds::vec2(uvMax,uvMax) };
 	for (int i = 0; i < 4; ++i) {
@@ -38,8 +39,8 @@ void Grid::create(ds::vec3* positions, int numCells, RID vertexShader, RID pixel
 }
 
 void Grid::render() {
-	_constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix());
+	_constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix(_renderPass));
 	ds::matrix world = ds::matIdentity();
 	_constantBuffer.worldMatrix = ds::matTranspose(world);
-	ds::submit(_drawItem);
+	ds::submit(_renderPass, _drawItem);
 }
