@@ -2,14 +2,20 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="..\common\imgui.cpp" />
+    <ClCompile Include="..\common\SpriteBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stb_image.h" />
+    <ClInclude Include="..\common\imgui.h" />
+    <ClInclude Include="..\common\SpriteBuffer.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Fullscreen_vs.hlsl" />
     <FxCompile Include="Fullscreen_ps.hlsl" />
     <FxCompile Include="BlurH_ps.hlsl" />
     <FxCompile Include="Blur_vs.hlsl" />
+    <FxCompile Include="Bloom_ps.hlsl" />
+    <FxCompile Include="Bloom_Combine_ps.hlsl" />
   </ItemGroup>
 </Project>

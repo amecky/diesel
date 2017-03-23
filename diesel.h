@@ -3817,7 +3817,7 @@ namespace ds {
 		int shaderType = type_mask(shader);
 		int stage = extractFromShader(shader);
 		RID r = buildRID(id_mask(rtID), RT_TEXTURE_FROM_RT, stage, slot);
-		basicBinding(r, ResourceType::RT_TEXTURE_FROM_RT, stage);
+		basicBinding(r, ResourceType::RT_TEXTURE_FROM_RT, stage, slot);
 		return *this;
 	}
 
