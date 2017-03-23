@@ -128,7 +128,7 @@ void Particlesystem::tick(float dt) {
 	for (int i = 0; i < _array.countAlive; ++i) {
 		// move
 		if (_array.frictions[i] > 0.0f) {
-			_array.velocities[i] *= (1.0f - _array.frictions[i] * dt);
+			_array.velocities[i] *= (1.0f - _array.frictions[i] / 100.0f);// *dt);
 		}
 		_array.positions[i] += _array.velocities[i] * dt;
 		// scale

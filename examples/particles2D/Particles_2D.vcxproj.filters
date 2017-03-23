@@ -3,10 +3,14 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Particlesystem.cpp" />
+    <ClCompile Include="..\common\imgui.cpp" />
+    <ClCompile Include="..\common\SpriteBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="Particlesystem.h" />
+    <ClInclude Include="..\common\imgui.h" />
+    <ClInclude Include="..\common\SpriteBuffer.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Particles_2D_gs.hlsl" />
