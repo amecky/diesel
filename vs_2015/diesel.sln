@@ -43,6 +43,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imgui", "..\examples\imgui\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "raymarching", "..\examples\raymarching\raymarching.vcxproj", "{CEEBBD64-0947-43CB-8F9C-3B767A97CED8}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Bloom", "..\examples\bloom\Bloom.vcxproj", "{86C43BED-2EA7-4E42-B057-FA8B021E8C92}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -211,6 +213,14 @@ Global
 		{CEEBBD64-0947-43CB-8F9C-3B767A97CED8}.Release|x64.Build.0 = Release|x64
 		{CEEBBD64-0947-43CB-8F9C-3B767A97CED8}.Release|x86.ActiveCfg = Release|Win32
 		{CEEBBD64-0947-43CB-8F9C-3B767A97CED8}.Release|x86.Build.0 = Release|Win32
+		{86C43BED-2EA7-4E42-B057-FA8B021E8C92}.Debug|x64.ActiveCfg = Debug|x64
+		{86C43BED-2EA7-4E42-B057-FA8B021E8C92}.Debug|x64.Build.0 = Debug|x64
+		{86C43BED-2EA7-4E42-B057-FA8B021E8C92}.Debug|x86.ActiveCfg = Debug|Win32
+		{86C43BED-2EA7-4E42-B057-FA8B021E8C92}.Debug|x86.Build.0 = Debug|Win32
+		{86C43BED-2EA7-4E42-B057-FA8B021E8C92}.Release|x64.ActiveCfg = Release|x64
+		{86C43BED-2EA7-4E42-B057-FA8B021E8C92}.Release|x64.Build.0 = Release|x64
+		{86C43BED-2EA7-4E42-B057-FA8B021E8C92}.Release|x86.ActiveCfg = Release|Win32
+		{86C43BED-2EA7-4E42-B057-FA8B021E8C92}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

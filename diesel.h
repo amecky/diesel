@@ -28,7 +28,7 @@
 // https://www.dropbox.com/sh/4uvmgy14je7eaxv/AABboa6UE5Pzfg3d9updwUexa?dl=0&preview=Designing+a+Modern+GPU+Interface.pdf
 
 
-#define DS_IMPLEMENTATION
+//#define DS_IMPLEMENTATION
 
 // ----------------------------------------------------
 // RID - resource identifier
@@ -1161,6 +1161,7 @@ namespace ds {
 		RT_RENDER_PASS,
 		RT_DRAW_ITEM,
 		RT_STATE_GROUP,
+		RT_TEXTURE_FROM_RT
 	};
 
 	const char* RESOURCE_NAMES[] {
@@ -1180,7 +1181,8 @@ namespace ds {
 		"RENDER_TARGET",
 		"RENDER_PASS",
 		"DRAW_ITEM",
-		"STATE_GROUP"
+		"STATE_GROUP",
+		"TEXTURE_FROM_RT"
 	};
 
 	// ------------------------------------------------------
@@ -1326,7 +1328,7 @@ namespace ds {
 			_index = 0;
 		}
 		bool isUsed(RID rid) {
-			uint16_t mask = (rid >> 16);
+			uint16_t mask = convert(rid);
 			for (int i = 0; i < _index; ++i) {
 				if ( mask == _entries[i]) {
 					return true;
@@ -1340,7 +1342,7 @@ namespace ds {
 				if ((_index + 1) > _capacity) {
 					alloc(_capacity * 2);
 				}
-				uint16_t mask = (rid >> 16);
+				uint16_t mask = convert(rid);
 				_entries[_index++] = mask;
 			}
 		}
@@ -1378,6 +1380,15 @@ namespace ds {
 			return num;
 		}
 	private:
+		uint16_t convert(RID rid) {
+			uint8_t type = type_mask(rid);
+			if (type == RT_TEXTURE_FROM_RT) {
+				type = RT_SRV;
+				rid = buildRID(0, type, stage_mask(rid), slot_mask(rid));
+			}
+			uint16_t mask = (rid >> 16);
+			return mask;
+		}
 		void alloc(uint16_t newCapacity) {
 			if (_entries == 0) {
 				_capacity = 16;
@@ -3224,6 +3235,11 @@ namespace ds {
 		uint16_t pidx = getResourceIndex(renderPass, RT_RENDER_PASS);
 		RenderPassResource* rpRes = (RenderPassResource*)_ctx->_resources[pidx];
 		RenderPass* pass = rpRes->get();
+		if (pass->numRenderTargets > 0) {
+			for (int i = 0; i < pass->numRenderTargets; ++i) {
+				setRenderTarget(pass->rts[i]);
+			}
+		}		
 		//_ctx->viewMatrix = pass->viewMatrix;
 		//_ctx->projectionMatrix = pass->projectionMatrix;
 		//_ctx->viewProjectionMatrix = pass->viewProjectionMatrix;
@@ -3247,6 +3263,10 @@ namespace ds {
 			case DT_VERTICES: _ctx->d3dContext->Draw(num, 0); break;
 			case DT_INDEXED: _ctx->d3dContext->DrawIndexed(num, 0, 0); break;
 			case DT_INSTANCED: _ctx->d3dContext->DrawInstanced(num, cmd.instances, 0, 0); break;
+		}
+		// FIXME: this is wrong since there might be several submit which would like to use the same rt
+		if (pass->numRenderTargets > 0) {
+			restoreBackBuffer();
 		}
 	}
 	
@@ -3519,7 +3539,7 @@ namespace ds {
 	}
 
 	void setTextureFromRenderTarget(RID rtID) {
-		uint16_t ridx = getResourceIndex(rtID, RT_RENDER_TARGET);
+		uint16_t ridx = getResourceIndex(rtID, RT_TEXTURE_FROM_RT);
 		RenderTargetResource* res = (RenderTargetResource*)_ctx->_resources[ridx];
 		int stage = stage_mask(rtID);
 		int slot = slot_mask(rtID);
@@ -3795,15 +3815,9 @@ namespace ds {
 
 	StateGroupBuilder& StateGroupBuilder::textureFromRenderTarget(RID rtID, RID shader, int slot) {
 		int shaderType = type_mask(shader);
-		int st = -1;
-		PipelineStage stage = PLS_UNKNOWN;
-		switch (shaderType) {
-			case RT_VERTEX_SHADER: st = 0; stage = PLS_VS_RES; break;
-			case RT_GEOMETRY_SHADER: st = 1; stage = PLS_GS_RES; break;
-			case RT_PIXEL_SHADER: st = 2; stage = PLS_PS_RES; break;
-		}
-		RID r = buildRID(id_mask(rtID), type_mask(rtID), stage, slot);
-		basicBinding(r, ResourceType::RT_RENDER_TARGET, stage);
+		int stage = extractFromShader(shader);
+		RID r = buildRID(id_mask(rtID), RT_TEXTURE_FROM_RT, stage, slot);
+		basicBinding(r, ResourceType::RT_TEXTURE_FROM_RT, stage);
 		return *this;
 	}
 
@@ -3892,7 +3906,7 @@ namespace ds {
 				else if (type == ResourceType::RT_SRV) {
 					setTexture(current);
 				}
-				else if (type == ResourceType::RT_RENDER_TARGET) {
+				else if (type == ResourceType::RT_TEXTURE_FROM_RT) {
 					setTextureFromRenderTarget(current);
 				}
 				else if (type == ResourceType::RT_CONSTANT_BUFFER) {
@@ -3920,7 +3934,7 @@ namespace ds {
 		return addResource(res, RT_RENDER_PASS);
 	}
 
-	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state, RenderTarget* renderTargets, int numRenderTargets) {
+	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state, RID* renderTargets, int numRenderTargets) {
 		RenderPass* rp = new RenderPass();
 		rp->viewPosition = vec3(0, 0, -6);
 		rp->lookAt = vec3(0, 0, 0);
@@ -3928,7 +3942,10 @@ namespace ds {
 		rp->viewMatrix = viewMatrix;
 		rp->projectionMatrix = projectionMatrix;
 		rp->viewProjectionMatrix = viewMatrix * projectionMatrix;
-		rp->numRenderTargets = 0;
+		rp->numRenderTargets = numRenderTargets;
+		for (int i = 0; i < numRenderTargets; ++i) {
+			rp->rts[i] = renderTargets[i];
+		}
 		rp->depthState = state;
 		RenderPassResource* res = new RenderPassResource(rp);
 		return addResource(res, RT_RENDER_PASS);

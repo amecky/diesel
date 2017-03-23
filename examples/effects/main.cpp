@@ -41,11 +41,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.useGPUProfiling = false;
 	ds::init(rs);
 
-	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 2.0f, -8.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
+	RID rtID = ds::createRenderTarget(1024, 768, ds::Color(0.0f, 0.0f, 0.0f, 1.0f));
+	RID rts[] = { rtID };
+
+	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 0.0f, -1.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
 	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
-	RID basicPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED);
+	RID rtPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED, rts, 1);
 
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
+
+	RID ppPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::DISABLED);
 
 	int x, y, n;
 	unsigned char *data = stbi_load("..\\common\\cube_map.png", &x, &y, &n, 4);
@@ -62,9 +67,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	};
 
 	CubeConstantBuffer constantBuffer;
-	ds::vec3 vp = ds::vec3(0.0f, 0.0f, -1.0f);
-	ds::setViewPosition(vp);
-	constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix());
+	
+	constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix(rtPass));
 	constantBuffer.worldMatrix = ds::matTranspose(ds::matIdentity());
 
 	RID rid = ds::createVertexDeclaration(decl, 2, objVertexShader);
@@ -82,7 +86,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	
 	float t = 0.0f;
 
-	RID rtID = ds::createRenderTarget(1024, 768, ds::Color(0.0f,0.0f,0.0f,1.0f));
+	
 		
 	RID rasterizerStateID = ds::createRasterizerState(ds::CullMode::BACK, ds::FillMode::SOLID, true, false, 0.0f, 0.0f);
 
@@ -125,13 +129,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	while (ds::isRunning()) {
 		ds::begin();
 		t += static_cast<float>(ds::getElapsedSeconds());
-		ds::setRenderTarget(rtID);		
-		ds::submit(basicPass, staticItem);
-		ds::restoreBackBuffer();
-		ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
+		//ds::setRenderTarget(rtID);		
+		ds::submit(rtPass, staticItem);
+		//ds::restoreBackBuffer();
+		//ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
 		ppBuffer.data = ds::vec4(abs(sin(t*0.5f)), 0.0f, 0.0f, 0.0f);
-		ds::submit(basicPass, ppItem);		
-		ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
+		ds::submit(ppPass, ppItem);		
+		//ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
 		ds::end();
 	}
 	ds::shutdown();
