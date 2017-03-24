@@ -4,67 +4,75 @@
    1  | SAMPLER_STATE
    2  | RASTERIZER_STATE
    3  | STATE_GROUP
-   4  | BLENDSTATE
-   5  | SRV
-   6  | VERTEX_SHADER
-   7  | PIXEL_SHADER
-   8  | VERTEX_DECLARATION
-   9  | CONSTANT_BUFFER
-  10  | INDEX_BUFFER
-  11  | VERTEX_BUFFER
-  12  | VERTEX_BUFFER
-  13  | SAMPLER_STATE
-  14  | VERTEX_SHADER
-  15  | PIXEL_SHADER
-  16  | CONSTANT_BUFFER
-  17  | RENDER_TARGET
-  18  | RASTERIZER_STATE
-  19  | STATE_GROUP
-  20  | DRAW_ITEM
+   4  | RENDER_TARGET
+   5  | RENDER_PASS
+   6  | BLENDSTATE
+   7  | RENDER_PASS
+   8  | SRV
+   9  | VERTEX_SHADER
+  10  | PIXEL_SHADER
+  11  | VERTEX_DECLARATION
+  12  | CONSTANT_BUFFER
+  13  | INDEX_BUFFER
+  14  | VERTEX_BUFFER
+  15  | VERTEX_BUFFER
+  16  | SAMPLER_STATE
+  17  | VERTEX_SHADER
+  18  | PIXEL_SHADER
+  19  | CONSTANT_BUFFER
+  20  | RASTERIZER_STATE
   21  | STATE_GROUP
   22  | DRAW_ITEM
+  23  | STATE_GROUP
+  24  | DRAW_ITEM
 
-DrawItem 20 - groups: 2
-Group: 19
+DrawItem 22 - groups: 2
+Group: 21
 resource type        | id    | stage    | slot
 ----------------------------------------------
-VERTEX_DECLARATION   |     8 | IA       |  0
-INDEX_BUFFER         |    10 | IA       |  0
-VERTEX_BUFFER        |    12 | IA       |  0
-CONSTANT_BUFFER      |     9 | VS_RES   |  0
-VERTEX_SHADER        |     6 | PS       |  0
-PIXEL_SHADER         |     7 | PS       |  0
-SAMPLER_STATE        |    13 | PS_RES   |  0
-SRV                  |     5 | PS_RES   |  0
+VERTEX_DECLARATION   |    11 | IA       |  0
+INDEX_BUFFER         |    13 | IA       |  0
+VERTEX_BUFFER        |    15 | IA       |  0
+CONSTANT_BUFFER      |    12 | VS_RES   |  0
+VERTEX_SHADER        |     9 | PS       |  0
+PIXEL_SHADER         |    10 | PS       |  0
+SAMPLER_STATE        |    16 | PS_RES   |  0
+SRV                  |     8 | PS_RES   |  0
 Group: 3
 resource type        | id    | stage    | slot
 ----------------------------------------------
 INDEX_BUFFER         | 65534 | IA       |  0
 VERTEX_BUFFER        | 65534 | IA       |  0
+SRV                  | 65534 | VS_RES   |  0
 GEOMETRY_SHADER      | 65534 | GS       |  0
+SRV                  | 65534 | GS_RES   |  0
 RASTERIZER_STATE     |     2 | RS       |  0
 VERTEX_SHADER        | 65534 | PS       |  0
 PIXEL_SHADER         | 65534 | PS       |  0
+SRV                  | 65534 | PS_RES   |  0
 BLENDSTATE           |     0 | OM       |  0
-DrawItem 22 - groups: 2
-Group: 21
+DrawItem 24 - groups: 2
+Group: 23
 resource type        | id    | stage    | slot
 ----------------------------------------------
 VERTEX_DECLARATION   | 65534 | IA       |  0
 INDEX_BUFFER         | 65534 | IA       |  0
 VERTEX_BUFFER        | 65534 | IA       |  0
-VERTEX_SHADER        |    14 | PS       |  0
-PIXEL_SHADER         |    15 | PS       |  0
-CONSTANT_BUFFER      |    16 | PS_RES   |  0
-SAMPLER_STATE        |    13 | PS_RES   |  0
-RENDER_TARGET        |    17 | PS_RES   |  0
+VERTEX_SHADER        |    17 | PS       |  0
+PIXEL_SHADER         |    18 | PS       |  0
+CONSTANT_BUFFER      |    19 | PS_RES   |  0
+SAMPLER_STATE        |    16 | PS_RES   |  0
+TEXTURE_FROM_RT      |     4 | PS_RES   |  0
 Group: 3
 resource type        | id    | stage    | slot
 ----------------------------------------------
 INDEX_BUFFER         | 65534 | IA       |  0
 VERTEX_BUFFER        | 65534 | IA       |  0
+SRV                  | 65534 | VS_RES   |  0
 GEOMETRY_SHADER      | 65534 | GS       |  0
+SRV                  | 65534 | GS_RES   |  0
 RASTERIZER_STATE     |     2 | RS       |  0
 VERTEX_SHADER        | 65534 | PS       |  0
 PIXEL_SHADER         | 65534 | PS       |  0
+SRV                  | 65534 | PS_RES   |  0
 BLENDSTATE           |     0 | OM       |  0

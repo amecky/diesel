@@ -62,8 +62,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::matrix projectionMatrix = ds::matOrthoLH(800.0f, 600.0f, 0.1f, 1.0f);
 	ds::matrix viewProjectionMatrix = viewMatrix * projectionMatrix;
 
-	ds::setViewMatrix(viewMatrix);
-	ds::setProjectionMatrix(projectionMatrix);
+	RID basicPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::DISABLED);
 
 	constantBuffer.viewprojectionMatrix = ds::matTranspose(viewProjectionMatrix);
 	ds::matrix world = ds::matIdentity();
@@ -97,11 +96,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	
 	while (ds::isRunning()) {
 		ds::begin();
-		ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
 		t += static_cast<float>(ds::getElapsedSeconds());
 		ppBuffer.data = ds::vec4(t, 0.0f, 0.0f, 0.0f);		
-		ds::submit(ppItem);		
-		ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
+		ds::submit(basicPass, ppItem);		
 		ds::end();
 	}
 	ds::shutdown();

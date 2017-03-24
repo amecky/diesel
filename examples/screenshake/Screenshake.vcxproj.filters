@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="ScreenShakeComponent.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ScreenShakeComponent.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Screenshake_vs.hlsl" />
+    <FxCompile Include="Screenshake_ps.hlsl" />
+  </ItemGroup>
+</Project>

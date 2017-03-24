@@ -815,6 +815,7 @@ namespace ds {
 		}
 		StateGroupBuilder& inputLayout(RID rid);
 		StateGroupBuilder& constantBuffer(RID rid, RID shader, int slot = 0);
+		StateGroupBuilder& basicConstantBuffer(RID shader, int slot = 0);
 		StateGroupBuilder& blendState(RID rid);
 		StateGroupBuilder& samplerState(RID rid, RID shader);
 		StateGroupBuilder& vertexBuffer(RID rid);
@@ -1863,6 +1864,17 @@ namespace ds {
 
 	class GPUProfiler;
 
+	// ---------------------------------------------------------------
+	// the cube constant buffer
+	// ---------------------------------------------------------------
+	struct BasicConstantBuffer {
+		matrix viewMatrix;
+		matrix projectionMatrix;
+		matrix worldMatrix;
+		matrix viewProjectionMatrix;		
+	};
+
+
 	// ******************************************************
 	//
 	// Internal context
@@ -1891,6 +1903,8 @@ namespace ds {
 		ID3D11DepthStencilState* depthDisabledStencilState;
 		ID3D11DepthStencilState* depthEnabledStencilState;
 
+		BasicConstantBuffer basicConstantBuffer;
+		RID basicConstantBufferID;
 		//matrix viewMatrix;
 		//matrix projectionMatrix;
 		//matrix viewProjectionMatrix;
@@ -2327,6 +2341,7 @@ namespace ds {
 		_ctx->currentDrawCall = 0;
 		_ctx->lastDrawCall = -1;
 
+		_ctx->basicConstantBufferID = createConstantBuffer(sizeof(BasicConstantBuffer), &_ctx->basicConstantBuffer);
 		_ctx->defaultStateGroup = StateGroupBuilder()
 			.blendState(bs_id)
 			//.samplerState(ssid, ds::ShaderType::PIXEL)
@@ -3240,12 +3255,11 @@ namespace ds {
 				setRenderTarget(pass->rts[i]);
 			}
 		}		
-		//_ctx->viewMatrix = pass->viewMatrix;
-		//_ctx->projectionMatrix = pass->projectionMatrix;
-		//_ctx->viewProjectionMatrix = pass->viewProjectionMatrix;
+		_ctx->basicConstantBuffer.viewMatrix = pass->viewMatrix;
+		_ctx->basicConstantBuffer.projectionMatrix = pass->projectionMatrix;
+		_ctx->basicConstantBuffer.viewProjectionMatrix = pass->viewProjectionMatrix;
+		// FIXME: how to handle world matrix???
 		setDepthBufferState(pass->depthState);
-		// FIXME: set render targets
-
 		uint16_t ridx = getResourceIndex(drawItemID, RT_DRAW_ITEM);
 		DrawItemResource* res = (DrawItemResource*)_ctx->_resources[ridx];
 		const DrawItem* item = res->get();
@@ -3763,6 +3777,12 @@ namespace ds {
 	StateGroupBuilder& StateGroupBuilder::constantBuffer(RID rid, RID shader, int slot) {
 		int stage = extractFromShader(shader);
 		basicBinding(rid, ResourceType::RT_CONSTANT_BUFFER, stage, slot);
+		return *this;
+	}
+
+	StateGroupBuilder& StateGroupBuilder::basicConstantBuffer(RID shader, int slot) {
+		int stage = extractFromShader(shader);
+		basicBinding(_ctx->basicConstantBufferID, ResourceType::RT_CONSTANT_BUFFER, stage, slot);
 		return *this;
 	}
 
