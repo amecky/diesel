@@ -2342,6 +2342,8 @@ namespace ds {
 		_ctx->lastDrawCall = -1;
 
 		_ctx->basicConstantBufferID = createConstantBuffer(sizeof(BasicConstantBuffer), &_ctx->basicConstantBuffer);
+		matrix world = matIdentity();
+		_ctx->basicConstantBuffer.worldMatrix = matTranspose(world);
 		_ctx->defaultStateGroup = StateGroupBuilder()
 			.blendState(bs_id)
 			//.samplerState(ssid, ds::ShaderType::PIXEL)
@@ -3255,9 +3257,9 @@ namespace ds {
 				setRenderTarget(pass->rts[i]);
 			}
 		}		
-		_ctx->basicConstantBuffer.viewMatrix = pass->viewMatrix;
-		_ctx->basicConstantBuffer.projectionMatrix = pass->projectionMatrix;
-		_ctx->basicConstantBuffer.viewProjectionMatrix = pass->viewProjectionMatrix;
+		_ctx->basicConstantBuffer.viewMatrix = matTranspose(pass->viewMatrix);
+		_ctx->basicConstantBuffer.projectionMatrix = matTranspose(pass->projectionMatrix);
+		_ctx->basicConstantBuffer.viewProjectionMatrix = matTranspose(pass->viewProjectionMatrix);
 		// FIXME: how to handle world matrix???
 		setDepthBufferState(pass->depthState);
 		uint16_t ridx = getResourceIndex(drawItemID, RT_DRAW_ITEM);
