@@ -29,3 +29,6 @@ examples/raymarching/Debug/
 examples/bloom/Debug/
 examples/screenshake/Debug/PostProcess.tlog/link.7612.delete.1.tlog
 examples/screenshake/Debug/
+examples/triangle/Debug/
+examples/apath/Debug/
+examples/binary_clock/Debug/
