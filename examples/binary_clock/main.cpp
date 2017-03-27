@@ -92,7 +92,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		convert(columns, 4, lt.wSecond);
 
 		spriteBuffer.begin();
-		int xp = 200;
+		int xp = 185;
 		for (int j = 0; j < 6; ++j) {
 			const TimeCol& col = columns[j];
 			xp += 50;
@@ -101,10 +101,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			}
 			for (int i = 0; i < col.num; ++i) {
 				if (col.state[i] == 0) {
-					spriteBuffer.add(ds::vec2(xp, 200 + i * 50), ds::vec4(0, 0, 46, 46));
+					spriteBuffer.add(ds::vec2(xp, 220 + i * 50), ds::vec4(0, 0, 48, 48));
 				}
 				else {
-					spriteBuffer.add(ds::vec2(xp, 200 + i * 50), ds::vec4(46, 0, 46, 46));
+					spriteBuffer.add(ds::vec2(xp, 220 + i * 50), ds::vec4(48, 0, 48, 48));
 				}
 			}
 		}
