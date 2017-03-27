@@ -4,6 +4,10 @@ Single Header DirectX11 renderer
 
 ## Basic concepts
 
+## Getting Started
+
+Please read the [Getting started](GettingStarted.md) for the "Hello world" of diesel.
+
 ## Creating resources
 
 The following will list resource creation methods.
