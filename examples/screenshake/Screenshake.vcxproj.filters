@@ -10,5 +10,7 @@
   <ItemGroup>
     <FxCompile Include="Screenshake_vs.hlsl" />
     <FxCompile Include="Screenshake_ps.hlsl" />
+    <FxCompile Include="Fullscreen_ps.hlsl" />
+    <FxCompile Include="Fullscreen_vs.hlsl" />
   </ItemGroup>
 </Project>

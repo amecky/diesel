@@ -2,36 +2,21 @@
 #include "..\..\diesel.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "..\common\stb_image.h"
+#include "ScreenShakeComponent.h"
+
 // ---------------------------------------------------------------
-// Vertex
+// load image using stb_image
 // ---------------------------------------------------------------
-struct Vertex {
-
-	ds::vec3 p;
-	ds::vec2 uv;
-
-	Vertex() : p(0.0f), uv(0.0f) {}
-	Vertex(const ds::vec3& pv, float u, float v) : p(pv), uv(u, v) {}
-};
-
-struct CubeConstantBuffer {
-	ds::matrix viewprojectionMatrix;
-	ds::matrix worldMatrix;
-};
-
-struct PostProcessBuffer {
-	ds::vec4 data;
-};
+RID loadImage(const char* name) {
+	int x, y, n;
+	unsigned char *data = stbi_load(name, &x, &y, &n, 4);
+	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
+	stbi_image_free(data);
+	return textureID;
+}
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
-	
-	Vertex vertices[4] = {
-		Vertex(ds::vec3(-0.2f,-0.2f,0.0f),1.0f,0.0f),
-		Vertex(ds::vec3(-0.2f,0.2f,0.0f),0.0f,0.0f),
-		Vertex(ds::vec3(0.2f,0.2f,0.0f),0.0f,1.0f),
-		Vertex(ds::vec3(0.2f,-0.2f,0.0f),1.0f,1.0f),
-	};
-
+	// prepare application
 	ds::RenderSettings rs;
 	rs.width = 1024;
 	rs.height = 768;
@@ -40,102 +25,83 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.multisampling = 4;
 	rs.useGPUProfiling = false;
 	ds::init(rs);
+	//
+	// create three render targets to switch between
+	//
+	RID rt1 = ds::createRenderTarget(1024, 768, ds::Color(0, 0, 0, 0));
+	//
+	// otho pass simply draws a full screen quad using the loaded image and writes to RT1
+	//
+	RID targets[] = { rt1 };
+	ds::matrix orthoView = ds::matIdentity();
+	ds::matrix orthoProjection = ds::matOrthoLH(ds::getScreenWidth(), ds::getScreenHeight(), 0.1f, 1.0f);
+	RID orthoPass = ds::createRenderPass(orthoView, orthoProjection, ds::DepthBufferState::DISABLED, targets, 1);
+	RID ppPass = ds::createRenderPass(orthoView, orthoProjection, ds::DepthBufferState::DISABLED);
 
-	RID rtID = ds::createRenderTarget(1024, 768, ds::Color(0.0f, 0.0f, 0.0f, 1.0f));
-	RID rts[] = { rtID };
+	// render pass using RT1
+	//RID rt1s[] = { rt1 };
+	//RID rt1Pass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::DISABLED, rt1s, 1);
 
-	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 0.0f, -1.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
-	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
-	RID rtPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED, rts, 1);
-
-	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
-
-	RID ppPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::DISABLED);
-
-	int x, y, n;
-	unsigned char *data = stbi_load("..\\common\\cube_map.png", &x, &y, &n, 4);
-	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
-	stbi_image_free(data);
-
-	RID objVertexShader = ds::loadVertexShader("..\\..\\examples\\obj\\Obj_vs.cso");
-	RID objPixelShader = ds::loadPixelShader("..\\..\\examples\\obj\\Obj_ps.cso");
-
-
-	ds::VertexDeclaration decl[] = {
-		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
-		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }
-	};
-
-	CubeConstantBuffer constantBuffer;
-	
-	constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix(rtPass));
-	constantBuffer.worldMatrix = ds::matTranspose(ds::matIdentity());
-
-	RID rid = ds::createVertexDeclaration(decl, 2, objVertexShader);
-	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
-	RID indexBufferID = ds::createQuadIndexBuffer(6);
-	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, 4, sizeof(Vertex), vertices);
-	RID floorBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 4, sizeof(Vertex), vertices);
-	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
+	RID bgTextureID = loadImage("martian_oasis_by_smnbrnr.png");
 
 	RID fsVertexShader = ds::loadVertexShader("Fullscreen_vs.cso");
 	RID fsPixelShader = ds::loadPixelShader("Fullscreen_ps.cso");
 
-	PostProcessBuffer ppBuffer;
-	RID ppCBID = ds::createConstantBuffer(sizeof(PostProcessBuffer), &ppBuffer);
-	
-	float t = 0.0f;
-
-	
-		
-	RID rasterizerStateID = ds::createRasterizerState(ds::CullMode::BACK, ds::FillMode::SOLID, true, false, 0.0f, 0.0f);
-
-	
-
-	RID staticGroup = ds::StateGroupBuilder()
-		.inputLayout(rid)
-		.indexBuffer(indexBufferID)
-		.constantBuffer(cbid, objVertexShader, 0)
-		.vertexShader(objVertexShader)
-		.pixelShader(objPixelShader)
-		.vertexBuffer(floorBuffer)
-		.samplerState(ssid,objPixelShader)
-		.texture(textureID, objPixelShader, 0)
-		.build();
-
-	ds::DrawCommand staticCmd = { 6, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
-	RID staticItem = ds::compile(staticCmd, staticGroup);
-
-	ppBuffer.data = ds::vec4(abs(sin(t*0.5f)), 0.0f, 0.0f, 0.0f);
-
-	RID ppGroup = ds::StateGroupBuilder()
+	//
+	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
+	//
+	// the full screen draw command
+	//
+	ds::DrawCommand fsCmd = { 3, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::TRIANGLE_LIST };
+	// 
+	// Basic full screen state group
+	//
+	RID basicFSGroup = ds::StateGroupBuilder()
 		.inputLayout(NO_RID)
 		.indexBuffer(NO_RID)
 		.vertexBuffer(NO_RID)
-		.textureFromRenderTarget(rtID, fsPixelShader, 0)
+		.geometryShader(NO_RID)
+		.build();
+
+	// 
+	// the state group to draw the background image
+	//
+	RID backGroup = ds::StateGroupBuilder()
+		.texture(bgTextureID, fsPixelShader, 0)
 		.vertexShader(fsVertexShader)
 		.pixelShader(fsPixelShader)
-		.samplerState(ssid,fsPixelShader)
-		.constantBuffer(ppCBID, fsPixelShader, 0)
+		.samplerState(ssid, fsPixelShader)
 		.build();
-	
-	
 
-	ds::DrawCommand ppCmd = { 3, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::TRIANGLE_LIST };
-	RID ppItem = ds::compile(ppCmd, ppGroup);
-	
-	ds::printResources();
+	RID backGroups[] = { backGroup, basicFSGroup };
+	RID backItem = ds::compile(fsCmd, backGroups, 2);
+
+	ScreenShakeSettings settings;
+	settings.amplitude = 16.0f;
+	settings.frequency = 5.0f;
+	settings.ttl = 1.0f;
+	settings.renderTarget = rt1;
+	settings.finalPass = NO_RID;
+
+	ScreenShakeComponent screenShake(&settings);
 
 	while (ds::isRunning()) {
+
 		ds::begin();
-		t += static_cast<float>(ds::getElapsedSeconds());
-		//ds::setRenderTarget(rtID);		
-		ds::submit(rtPass, staticItem);
-		//ds::restoreBackBuffer();
-		//ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
-		ppBuffer.data = ds::vec4(abs(sin(t*0.5f)), 0.0f, 0.0f, 0.0f);
-		ds::submit(ppPass, ppItem);		
-		//ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
+
+		if (ds::isKeyPressed('A')) {
+			screenShake.activate();
+		}
+
+		if (screenShake.isActive()) {
+			float elapsed = static_cast<float>(ds::getElapsedSeconds());
+			screenShake.tick(elapsed);
+			ds::submit(orthoPass, backItem);
+			screenShake.render();
+		}
+		else {
+			ds::submit(ppPass, backItem);
+		}
 		ds::end();
 	}
 	ds::shutdown();
