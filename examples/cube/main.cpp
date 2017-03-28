@@ -1,5 +1,7 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
+#define DBG_TXT_IMPLEMENTATION
+#include "..\..\components\DebugText.h"
 /*
 	This demo draws a moving coloured cube.
 */
@@ -85,6 +87,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.multisampling = 4;
 	rs.useGPUProfiling = false;
 	ds::init(rs);
+	//
+	// init debug text
+	//
+	ds::dbg::init();
 
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 
@@ -136,7 +142,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 		ds::submit(basicPass, drawItem);
 
+		ds::dbg::begin();		
+		ds::dbg::format(0, 0, "FPS: %d", ds::getFramesPerSecond());
+		ds::dbg::add(0, 1, "Simple spinning cube demo");
+		ds::dbg::flush();
+
 		ds::end();
 	}
+	ds::dbg::shutdown();
 	ds::shutdown();
 }

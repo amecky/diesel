@@ -161,8 +161,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::matrix projectionMatrix = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
 	ds::matrix viewProjectionMatrix = viewMatrix * projectionMatrix;
 
-	ds::setViewMatrix(viewMatrix);
-	ds::setProjectionMatrix(projectionMatrix);
+//	ds::setViewMatrix(viewMatrix);
+	//ds::setProjectionMatrix(projectionMatrix);
 	constantBuffer.wvp = ds::matTranspose(viewProjectionMatrix);
 
 	RID rippleStateGroup = ds::StateGroupBuilder()
@@ -232,7 +232,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 		ds::restoreBackBuffer();
 
-		ds::submit(bgItem);
+		ds::submit(bgItem,0);
 		
 		ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
 
