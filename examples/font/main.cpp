@@ -1,6 +1,5 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
-#include "HieroFont.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "..\common\stb_image.h"
 
@@ -38,15 +37,15 @@ void addText(const ds::vec2& pos, const char* text) {
 	for (int i = 0; i < strlen(text); ++i) {
 		int c = current[i] - 32;
 		int t = c / 16;
-		int y = t * 32;
-		int x = (c - t * 16) * 32;
+		int y = t * 20;
+		int x = (c - t * 16) * 16;
 		float dimX = 32;
 		float dimY = 32;
 		float th = 32;
 		if ((numVertices + 1) < 1024) {
-			vertices[numVertices++] = { ds::vec3(xpos,ypos,0.0f),ds::vec4(x, y, 32.0f, 32.0f),ds::vec3(1.0f,1.0f,0.0f),ds::Color(255,255,255,255) };
+			vertices[numVertices++] = { ds::vec3(xpos,ypos,0.0f),ds::vec4(x, y, 14.0f, 20.0f),ds::vec3(1.0f,1.0f,0.0f),ds::Color(255,255,255,255) };
 		}
-		xpos += 24;
+		xpos += 12;
 	}
 }
 // ---------------------------------------------------------------
@@ -61,7 +60,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	addText(ds::vec2(50.0f, 300.0f), "The magic number 42 is less than 123099");
 
 	SpriteConstantBuffer constantBuffer;
-	constantBuffer.screenDimension = ds::vec4(1024.0f, 768.0f, 512.0f, 512.0f);
+	constantBuffer.screenDimension = ds::vec4(1024.0f, 768.0f, 256.0f, 256.0f);
 	constantBuffer.screenCenter = ds::vec4(512.0f, 384.0f, 0.0f, 0.0f);
 	float t = 0.0f;
 
@@ -76,7 +75,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	// load image using stb_image
 	int x, y, n;
-	unsigned char *data = stbi_load("rockwell_extra_bold.png", &x, &y, &n, 4);
+	unsigned char *data = stbi_load("nk_57_monospace.png", &x, &y, &n, 4);
 	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
 	stbi_image_free(data);
 
@@ -109,7 +108,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID stateGroup = ds::StateGroupBuilder()
 		.inputLayout(vertexDeclId)
-		.constantBuffer(cbid, vertexShader, 0)
 		.constantBuffer(cbid, geoShader, 0)
 		.blendState(bs_id)
 		.samplerState(ssid, pixelShader)

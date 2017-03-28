@@ -1,8 +1,3 @@
-cbuffer cbChangesPerObject : register( b0 ) {
-    matrix mvp;
-    matrix world;    
-};
-
 struct VS_Input {
 	float3 pos  : POSITION;
 	float4 tex : COLOR0;

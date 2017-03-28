@@ -127,11 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="HieroFont.cpp" />
     <ClCompile Include="main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="HieroFont.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Font_gs.hlsl">
