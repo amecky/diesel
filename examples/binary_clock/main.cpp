@@ -70,7 +70,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		col.state[3] = 2;
 	}
 
-	SYSTEMTIME st, lt;
+	SYSTEMTIME lt;
 
 	GetLocalTime(&lt);
 	convert(columns, 0, lt.wHour);

@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{08FD4D93-9E9E-4E36-AE10-4BD54E33C558}</ProjectGuid>
+    <ProjectGuid>{1704B168-0C4C-46CB-B59D-B853FF063ADE}</ProjectGuid>
     <RootNamespace>Cube</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
