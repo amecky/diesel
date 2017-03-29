@@ -42,7 +42,7 @@ SpriteBuffer::SpriteBuffer(int maxSprites, RID textureID) : _max(maxSprites) {
 	_constantBuffer.screenDimension = ds::vec4(ds::getScreenWidth(), ds::getScreenHeight(), textureSize.x, textureSize.y);
 
 	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::POINT_LIST, 0 };
-	_item = ds::compile(drawCmd, spriteStateGroup);
+	_item = ds::compile(drawCmd, spriteStateGroup, "SpriteBuffer");
 
 	ds::matrix orthoView = ds::matIdentity();
 	ds::matrix orthoProjection = ds::matOrthoLH(ds::getScreenWidth(), ds::getScreenHeight(), 0.1f, 1.0f);

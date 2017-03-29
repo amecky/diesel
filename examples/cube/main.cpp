@@ -1,7 +1,5 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
-#define DBG_TXT_IMPLEMENTATION
-#include "..\..\components\DebugText.h"
 /*
 	This demo draws a moving coloured cube.
 */
@@ -64,8 +62,8 @@ struct CubeConstantBuffer {
 // ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
-
+//int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
+int main(int argc, char *argv[]) {
 	uint32_t p_indices[36];
 	Vertex v[24];
 	addPlane(0, ds::Color(1.0f, 0.0f, 0.0f, 1.0f), v, p_indices);
@@ -82,15 +80,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::RenderSettings rs;
 	rs.width = 1024;
 	rs.height = 768;
-	rs.title = "Hello world";
+	rs.title = "Spinning cube";
 	rs.clearColor = ds::Color(0.2f, 0.2f, 0.2f, 1.0f);
 	rs.multisampling = 4;
 	rs.useGPUProfiling = false;
+	rs.supportDebug = true;
 	ds::init(rs);
-	//
-	// init debug text
-	//
-	ds::dbg::init();
 
 	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
 
@@ -142,13 +137,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 		ds::submit(basicPass, drawItem);
 
-		ds::dbg::begin();		
-		ds::dbg::format(0, 0, "FPS: %d", ds::getFramesPerSecond());
-		ds::dbg::add(0, 1, "Simple spinning cube demo");
-		ds::dbg::flush();
+		ds::dbgPrint(0, 0, "FPS: %d", ds::getFramesPerSecond());
+		ds::dbgPrint(0, 1, "Simple spinning cube demo");
 
 		ds::end();
 	}
-	ds::dbg::shutdown();
 	ds::shutdown();
 }

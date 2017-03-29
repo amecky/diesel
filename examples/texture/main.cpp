@@ -81,7 +81,7 @@ int main(int argc, char *argv[]) {
 
 	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 2.0f, -8.0f), ds::vec3(0,0,0), ds::vec3(0,1,0));
 	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
-	RID basicPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED);
+	RID basicPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED, "BasicPass");
 
 	RID textureID = loadImage("..\\common\\cube_map.png");
 	RID cubeTextureID = loadImage("..\\common\\grid.png");
@@ -105,11 +105,13 @@ int main(int argc, char *argv[]) {
 		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }
 	};
 
-	RID rid = ds::createVertexDeclaration(decl, 2, vertexShader);
-	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
-	RID indexBuffer = ds::createQuadIndexBuffer(256);
-	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v);
-	RID staticCubes = ds::createVertexBuffer(ds::BufferType::STATIC, totalCubeVertices, sizeof(Vertex), sv);
+	RID rid = ds::createVertexDeclaration(decl, 2, vertexShader, "PosTex_Layout");
+	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer, "CubeConstantBuffer");
+	RID indexBuffer = ds::createQuadIndexBuffer(256, "IndexBuffer");
+	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v, "CubeBuffer");
+	RID staticCubes = ds::createVertexBuffer(ds::BufferType::STATIC, totalCubeVertices, sizeof(Vertex), sv, "StaticCubes");
+
+	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR, "CLAMP_LINEAR_SAMPLER");
 
 	worldMatrix wm;
 
@@ -119,25 +121,26 @@ int main(int argc, char *argv[]) {
 		.texture(textureID, pixelShader, 0)
 		.vertexShader(vertexShader)
 		.pixelShader(pixelShader)
+		.samplerState(ssid,pixelShader)
 		.indexBuffer(indexBuffer)
-		.build();
+		.build("BasicGroup");
 
 	RID staticGroup = ds::StateGroupBuilder()
 		.vertexBuffer(staticCubes)
-		.build();
+		.build("StaticCubeGroup");
 
 	RID cubeGroup = ds::StateGroupBuilder()
 		.vertexBuffer(cubeBuffer)
-		.build();
+		.build("CubeGroup");
 
 	ds::DrawCommand staticCmd = { totalCubeVertices / 4 * 6, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
 	ds::DrawCommand drawCmd = { 36, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
 
 	RID staticStack[] = { basicGroup, staticGroup };
-	RID staticItem = ds::compile(staticCmd, staticStack, 2);
+	RID staticItem = ds::compile(staticCmd, staticStack, 2, "StaticItem");
 
 	RID cubeStack[] = { basicGroup, cubeGroup };
-	RID cubeItem = ds::compile(drawCmd, cubeStack, 2);
+	RID cubeItem = ds::compile(drawCmd, cubeStack, 2, "CubeItem");
 
 	// prepare IMGUI
 	

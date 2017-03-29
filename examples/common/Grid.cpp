@@ -35,7 +35,7 @@ void Grid::create(ds::vec3* positions, int numCells, RID vertexShader, RID pixel
 
 	ds::DrawCommand drawCmd = { 6, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
 
-	_drawItem = ds::compile(drawCmd, gridStates);
+	_drawItem = ds::compile(drawCmd, gridStates, "Grid");
 }
 
 void Grid::render() {

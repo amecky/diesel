@@ -768,14 +768,25 @@ namespace ds {
 	// ---------------------------------------------------
 	// Render settings 
 	// ---------------------------------------------------
-	typedef struct {
+	struct RenderSettings  {
 		uint16_t width;
 		uint16_t height;
 		Color clearColor;
 		uint8_t multisampling;
 		const char* title;
 		bool useGPUProfiling;
-	} RenderSettings;
+		bool supportDebug;
+
+		RenderSettings() {
+			width = 1024;
+			height = 768;
+			clearColor = Color(0, 0, 0, 255);
+			multisampling = 4;
+			title = "No title";
+			useGPUProfiling = false;
+			supportDebug = true;
+		}
+	};
 	
 	// ---------------------------------------------------
 	// Draw Command
@@ -828,7 +839,7 @@ namespace ds {
 		StateGroupBuilder& textureFromRenderTarget(RID rtID, RID shader, int slot);
 		StateGroupBuilder& rasterizerState(RID rid);
 		StateGroupBuilder& noResource(ResourceType type, int stage, int slot);
-		RID build();
+		RID build(const char* name = "StateGroup");
 	private:
 		void add(uint16_t index, ResourceType type, int stage, int slot = 0);
 		void basicBinding(RID rid, ResourceType rt, int stage, int slot = 0);
@@ -845,6 +856,7 @@ namespace ds {
 	struct DrawItem {
 		DrawCommand command;
 		RID* groups;
+		int nameIndex;
 		int num;
 	};
 
@@ -861,15 +873,15 @@ namespace ds {
 		DepthBufferState depthState;
 	};
 
-	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state);
+	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state, const char* name = "UNKNOWN");
 
-	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state, RID* renderTargets,int numRenderTargets);
+	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state, RID* renderTargets,int numRenderTargets, const char* name = "UNKNOWN");
 
 	// items, groups, passes
 
-	RID compile(const DrawCommand cmd, RID* groups, int num);
+	RID compile(const DrawCommand cmd, RID* groups, int num, const char* name = "UNKNOWN");
 
-	RID compile(const DrawCommand cmd, RID group);
+	RID compile(const DrawCommand cmd, RID group, const char* name = "UNKNOWN");
 
 	void submit(RID renderPass, RID drawItemID, int numElements = -1);
 
@@ -877,59 +889,59 @@ namespace ds {
 
 	// vertex declaration / buffer input layout
 
-	RID createVertexDeclaration(VertexDeclaration* decl, uint8_t num, RID shaderId);
+	RID createVertexDeclaration(VertexDeclaration* decl, uint8_t num, RID shaderId, const char* name = "UNKNOWN");
 
-	RID createInstanceDeclaration(VertexDeclaration* decl, uint8_t num, InstanceLayoutDeclaration* instDecl, uint8_t instNum, RID shaderId);
+	RID createInstanceDeclaration(VertexDeclaration* decl, uint8_t num, InstanceLayoutDeclaration* instDecl, uint8_t instNum, RID shaderId, const char* name = "UNKNOWN");
 
 	// constant buffer
 
-	RID createConstantBuffer(int byteWidth, void* data = 0);
+	RID createConstantBuffer(int byteWidth, void* data = 0, const char* name = "UNKNOWN");
 
 	// index buffer
 
-	RID createIndexBuffer(uint32_t numIndices, IndexType indexType, BufferType type);
+	RID createIndexBuffer(uint32_t numIndices, IndexType indexType, BufferType type, const char* name = "UNKNOWN");
 
-	RID createIndexBuffer(uint32_t numIndices, IndexType indexType, BufferType type, void* data);
+	RID createIndexBuffer(uint32_t numIndices, IndexType indexType, BufferType type, void* data, const char* name = "UNKNOWN");
 
-	RID createQuadIndexBuffer(int numQuads);
+	RID createQuadIndexBuffer(int numQuads, const char* name = "UNKNOWN");
 
 	// vertex buffer
 
-	RID createVertexBuffer(BufferType type, int numVertices, uint32_t vertexSize, void* data = 0);
+	RID createVertexBuffer(BufferType type, int numVertices, uint32_t vertexSize, void* data = 0, const char* name = "UNKNOWN");
 
 	void mapBufferData(RID rid, void* data, uint32_t size);
 
-	RID createInstancedBuffer(RID vertexBuffer, RID instanceBuffer);
+	RID createInstancedBuffer(RID vertexBuffer, RID instanceBuffer, const char* name = "UNKNOWN");
 
 	// sampler state
 
-	RID createSamplerState(TextureAddressModes addressMode, TextureFilters filter);
+	RID createSamplerState(TextureAddressModes addressMode, TextureFilters filter, const char* name = "UNKNOWN");
 
 	// blendstate
 
-	RID createBlendState(BlendStates srcBlend, BlendStates srcAlphaBlend, BlendStates destBlend, BlendStates destAlphaBlend, bool alphaEnabled);	
+	RID createBlendState(BlendStates srcBlend, BlendStates srcAlphaBlend, BlendStates destBlend, BlendStates destAlphaBlend, bool alphaEnabled, const char* name = "UNKNOWN");
 
-	RID createAlphaBlendState(BlendStates srcBlend, BlendStates destBlend);
+	RID createAlphaBlendState(BlendStates srcBlend, BlendStates destBlend, const char* name = "UNKNOWN");
 
 	//void setBlendState(RID rid, float* blendFactor,uint32_t mask);
 
 	// shader
 
-	RID createVertexShader(const void* data, int size);
+	RID createVertexShader(const void* data, int size, const char* name = "UNKNOWN");
 
-	RID createGeometryShader(const void* data, int size);
+	RID createGeometryShader(const void* data, int size, const char* name = "UNKNOWN");
 
-	RID createPixelShader(const void* data, int size);
+	RID createPixelShader(const void* data, int size, const char* name = "UNKNOWN");
 
-	RID loadVertexShader(const char* csoName);
+	RID loadVertexShader(const char* csoName, const char* name = "UNKNOWN");
 
-	RID loadGeometryShader(const char* csoName);
+	RID loadGeometryShader(const char* csoName, const char* name = "UNKNOWN");
 
-	RID loadPixelShader(const char* csoName);
+	RID loadPixelShader(const char* csoName, const char* name = "UNKNOWN");
 
 	// texture
 
-	RID createTexture(int width, int height, uint8_t channels, void* data, TextureFormat format);
+	RID createTexture(int width, int height, uint8_t channels, void* data, TextureFormat format, const char* name = "UNKNOWN");
 
 	//void setTextureFromRenderTarget(RID rtID, RID shader, uint8_t slot);
 
@@ -937,14 +949,14 @@ namespace ds {
 
 	// render target
 
-	RID createRenderTarget(uint16_t width, uint16_t height, const ds::Color& clearColor);
+	RID createRenderTarget(uint16_t width, uint16_t height, const ds::Color& clearColor, const char* name = "UNKNOWN");
 
 	void setRenderTarget(RID rtID);
 
 	void restoreBackBuffer();
 
 	// rasterizer state
-	RID createRasterizerState(CullMode cullMode, FillMode fillMode, bool multiSample, bool scissor, float depthBias, float slopeDepthBias);
+	RID createRasterizerState(CullMode cullMode, FillMode fillMode, bool multiSample, bool scissor, float depthBias, float slopeDepthBias, const char* name = "UNKNOWN");
 
 	//void setDepthBufferState(DepthBufferState state);
 
@@ -1081,6 +1093,8 @@ namespace ds {
 
 	// ------------------------------------------
 
+	void dbgPrint(uint16_t x, uint16_t y, char* format, ...);
+
 	void printResources();
 	
 }
@@ -1186,6 +1200,9 @@ namespace ds {
 		"TEXTURE_FROM_RT"
 	};
 
+	void dbgInit();
+	void dbgBegin();
+	void dbgFlush();
 	// ------------------------------------------------------
 	// query refresh rate
 	// ------------------------------------------------------
@@ -1361,10 +1378,6 @@ namespace ds {
 		}
 
 		int diff(const PipelineState& other, uint16_t* entries, int max) {
-			// everything is equals
-			if (_index == other.size() && memcmp(_entries, other.getPtr(), _index * sizeof(uint16_t))) {
-				return 0;
-			}
 			int num = 0;
 			for (uint16_t i = 0; i < other.size(); ++i) {
 				uint16_t current = other.get(i);
@@ -1455,7 +1468,14 @@ namespace ds {
 		const RID& getRID() const {
 			return _rid;
 		}
+		const int getNameIndex() const {
+			return _nameIndex;
+		}
+		void setNameIndex(int idx) {
+			_nameIndex = idx;
+		}
 	private:
+		int _nameIndex;
 		RID _rid;
 	};
 
@@ -1880,6 +1900,40 @@ namespace ds {
 	// Internal context
 	//
 	// ******************************************************
+	struct DebugTextVertex {
+
+		ds::vec3 position;
+		ds::vec4 texture;
+		ds::Color color;
+
+	};
+
+	struct DebugTextConstantBuffer {
+		ds::vec4 screenDimension;
+		ds::matrix wvp;
+	};
+
+	const int MAX_DBG_TXT_VERTICES = 2048;
+
+	struct CharBuffer {
+
+		char* data;
+		int size;
+		int capacity;
+		int num;
+
+		CharBuffer();
+		~CharBuffer();
+
+		void* alloc(int sz);
+		void resize(int newCap);
+		int append(const char* s, int len);
+		int append(const char* s);
+		int append(char s);
+		const char* get(int index) const;
+
+	};
+
 	typedef struct {
 		HWND hwnd;
 		HINSTANCE instance;
@@ -1905,16 +1959,9 @@ namespace ds {
 
 		BasicConstantBuffer basicConstantBuffer;
 		RID basicConstantBufferID;
-		//matrix viewMatrix;
-		//matrix projectionMatrix;
-		//matrix viewProjectionMatrix;
 
 		std::vector<BaseResource*> _resources;
 		std::vector<StateGroup*> _groups;
-
-		//vec3 viewPosition;
-		//vec3 lookAt;
-		//vec3 up;
 
 		int mouseButtonState[2];
 		int keyState[256];
@@ -1945,10 +1992,23 @@ namespace ds {
 		PipelineState pipelineStates[2];
 		int currentDrawCall;
 		int lastDrawCall;
+		RID drawCalls[2];
 
-		PipelineState* pipelineState;
+		//PipelineState* pipelineState;
+
 		RID defaultStateGroup;
 
+		// Debug
+		bool supportDebug;
+		RID debugTextureID;
+		DebugTextConstantBuffer debugConstantBuffer;
+		RID debugDrawItem;
+		RID debugOrthoPass;
+		DebugTextVertex debugVertices[MAX_DBG_TXT_VERTICES];
+		RID debugVertexBufferID;
+		int debugItemCount;
+
+		CharBuffer* charBuffer;
 
 	} InternalContext;
 
@@ -1970,11 +2030,12 @@ namespace ds {
 		XASSERT(type_mask(rid) == type,"The selected resource %d is not the required type %s", rid, RESOURCE_NAMES[type]);
 	}
 
-	static RID addResource(BaseResource* res, ResourceType type) {
+	static RID addResource(BaseResource* res, ResourceType type, const char* name) {
 		XASSERT((_ctx->_resources.size() + 1) < NO_RID, "The maximum number of resources reached");
 		_ctx->_resources.push_back(res);
 		RID rid = buildRID(static_cast<uint16_t>(_ctx->_resources.size() - 1), type);
 		res->setRID(rid);		
+		res->setNameIndex(_ctx->charBuffer->append(name));
 		return rid;
 	}
 
@@ -2159,6 +2220,7 @@ namespace ds {
 	static bool initializeDevice(const RenderSettings& settings) {
 		_ctx->clearColor = settings.clearColor;
 		_ctx->multisampling = settings.multisampling;
+		_ctx->supportDebug = settings.supportDebug;
 		RECT dimensions;
 		GetClientRect(_ctx->hwnd, &dimensions);
 
@@ -2331,17 +2393,17 @@ namespace ds {
 		_ctx->projectionMatrix = matPerspectiveFovLH(fieldOfView, screenAspect, 0.01f, 100.0f);
 		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
 		*/
-		_ctx->pipelineState = new PipelineState;
+		//_ctx->pipelineState = new PipelineState;
 
 		// create default state group
-		RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
-		RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
-		RID rasterizerStateID = ds::createRasterizerState(ds::CullMode::BACK, ds::FillMode::SOLID, true, false, 0.0f, 0.0f);
+		RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true, "DefaultBlendState");
+		RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR, "DefaultSamplerState");
+		RID rasterizerStateID = ds::createRasterizerState(ds::CullMode::BACK, ds::FillMode::SOLID, true, false, 0.0f, 0.0f, "DefaultRasterizerState");
 
 		_ctx->currentDrawCall = 0;
 		_ctx->lastDrawCall = -1;
 
-		_ctx->basicConstantBufferID = createConstantBuffer(sizeof(BasicConstantBuffer), &_ctx->basicConstantBuffer);
+		_ctx->basicConstantBufferID = createConstantBuffer(sizeof(BasicConstantBuffer), &_ctx->basicConstantBuffer, "BasicConstantBuffer");
 		matrix world = matIdentity();
 		_ctx->basicConstantBuffer.worldMatrix = matTranspose(world);
 		_ctx->defaultStateGroup = StateGroupBuilder()
@@ -2356,10 +2418,13 @@ namespace ds {
 			.indexBuffer(NO_RID)
 			.vertexBuffer(NO_RID)
 			.rasterizerState(rasterizerStateID)
-			.build();
+			.build("DefaultGroup");
 
 		if (settings.useGPUProfiling) {
 			gpu::init();
+		}
+		if (_ctx->supportDebug) {
+			dbgInit();
 		}
 		return true;
 	}
@@ -2613,7 +2678,7 @@ namespace ds {
 
 		QueryPerformanceFrequency(&_ctx->timerFrequency);
 		QueryPerformanceCounter(&_ctx->lastTime);
-
+		_ctx->charBuffer = new CharBuffer;
 		_ctx->leftOverTicks = 0;
 		_ctx->framesPerSecond = 0;
 		_ctx->framesThisSecond = 0;
@@ -2632,7 +2697,7 @@ namespace ds {
 	// ------------------------------------------------------
 	void shutdown() {
 		if (_ctx != 0) {
-			delete _ctx->pipelineState;
+			//delete _ctx->pipelineState;
 			gpu::shutdown();
 			for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
 				_ctx->_resources[i]->release();
@@ -2641,6 +2706,7 @@ namespace ds {
 			for (size_t i = 0; i < _ctx->_groups.size(); ++i) {				
 				delete _ctx->_groups[i];
 			}
+			delete _ctx->charBuffer;
 			if (_ctx->backBufferTarget) _ctx->backBufferTarget->Release();
 			if (_ctx->swapChain) _ctx->swapChain->Release();
 			if (_ctx->d3dContext) _ctx->d3dContext->Release();
@@ -2694,6 +2760,9 @@ namespace ds {
 	// ------------------------------------------------------
 	void begin() {
 		gpu::beginFrame();
+		if (_ctx->supportDebug) {
+			dbgBegin();
+		}
 		_ctx->d3dContext->OMSetRenderTargets(1, &_ctx->backBufferTarget, _ctx->depthStencilView);
 		_ctx->d3dContext->ClearRenderTargetView(_ctx->backBufferTarget, _ctx->clearColor);
 		_ctx->d3dContext->ClearDepthStencilView(_ctx->depthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -2705,6 +2774,9 @@ namespace ds {
 	// end rendering
 	// ------------------------------------------------------
 	void end() {
+		if (_ctx->supportDebug) {
+			dbgFlush();
+		}
 		_ctx->swapChain->Present(0, 0);
 		_ctx->numInputKeys = 0;
 		gpu::endFrame();
@@ -2744,7 +2816,7 @@ namespace ds {
 	// ------------------------------------------------------
 	// input layout / vertex declaration
 	// ------------------------------------------------------
-	RID createVertexDeclaration(VertexDeclaration* decl, uint8_t num, RID shaderId) {
+	RID createVertexDeclaration(VertexDeclaration* decl, uint8_t num, RID shaderId, const char* name) {
 		D3D11_INPUT_ELEMENT_DESC* descriptors = new D3D11_INPUT_ELEMENT_DESC[num];
 		uint32_t index = 0;
 		uint32_t counter = 0;
@@ -2773,10 +2845,10 @@ namespace ds {
 		ID3D11InputLayout* layout = 0;
 		ASSERT_RESULT(_ctx->d3dDevice->CreateInputLayout(descriptors, num, s->vertexShaderBuffer, s->bufferSize, &layout), "Failed to create input layout");
 		InputLayoutResource* res = new InputLayoutResource(layout, index);
-		return addResource(res, RT_VERTEX_DECLARATION);
+		return addResource(res, RT_VERTEX_DECLARATION, name);
 	}
 
-	RID createInstanceDeclaration(VertexDeclaration* decl, uint8_t num, InstanceLayoutDeclaration* instDecl, uint8_t instNum, RID shaderId) {
+	RID createInstanceDeclaration(VertexDeclaration* decl, uint8_t num, InstanceLayoutDeclaration* instDecl, uint8_t instNum, RID shaderId, const char* name) {
 		int total = num + instNum;
 		D3D11_INPUT_ELEMENT_DESC* descriptors = new D3D11_INPUT_ELEMENT_DESC[total];
 		uint32_t index = 0;
@@ -2824,7 +2896,7 @@ namespace ds {
 		ID3D11InputLayout* layout = 0;
 		ASSERT_RESULT(_ctx->d3dDevice->CreateInputLayout(descriptors, total, s->vertexShaderBuffer, s->bufferSize, &layout), "Failed to create input layout");
 		InputLayoutResource* res = new InputLayoutResource(layout, index);
-		return addResource(res, RT_VERTEX_DECLARATION);
+		return addResource(res, RT_VERTEX_DECLARATION, name);
 	}
 
 	// ------------------------------------------------------
@@ -2844,7 +2916,7 @@ namespace ds {
 	// ------------------------------------------------------
 	// constant buffer
 	// ------------------------------------------------------
-	RID createConstantBuffer(int byteWidth, void* data) {
+	RID createConstantBuffer(int byteWidth, void* data, const char* name) {
 		D3D11_BUFFER_DESC constDesc;
 		ZeroMemory(&constDesc, sizeof(constDesc));
 		constDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -2861,7 +2933,7 @@ namespace ds {
 			memcpy(ptr, data, byteWidth);
 			_ctx->d3dContext->Unmap(buffer, 0);
 		}
-		return addResource(res, RT_CONSTANT_BUFFER);
+		return addResource(res, RT_CONSTANT_BUFFER, name);
 	}
 
 	// ------------------------------------------------------
@@ -2922,7 +2994,7 @@ namespace ds {
 	// ------------------------------------------------------
 	// index buffer with data
 	// ------------------------------------------------------
-	RID createIndexBuffer(uint32_t numIndices, IndexType indexType, BufferType type, void* data) {
+	RID createIndexBuffer(uint32_t numIndices, IndexType indexType, BufferType type, void* data, const char* name) {
 		D3D11_BUFFER_DESC bufferDesc;
 		if (type == BufferType::DYNAMIC) {
 			bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
@@ -2943,14 +3015,14 @@ namespace ds {
 		ID3D11Buffer* buffer = 0;
 		assert_result(_ctx->d3dDevice->CreateBuffer(&bufferDesc, data ? &InitData : NULL, &buffer), "Failed to create index buffer");
 		IndexBufferResource* res = new IndexBufferResource(buffer, INDEX_BUFFER_FORMATS[indexType], numIndices, type);
-		return addResource(res, RT_INDEX_BUFFER);
+		return addResource(res, RT_INDEX_BUFFER, name);
 	}
 
 	// ------------------------------------------------------
 	// index buffer
 	// ------------------------------------------------------
-	RID createIndexBuffer(uint32_t numIndices, IndexType indexType, BufferType type) {
-		return createIndexBuffer(numIndices, indexType, type, 0);
+	RID createIndexBuffer(uint32_t numIndices, IndexType indexType, BufferType type, const char* name) {
+		return createIndexBuffer(numIndices, indexType, type, 0, name);
 	}
 
 	// ------------------------------------------------------
@@ -2970,7 +3042,7 @@ namespace ds {
 	// ------------------------------------------------------
 	// create a quad index buffer 0, 1, 2, 2, 3, 0
 	// ------------------------------------------------------
-	RID createQuadIndexBuffer(int numQuads) {
+	RID createQuadIndexBuffer(int numQuads, const char* name) {
 		int size = numQuads * 6;
 		uint32_t* data = new uint32_t[size];
 		int base = 0;
@@ -2985,7 +3057,7 @@ namespace ds {
 			base += 6;
 			cnt += 4;
 		}
-		RID rid = createIndexBuffer(size, ds::IndexType::UINT_32, ds::BufferType::STATIC, data);
+		RID rid = createIndexBuffer(size, ds::IndexType::UINT_32, ds::BufferType::STATIC, data, name);
 		delete[] data;
 		return rid;
 	}
@@ -2993,7 +3065,7 @@ namespace ds {
 	// ------------------------------------------------------
 	// vertex buffer with optional data
 	// ------------------------------------------------------
-	RID createVertexBuffer(BufferType type, int numVertices, uint32_t vertexSize, void* data) {
+	RID createVertexBuffer(BufferType type, int numVertices, uint32_t vertexSize, void* data, const char* name) {
 		UINT size = numVertices * vertexSize;
 		D3D11_BUFFER_DESC bufferDesciption;
 		ZeroMemory(&bufferDesciption, sizeof(bufferDesciption));
@@ -3020,15 +3092,15 @@ namespace ds {
 			ASSERT_RESULT(_ctx->d3dDevice->CreateBuffer(&bufferDesciption, 0, &buffer), "Failed to create vertex buffer");
 		}
 		VertexBufferResource* res = new VertexBufferResource(buffer, size, type, vertexSize);
-		return addResource(res, RT_VERTEX_BUFFER);
+		return addResource(res, RT_VERTEX_BUFFER, name);
 	}
 
-	RID createInstancedBuffer(RID vertexBuffer, RID instanceBuffer) {
+	RID createInstancedBuffer(RID vertexBuffer, RID instanceBuffer, const char* name) {
 		InstancedBindData* data = new InstancedBindData;
 		data->rid = vertexBuffer;
 		data->instanceBuffer = instanceBuffer;
 		InstancedVertexBufferResource* res = new InstancedVertexBufferResource(data);
-		return addResource(res, RT_INSTANCED_VERTEX_BUFFER);
+		return addResource(res, RT_INSTANCED_VERTEX_BUFFER, name);
 	}
 
 	// ------------------------------------------------------
@@ -3110,7 +3182,7 @@ namespace ds {
 	// ------------------------------------------------------
 	// create sampler state
 	// ------------------------------------------------------
-	RID createSamplerState(TextureAddressModes addressMode,TextureFilters filter) {
+	RID createSamplerState(TextureAddressModes addressMode,TextureFilters filter, const char* name) {
 		D3D11_SAMPLER_DESC colorMapDesc;
 		ZeroMemory(&colorMapDesc, sizeof(colorMapDesc));
 
@@ -3125,7 +3197,7 @@ namespace ds {
 		ID3D11SamplerState* sampler;
 		assert_result(_ctx->d3dDevice->CreateSamplerState(&colorMapDesc, &sampler), "Failed to create SamplerState");
 		SamplerStateResource* res = new SamplerStateResource(sampler);
-		return addResource(res, RT_SAMPLER_STATE);
+		return addResource(res, RT_SAMPLER_STATE, name);
 	}
 
 	// ------------------------------------------------------
@@ -3175,14 +3247,14 @@ namespace ds {
 	// ------------------------------------------------------
 	// create alpha enabled blend state
 	// ------------------------------------------------------
-	RID createAlphaBlendState(BlendStates srcBlend, BlendStates destBlend) {
-		return createBlendState(srcBlend, srcBlend, destBlend, destBlend, true);
+	RID createAlphaBlendState(BlendStates srcBlend, BlendStates destBlend, const char* name) {
+		return createBlendState(srcBlend, srcBlend, destBlend, destBlend, true, name);
 	}
 
 	// ------------------------------------------------------
 	// cretae blend state
 	// ------------------------------------------------------
-	RID createBlendState(BlendStates srcBlend, BlendStates srcAlphaBlend, BlendStates destBlend, BlendStates destAlphaBlend, bool alphaEnabled) {
+	RID createBlendState(BlendStates srcBlend, BlendStates srcAlphaBlend, BlendStates destBlend, BlendStates destAlphaBlend, bool alphaEnabled, const char* name) {
 		D3D11_BLEND_DESC blendDesc;
 		ZeroMemory(&blendDesc, sizeof(blendDesc));
 		if (alphaEnabled) {
@@ -3203,7 +3275,7 @@ namespace ds {
 		ID3D11BlendState* state;
 		assert_result(_ctx->d3dDevice->CreateBlendState(&blendDesc, &state), "Failed to create blendstate");
 		BlendStateResource* res = new BlendStateResource(state);
-		return addResource(res, RT_BLENDSTATE);
+		return addResource(res, RT_BLENDSTATE, name);
 	}
 
 	// ------------------------------------------------------
@@ -3246,6 +3318,18 @@ namespace ds {
 	}
 
 	// ------------------------------------------------------
+	// clear leaking states
+	// ------------------------------------------------------
+	static void clearStates(uint16_t* differences, int num) {
+		FILE* f = fopen("debug.log", "a");		
+		for (int i = 0; i < num; ++i) {
+			uint32_t real = (differences[i] << 16);
+			fprintf(f, "%s / %s / %d\n", RESOURCE_NAMES[type_mask(real)], PIPELINE_STAGE_NAMES[stage_mask(real)], slot_mask(real));
+		}
+		fclose(f);
+	}
+
+	// ------------------------------------------------------
 	// submit draw command
 	// ------------------------------------------------------
 	void submit(RID renderPass, RID drawItemID, int numElements) {
@@ -3265,10 +3349,27 @@ namespace ds {
 		uint16_t ridx = getResourceIndex(drawItemID, RT_DRAW_ITEM);
 		DrawItemResource* res = (DrawItemResource*)_ctx->_resources[ridx];
 		const DrawItem* item = res->get();
-		_ctx->pipelineState->reset();
+		_ctx->pipelineStates[_ctx->currentDrawCall].reset();
+		_ctx->drawCalls[_ctx->currentDrawCall] = drawItemID;
+		//_ctx->pipelineState->reset();
 		for (int i = 0; i < item->num; ++i) {
-			apply(_ctx->pipelineState, item->groups[i]);
+			apply(&_ctx->pipelineStates[_ctx->currentDrawCall], item->groups[i]);
+		}		
+		if (_ctx->lastDrawCall >= 0) {
+			uint16_t differences[64];
+			// build diff between draw calls
+			int num = _ctx->pipelineStates[_ctx->currentDrawCall].diff(_ctx->pipelineStates[_ctx->lastDrawCall], differences, 64);
+			if (num > 0) {
+				int sidx = id_mask(drawItemID);
+				FILE* f = fopen("debug.log", "a");
+				fprintf(f, "call: %d - %s previous: %d\n", sidx, _ctx->charBuffer->get(item->nameIndex), id_mask(_ctx->drawCalls[_ctx->lastDrawCall]));
+				fclose(f);
+				clearStates(differences, num);
+			}
 		}
+		// toggle draw call
+		_ctx->lastDrawCall = (_ctx->lastDrawCall + 1) & 1;
+		_ctx->currentDrawCall = (_ctx->currentDrawCall + 1) & 1;
 		const DrawCommand& cmd = item->command;
 		int num = cmd.size;
 		if (numElements != -1) {
@@ -3289,34 +3390,34 @@ namespace ds {
 	// ------------------------------------------------------
 	// create vertex shader
 	// ------------------------------------------------------
-	RID createVertexShader(const void* data, int size) {
+	RID createVertexShader(const void* data, int size, const char* name) {
 		VertexShader* s = new VertexShader;
 		assert_result(_ctx->d3dDevice->CreateVertexShader(data,size,nullptr,&s->vertexShader), "Failed to create vertex shader");
 		s->vertexShaderBuffer = new char[size];
 		memcpy(s->vertexShaderBuffer, data, size);
 		s->bufferSize = size;
 		VertexShaderResource* res = new VertexShaderResource(s);
-		return addResource(res, RT_VERTEX_SHADER);
+		return addResource(res, RT_VERTEX_SHADER, name);
 	}
 
 	// ------------------------------------------------------
 	// create geometry shader
 	// ------------------------------------------------------
-	RID createGeometryShader(const void* data, int size) {
+	RID createGeometryShader(const void* data, int size, const char* name) {
 		ID3D11GeometryShader* s;
 		assert_result(_ctx->d3dDevice->CreateGeometryShader(data,size,nullptr,&s), "Failed to create geometry shader");
 		GeometryShaderResource* res = new GeometryShaderResource(s);
-		return addResource(res, RT_GEOMETRY_SHADER);
+		return addResource(res, RT_GEOMETRY_SHADER, name);
 	}
 
 	// ------------------------------------------------------
 	// create pixel shader
 	// ------------------------------------------------------
-	RID createPixelShader(const void* data, int size) {
+	RID createPixelShader(const void* data, int size, const char* name) {
 		ID3D11PixelShader* s;
 		assert_result(_ctx->d3dDevice->CreatePixelShader(data, size, nullptr, &s), "Failed to create pixel shader");
 		PixelShaderResource* res = new PixelShaderResource(s);
-		return addResource(res, RT_PIXEL_SHADER);
+		return addResource(res, RT_PIXEL_SHADER, name);
 	}
 
 	struct DataFile {
@@ -3346,7 +3447,7 @@ namespace ds {
 	// ------------------------------------------------------
 	// load vertex shader
 	// ------------------------------------------------------
-	RID loadVertexShader(const char* csoName) {
+	RID loadVertexShader(const char* csoName, const char* name) {
 		DataFile file = read_data(csoName);
 		XASSERT(file.size != -1, "Cannot load vertex shader file: '%s'", csoName);
 		VertexShader* s = new VertexShader;
@@ -3360,13 +3461,13 @@ namespace ds {
 		s->bufferSize = file.size;
 		delete[] file.data;
 		VertexShaderResource* res = new VertexShaderResource(s);
-		return addResource(res, RT_VERTEX_SHADER);
+		return addResource(res, RT_VERTEX_SHADER, name);
 	}
 
 	// ------------------------------------------------------
 	// load pixel shader
 	// ------------------------------------------------------
-	RID loadPixelShader(const char* csoName) {
+	RID loadPixelShader(const char* csoName, const char* name) {
 		DataFile file = read_data(csoName);
 		XASSERT(file.size != -1, "Cannot load pixel shader file: '%s'", csoName);
 		ID3D11PixelShader* s;
@@ -3377,13 +3478,13 @@ namespace ds {
 			&s), "Failed to create pixel shader");
 		delete[] file.data;
 		PixelShaderResource* res = new PixelShaderResource(s);
-		return addResource(res, RT_PIXEL_SHADER);
+		return addResource(res, RT_PIXEL_SHADER, name);
 	}
 
 	// ------------------------------------------------------
 	// load geometry shader
 	// ------------------------------------------------------
-	RID loadGeometryShader(const char* csoName) {
+	RID loadGeometryShader(const char* csoName, const char* name) {
 		DataFile file = read_data(csoName);
 		XASSERT(file.size != -1, "Cannot load geometry shader file: '%s'", csoName);
 		ID3D11GeometryShader* s;
@@ -3394,7 +3495,7 @@ namespace ds {
 			&s), "Failed to create pixel shader");
 		delete[] file.data;
 		GeometryShaderResource* res = new GeometryShaderResource(s);
-		return addResource(res, RT_GEOMETRY_SHADER);
+		return addResource(res, RT_GEOMETRY_SHADER, name);
 	}
 
 	// ------------------------------------------------------
@@ -3464,7 +3565,7 @@ namespace ds {
 	// ------------------------------------------------------
 	// create texture
 	// ------------------------------------------------------
-	RID createTexture(int width, int height, uint8_t channels, void* data, TextureFormat format) {
+	RID createTexture(int width, int height, uint8_t channels, void* data, TextureFormat format, const char* name) {
 		D3D11_TEXTURE2D_DESC desc;
 		desc.Width = width;
 		desc.Height = height;
@@ -3515,7 +3616,7 @@ namespace ds {
 		tex->height = height;
 		tex->srv = srv;
 		ShaderResourceViewResource* res = new ShaderResourceViewResource(tex);
-		return addResource(res, RT_SRV);
+		return addResource(res, RT_SRV, name);
 	}
 
 	ds::vec2 getTextureSize(RID rid) {
@@ -3573,7 +3674,7 @@ namespace ds {
 	// ------------------------------------------------------
 	// create rasterizer state
 	// ------------------------------------------------------
-	RID createRasterizerState(CullMode cullMode,FillMode fillMode, bool multiSample, bool scissor, float depthBias, float slopeDepthBias) {
+	RID createRasterizerState(CullMode cullMode,FillMode fillMode, bool multiSample, bool scissor, float depthBias, float slopeDepthBias, const char* name) {
 		D3D11_RASTERIZER_DESC desc;
 		desc.CullMode = (D3D11_CULL_MODE)cullMode;
 		desc.FillMode = (D3D11_FILL_MODE)fillMode;
@@ -3588,7 +3689,7 @@ namespace ds {
 		ID3D11RasterizerState* state = 0;
 		assert_result(_ctx->d3dDevice->CreateRasterizerState(&desc, &state), "Failed to create rasterizer state");
 		RasterizerStateResource* res = new RasterizerStateResource(state);
-		return addResource(res, RT_RASTERIZER_STATE);
+		return addResource(res, RT_RASTERIZER_STATE, name);
 	}
 
 	// ------------------------------------------------------
@@ -3605,7 +3706,7 @@ namespace ds {
 	// ------------------------------------------------------
 	// create render target
 	// ------------------------------------------------------
-	RID createRenderTarget(uint16_t width, uint16_t height, const ds::Color& clearColor) {
+	RID createRenderTarget(uint16_t width, uint16_t height, const ds::Color& clearColor, const char* name) {
 		RenderTarget* rt = new RenderTarget;
 		rt->clearColor = clearColor;
 		// Initialize the render target texture description.
@@ -3668,7 +3769,7 @@ namespace ds {
 
 		assert_result(_ctx->d3dDevice->CreateDepthStencilView(rt->depthTexture, &descDSV, &rt->depthStencilView),"Failed to create depth stencil view");
 		RenderTargetResource* res = new RenderTargetResource(rt);
-		return addResource(res,RT_RENDER_TARGET);
+		return addResource(res,RT_RENDER_TARGET, name);
 	}
 
 	void setRenderTarget(RID rtID) {
@@ -3707,7 +3808,7 @@ namespace ds {
 	// -----------------------------------------------------------------
 	// compile with array of StateGroups
 	// -----------------------------------------------------------------
-	RID compile(const DrawCommand cmd, RID* groups, int num) {
+	RID compile(const DrawCommand cmd, RID* groups, int num, const char* name) {
 		DrawItem* item = new DrawItem;
 		item->command = cmd;
 		item->groups = new RID[num + 1];
@@ -3716,20 +3817,22 @@ namespace ds {
 		}
 		item->groups[num] = _ctx->defaultStateGroup;
 		item->num = num + 1;
-		return addResource(new DrawItemResource(item), RT_DRAW_ITEM);
+		item->nameIndex = _ctx->charBuffer->append(name);
+		return addResource(new DrawItemResource(item), RT_DRAW_ITEM, name);
 	}
 
 	// -----------------------------------------------------------------
 	// compile with only one StateGroup
 	// -----------------------------------------------------------------
-	RID compile(const DrawCommand cmd, RID group) {
+	RID compile(const DrawCommand cmd, RID group, const char* name) {
 		DrawItem* item = new DrawItem;
 		item->command = cmd;
 		item->groups = new RID[2];
 		item->groups[0] = group;
 		item->groups[1] = _ctx->defaultStateGroup;
 		item->num = 2;
-		return addResource(new DrawItemResource(item), RT_DRAW_ITEM);
+		item->nameIndex = _ctx->charBuffer->append(name);
+		return addResource(new DrawItemResource(item), RT_DRAW_ITEM, name);
 	}
 	
 	void assertResourceType(RID rid, ResourceType type) {
@@ -3877,13 +3980,13 @@ namespace ds {
 		}
 	}
 
-	RID StateGroupBuilder::build() {
+	RID StateGroupBuilder::build(const char* name) {
 		StateGroup* group = new StateGroup();
 		quickSort(_items, 0, _num - 1);
 		group->num = _num;
 		group->items = new RID[_num];
 		memcpy(group->items, _items, _num * sizeof(RID));
-		RID rid = addResource(new StateGroupResource(group),RT_STATE_GROUP);
+		RID rid = addResource(new StateGroupResource(group),RT_STATE_GROUP, name);
 		group->rid = rid;
 		return rid;
 	}
@@ -3942,7 +4045,7 @@ namespace ds {
 	// ******************************************************
 	// Render pass
 	// ******************************************************
-	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state) {
+	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state, const char* name) {
 		RenderPass* rp = new RenderPass();
 		rp->viewPosition = vec3(0, 0, -6);
 		rp->lookAt = vec3(0, 0, 0);
@@ -3953,10 +4056,10 @@ namespace ds {
 		rp->numRenderTargets = 0;
 		rp->depthState = state;
 		RenderPassResource* res = new RenderPassResource(rp);
-		return addResource(res, RT_RENDER_PASS);
+		return addResource(res, RT_RENDER_PASS, name);
 	}
 
-	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state, RID* renderTargets, int numRenderTargets) {
+	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state, RID* renderTargets, int numRenderTargets, const char* name) {
 		RenderPass* rp = new RenderPass();
 		rp->viewPosition = vec3(0, 0, -6);
 		rp->lookAt = vec3(0, 0, 0);
@@ -3970,7 +4073,7 @@ namespace ds {
 		}
 		rp->depthState = state;
 		RenderPassResource* res = new RenderPassResource(rp);
-		return addResource(res, RT_RENDER_PASS);
+		return addResource(res, RT_RENDER_PASS, name);
 	}
 
 
@@ -4252,12 +4355,12 @@ namespace ds {
 	// ******************************************************
 	void printResources() {
 		FILE* fp = fopen("log.txt", "w");
-		fprintf(fp, " index | resource type\n");
-		fprintf(fp, "-------------------------------\n");
+		fprintf(fp, " index | resource type       | Name\n");
+		fprintf(fp, "--------------------------------------------------------------\n");
 		for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
 			const BaseResource* res = _ctx->_resources[i];
 			RID rid = res->getRID();			
-			fprintf(fp," %3d  | %s\n", id_mask(rid), RESOURCE_NAMES[type_mask(rid)]);
+			fprintf(fp," %3d  | %-20s | %s\n", id_mask(rid), RESOURCE_NAMES[type_mask(rid)], _ctx->charBuffer->get(res->getNameIndex()));
 		}
 		fprintf(fp, "\n");
 		for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
@@ -4265,12 +4368,12 @@ namespace ds {
 			if (br->getType() == RT_DRAW_ITEM) {				
 				const DrawItemResource* dir = (DrawItemResource*)_ctx->_resources[i];
 				const DrawItem* item = dir->get();
-				fprintf(fp,"DrawItem %d - groups: %d\n", id_mask(br->getRID()),item->num);
+				fprintf(fp,"\nDrawItem %d (%s) - groups: %d\n", id_mask(br->getRID()),_ctx->charBuffer->get(item->nameIndex),item->num);
 				for (int j = 0; j < item->num; ++j) {
 					RID groupID = item->groups[j];					
 					StateGroupResource* res = (StateGroupResource*)_ctx->_resources[id_mask(groupID)];
 					StateGroup* group = res->get();
-					fprintf(fp, "Group: %d\n", id_mask(group->rid));
+					fprintf(fp, "Group: %d (%s)\n", id_mask(group->rid), _ctx->charBuffer->get(res->getNameIndex()));
 					fprintf(fp, "resource type        | id    | stage    | slot\n");
 					fprintf(fp, "----------------------------------------------\n");
 					for (int k = 0; k < group->num; ++k) {
@@ -4456,6 +4559,782 @@ namespace ds {
 			}
 		}
 	}
+
+	// -----------------------------------------------------
+	// CharBuffer
+	// -----------------------------------------------------
+	CharBuffer::CharBuffer() : data(nullptr), size(0), capacity(0), num(0) {}
+	
+	CharBuffer::~CharBuffer() {
+		if (data != nullptr) {
+			delete[] data;
+		}
+	}
+
+	void* CharBuffer::alloc(int sz) {
+		if (size + sz > capacity) {
+			int d = capacity * 2 + 8;
+			if (d < sz) {
+				d = sz * 2 + 8;
+			}
+			resize(d);
+		}
+		auto res = data + size;
+		size += sz;
+		int d = sz / 4;
+		if (d == 0) {
+			d = 1;
+		}
+		num += d;
+		return res;
+	}
+
+	void CharBuffer::resize(int newCap) {
+		if (newCap > capacity) {
+			char* tmp = new char[newCap];
+			if (data != nullptr) {
+				memcpy(tmp, data, size);
+				delete[] data;
+			}
+			capacity = newCap;
+			data = tmp;
+		}
+	}
+
+	const char* CharBuffer::get(int index) const {
+		return data + index;
+	}
+
+	int CharBuffer::append(const char* s, int len) {
+		if (size + len + 1 > capacity) {
+			resize(capacity + len + 1 + 8);
+		}
+		const char* t = s;
+		int ret = size;
+		for (int i = 0; i < len; ++i) {
+			data[size++] = *t;
+			++t;
+		}
+		data[size++] = '\0';
+		return ret;
+	}
+
+	int CharBuffer::append(const char* s) {
+		int len = strlen(s);
+		return append(s, len);
+	}
+
+	int CharBuffer::append(char s) {
+		if (size + 1 > capacity) {
+			resize(capacity + 9);
+		}
+		int ret = size;
+		data[size++] = s;
+		data[size++] = '\0';
+		return ret;
+	}
+
+	// -----------------------------------------------------
+	// Monochrome font - Fixedsys size 20
+	// -----------------------------------------------------
+	const unsigned char font[128][16] = {
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x38, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x60, 0x60, 0x06, 0x1B, 0x3C, 0x6C, 0xC0, 0x01, 0x06, 0x30, 0x30, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0xF0, 0x60, 0x06, 0x1B, 0x66, 0x6C, 0x61, 0x03, 0x06, 0x18, 0x60, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0xF0, 0x60, 0x86, 0x3F, 0x06, 0xB8, 0x61, 0x03, 0x06, 0x18, 0x60, 0xC0, 0x06, 0x06, 0x00 },
+		{ 0x00, 0xF0, 0x00, 0x00, 0x1B, 0x0C, 0xC0, 0xC0, 0x01, 0x00, 0x0C, 0xC0, 0x80, 0x03, 0x06, 0x00 },
+		{ 0x00, 0x60, 0x00, 0x00, 0x1B, 0x18, 0x60, 0x60, 0x00, 0x00, 0x0C, 0xC0, 0xE0, 0x8F, 0x1F, 0x00 },
+		{ 0x00, 0x60, 0x00, 0x00, 0x1B, 0x30, 0x30, 0x60, 0x0F, 0x00, 0x0C, 0xC0, 0x80, 0x03, 0x06, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x80, 0x3F, 0x60, 0xD8, 0x61, 0x06, 0x00, 0x0C, 0xC0, 0xC0, 0x06, 0x06, 0x00 },
+		{ 0x00, 0x60, 0x00, 0x00, 0x1B, 0x66, 0x68, 0x63, 0x06, 0x00, 0x0C, 0xC0, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x60, 0x00, 0x00, 0x1B, 0x3C, 0x60, 0xC3, 0x0D, 0x00, 0x18, 0x60, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0xC0, 0x01, 0x00, 0x00, 0x18, 0x60, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x00, 0x00, 0x00, 0x00, 0x30, 0x30, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x18, 0x78, 0xC0, 0xC0, 0x03, 0x0F, 0x0C, 0xF8, 0x81, 0x83, 0x1F, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x18, 0xCC, 0xE0, 0x60, 0x86, 0x19, 0x0C, 0x18, 0x80, 0x01, 0x18, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x0C, 0xEC, 0xF8, 0x60, 0x86, 0x19, 0x6C, 0x18, 0xC0, 0x00, 0x0C, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x0C, 0xEC, 0xC0, 0x00, 0x06, 0x18, 0x6C, 0x18, 0xE0, 0x03, 0x0C, 0x00 },
+		{ 0x00, 0xF8, 0x01, 0x00, 0x06, 0xCC, 0xC0, 0x00, 0x03, 0x0E, 0x6C, 0xF8, 0x60, 0x06, 0x06, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x06, 0xDC, 0xC0, 0x80, 0x01, 0x18, 0x66, 0x80, 0x61, 0x06, 0x06, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x03, 0xDC, 0xC0, 0xC0, 0x80, 0x19, 0xFE, 0x80, 0x61, 0x06, 0x03, 0x00 },
+		{ 0x38, 0x00, 0x80, 0x03, 0x03, 0xCC, 0xC0, 0x60, 0x80, 0x19, 0x60, 0xC0, 0x60, 0x06, 0x03, 0x00 },
+		{ 0x38, 0x00, 0x80, 0x83, 0x01, 0x78, 0xC0, 0xE0, 0x07, 0x0F, 0x60, 0x78, 0xC0, 0x03, 0x03, 0x00 },
+		{ 0x30, 0x00, 0x00, 0x80, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x3C, 0xF0, 0x00, 0x00, 0x00, 0x60, 0x00, 0x60, 0x00, 0x0F, 0x7E, 0x60, 0xE0, 0x03, 0x0F, 0x00 },
+		{ 0x66, 0x98, 0x01, 0x00, 0x00, 0x30, 0x00, 0xC0, 0x80, 0x19, 0xC3, 0xF0, 0x60, 0x86, 0x19, 0x00 },
+		{ 0x66, 0x98, 0x81, 0x03, 0x0E, 0x18, 0x00, 0x80, 0x81, 0x19, 0xC3, 0x98, 0x61, 0x86, 0x19, 0x00 },
+		{ 0x6E, 0x98, 0x81, 0x03, 0x0E, 0x0C, 0xF8, 0x01, 0x03, 0x0C, 0xF3, 0x98, 0x61, 0x86, 0x01, 0x00 },
+		{ 0x3C, 0x98, 0x01, 0x00, 0x00, 0x06, 0x00, 0x00, 0x06, 0x06, 0xDB, 0x98, 0xE1, 0x83, 0x01, 0x00 },
+		{ 0x76, 0xF0, 0x01, 0x00, 0x00, 0x0C, 0xF8, 0x01, 0x03, 0x06, 0xDB, 0xF8, 0x61, 0x86, 0x01, 0x00 },
+		{ 0x66, 0xC0, 0x00, 0x00, 0x00, 0x18, 0x00, 0x80, 0x01, 0x00, 0xF3, 0x98, 0x61, 0x86, 0x19, 0x00 },
+		{ 0x66, 0x60, 0x80, 0x03, 0x0E, 0x30, 0x00, 0xC0, 0x00, 0x06, 0x03, 0x98, 0x61, 0x86, 0x19, 0x00 },
+		{ 0x3C, 0x70, 0x80, 0x03, 0x0E, 0x60, 0x00, 0x60, 0x00, 0x06, 0xFE, 0x98, 0xE1, 0x03, 0x0F, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x1E, 0xF8, 0xE1, 0x07, 0x0F, 0x66, 0xF0, 0x00, 0x86, 0x19, 0x06, 0x18, 0x63, 0x0C, 0x0F, 0x00 },
+		{ 0x36, 0x18, 0x60, 0x80, 0x19, 0x66, 0x60, 0x00, 0x86, 0x19, 0x06, 0x18, 0x63, 0x8C, 0x19, 0x00 },
+		{ 0x66, 0x18, 0x60, 0x80, 0x19, 0x66, 0x60, 0x00, 0x86, 0x0D, 0x06, 0xB8, 0xE3, 0x8C, 0x19, 0x00 },
+		{ 0x66, 0x18, 0x60, 0x80, 0x01, 0x66, 0x60, 0x00, 0x86, 0x0D, 0x06, 0x58, 0xE3, 0x8D, 0x19, 0x00 },
+		{ 0x66, 0xF8, 0xE0, 0x83, 0x01, 0x7E, 0x60, 0x00, 0x86, 0x07, 0x06, 0x58, 0x63, 0x8F, 0x19, 0x00 },
+		{ 0x66, 0x18, 0x60, 0x80, 0x1D, 0x66, 0x60, 0x00, 0x86, 0x0D, 0x06, 0x58, 0x63, 0x8E, 0x19, 0x00 },
+		{ 0x66, 0x18, 0x60, 0x80, 0x19, 0x66, 0x60, 0x60, 0x86, 0x0D, 0x06, 0x18, 0x63, 0x8C, 0x19, 0x00 },
+		{ 0x36, 0x18, 0x60, 0x80, 0x19, 0x66, 0x60, 0x60, 0x86, 0x19, 0x06, 0x18, 0x63, 0x8C, 0x19, 0x00 },
+		{ 0x1E, 0xF8, 0x61, 0x00, 0x1F, 0x66, 0xF0, 0xC0, 0x83, 0x19, 0x7E, 0x18, 0x63, 0x0C, 0x0F, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x3E, 0xF0, 0xE0, 0x03, 0x0F, 0x7E, 0x98, 0x61, 0x86, 0x31, 0x66, 0x98, 0xE1, 0x07, 0x0F, 0x00 },
+		{ 0x66, 0x98, 0x61, 0x86, 0x19, 0x18, 0x98, 0x61, 0x86, 0x31, 0x66, 0x98, 0x01, 0x06, 0x03, 0x00 },
+		{ 0x66, 0x98, 0x61, 0x86, 0x01, 0x18, 0x98, 0x61, 0x86, 0x31, 0x2C, 0x98, 0x01, 0x06, 0x03, 0x00 },
+		{ 0x66, 0x98, 0x61, 0x06, 0x03, 0x18, 0x98, 0x61, 0x86, 0x35, 0x18, 0x98, 0x01, 0x03, 0x03, 0x00 },
+		{ 0x3E, 0x98, 0xE1, 0x03, 0x06, 0x18, 0x98, 0x61, 0x86, 0x35, 0x18, 0xF0, 0x80, 0x01, 0x03, 0x00 },
+		{ 0x06, 0x98, 0x61, 0x03, 0x0C, 0x18, 0x98, 0x61, 0x86, 0x35, 0x34, 0x60, 0xC0, 0x00, 0x03, 0x00 },
+		{ 0x06, 0x98, 0x61, 0x06, 0x18, 0x18, 0x98, 0x61, 0x06, 0x1B, 0x66, 0x60, 0x60, 0x00, 0x03, 0x00 },
+		{ 0x06, 0x98, 0x61, 0x86, 0x19, 0x18, 0x98, 0xC1, 0x03, 0x1B, 0x66, 0x60, 0x60, 0x00, 0x03, 0x00 },
+		{ 0x06, 0xF0, 0x60, 0x06, 0x0F, 0x18, 0xF0, 0x80, 0x01, 0x1B, 0x66, 0x60, 0xE0, 0x07, 0x03, 0x00 },
+		{ 0x00, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00 },
+		{ 0x00, 0x80, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x80, 0x01, 0x00, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0xC0, 0x03, 0x00, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x06, 0xF0, 0x60, 0x06, 0x00, 0x30, 0x00, 0x60, 0x00, 0x00, 0x60, 0x00, 0x80, 0x07, 0x00, 0x00 },
+		{ 0x06, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x60, 0x00, 0x00, 0x60, 0x00, 0xC0, 0x00, 0x00, 0x00 },
+		{ 0x0C, 0xC0, 0x00, 0x00, 0x00, 0x00, 0xF0, 0xE0, 0x03, 0x0F, 0x7C, 0xF0, 0xC0, 0x00, 0x1F, 0x00 },
+		{ 0x0C, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x80, 0x61, 0x86, 0x19, 0x66, 0x98, 0xC1, 0x80, 0x19, 0x00 },
+		{ 0x18, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x80, 0x61, 0x86, 0x01, 0x66, 0x98, 0xE1, 0x87, 0x19, 0x00 },
+		{ 0x18, 0xC0, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x61, 0x86, 0x01, 0x66, 0xF8, 0xC1, 0x80, 0x19, 0x00 },
+		{ 0x30, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x98, 0x61, 0x86, 0x01, 0x66, 0x18, 0xC0, 0x80, 0x19, 0x00 },
+		{ 0x30, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x98, 0x61, 0x86, 0x19, 0x66, 0x18, 0xC0, 0x80, 0x19, 0x00 },
+		{ 0x60, 0xC0, 0x00, 0x00, 0x00, 0x00, 0xF0, 0xE1, 0x03, 0x0F, 0x7C, 0xF0, 0xC0, 0x00, 0x1F, 0x00 },
+		{ 0x60, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x00 },
+		{ 0x00, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x00 },
+		{ 0x00, 0xF0, 0x00, 0xC0, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x0F, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x60, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x06, 0x60, 0x00, 0x83, 0x01, 0x1E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x06, 0x00, 0x00, 0x80, 0x01, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x3E, 0x78, 0xC0, 0x83, 0x19, 0x18, 0xF8, 0xE1, 0x03, 0x0F, 0x3E, 0xF0, 0x61, 0x06, 0x1F, 0x00 },
+		{ 0x66, 0x60, 0x00, 0x83, 0x19, 0x18, 0x58, 0x63, 0x86, 0x19, 0x66, 0x98, 0x61, 0x87, 0x01, 0x00 },
+		{ 0x66, 0x60, 0x00, 0x83, 0x0D, 0x18, 0x58, 0x63, 0x86, 0x19, 0x66, 0x98, 0xE1, 0x80, 0x01, 0x00 },
+		{ 0x66, 0x60, 0x00, 0x83, 0x07, 0x18, 0x58, 0x63, 0x86, 0x19, 0x66, 0x98, 0x61, 0x00, 0x0F, 0x00 },
+		{ 0x66, 0x60, 0x00, 0x83, 0x0D, 0x18, 0x58, 0x63, 0x86, 0x19, 0x66, 0x98, 0x61, 0x00, 0x18, 0x00 },
+		{ 0x66, 0x60, 0x00, 0x83, 0x19, 0x18, 0x58, 0x63, 0x86, 0x19, 0x66, 0x98, 0x61, 0x00, 0x18, 0x00 },
+		{ 0x66, 0xF8, 0x01, 0x83, 0x19, 0x7E, 0x18, 0x63, 0x06, 0x0F, 0x3E, 0xF0, 0x61, 0x80, 0x0F, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x80, 0x01, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x80, 0x01, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0xE0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x80, 0x01, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, 0x18, 0x30, 0xE0, 0x88, 0x1F, 0x00 },
+		{ 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x18, 0x60, 0xB0, 0x8D, 0x1F, 0x00 },
+		{ 0x7E, 0x98, 0x61, 0x86, 0x31, 0x66, 0x98, 0xE1, 0x07, 0x06, 0x18, 0x60, 0x10, 0x87, 0x1F, 0x00 },
+		{ 0x0C, 0x98, 0x61, 0x86, 0x35, 0x66, 0x98, 0x01, 0x06, 0x06, 0x18, 0x60, 0x00, 0x80, 0x1F, 0x00 },
+		{ 0x0C, 0x98, 0x61, 0x86, 0x35, 0x3C, 0x98, 0x01, 0x03, 0x03, 0x18, 0xC0, 0x00, 0x80, 0x1F, 0x00 },
+		{ 0x0C, 0x98, 0x61, 0x86, 0x35, 0x18, 0x98, 0x81, 0x81, 0x01, 0x18, 0x80, 0x01, 0x80, 0x1F, 0x00 },
+		{ 0x0C, 0x98, 0x61, 0x86, 0x35, 0x3C, 0x98, 0xC1, 0x00, 0x03, 0x18, 0xC0, 0x00, 0x80, 0x1F, 0x00 },
+		{ 0x0C, 0x98, 0xC1, 0x03, 0x1B, 0x66, 0x98, 0x61, 0x00, 0x06, 0x18, 0x60, 0x00, 0x80, 0x1F, 0x00 },
+		{ 0x78, 0xF0, 0x81, 0x01, 0x1B, 0x66, 0xF0, 0xE0, 0x07, 0x06, 0x18, 0x60, 0x00, 0x80, 0x1F, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC0, 0x00, 0x00, 0x06, 0x18, 0x60, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x60, 0x00, 0x00, 0x0C, 0x18, 0x30, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3C, 0x00, 0x00, 0x00, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+	};
+
+	// -----------------------------------------------------
+	// gemoetry shader
+	// -----------------------------------------------------
+	const BYTE DebugText_GS_Main[] =
+	{
+		68,  88,  66,  67, 202,  42,
+		118, 107, 229,  53, 147, 185,
+		2, 218, 254, 203, 198, 198,
+		202, 235,   1,   0,   0,   0,
+		92,   6,   0,   0,   3,   0,
+		0,   0,  44,   0,   0,   0,
+		152,   0,   0,   0,  12,   1,
+		0,   0,  73,  83,  71,  78,
+		100,   0,   0,   0,   3,   0,
+		0,   0,   8,   0,   0,   0,
+		80,   0,   0,   0,   0,   0,
+		0,   0,   1,   0,   0,   0,
+		3,   0,   0,   0,   0,   0,
+		0,   0,  15,   3,   0,   0,
+		92,   0,   0,   0,   0,   0,
+		0,   0,   0,   0,   0,   0,
+		3,   0,   0,   0,   1,   0,
+		0,   0,  15,  15,   0,   0,
+		92,   0,   0,   0,   1,   0,
+		0,   0,   0,   0,   0,   0,
+		3,   0,   0,   0,   2,   0,
+		0,   0,  15,  15,   0,   0,
+		83,  86,  95,  80,  79,  83,
+		73,  84,  73,  79,  78,   0,
+		67,  79,  76,  79,  82,   0,
+		171, 171,  79,  83,  71,  78,
+		108,   0,   0,   0,   3,   0,
+		0,   0,   8,   0,   0,   0,
+		80,   0,   0,   0,   0,   0,
+		0,   0,   1,   0,   0,   0,
+		3,   0,   0,   0,   0,   0,
+		0,   0,  15,   0,   0,   0,
+		92,   0,   0,   0,   0,   0,
+		0,   0,   0,   0,   0,   0,
+		3,   0,   0,   0,   1,   0,
+		0,   0,   3,  12,   0,   0,
+		101,   0,   0,   0,   0,   0,
+		0,   0,   0,   0,   0,   0,
+		3,   0,   0,   0,   2,   0,
+		0,   0,  15,   0,   0,   0,
+		83,  86,  95,  80,  79,  83,
+		73,  84,  73,  79,  78,   0,
+		84,  69,  88,  67,  79,  79,
+		82,  68,   0,  67,  79,  76,
+		79,  82,   0, 171,  83,  72,
+		68,  82,  72,   5,   0,   0,
+		64,   0,   2,   0,  82,   1,
+		0,   0,  89,   0,   0,   4,
+		70, 142,  32,   0,   0,   0,
+		0,   0,   5,   0,   0,   0,
+		97,   0,   0,   5, 242,  16,
+		32,   0,   1,   0,   0,   0,
+		0,   0,   0,   0,   1,   0,
+		0,   0,  95,   0,   0,   4,
+		242,  16,  32,   0,   1,   0,
+		0,   0,   1,   0,   0,   0,
+		95,   0,   0,   4, 242,  16,
+		32,   0,   1,   0,   0,   0,
+		2,   0,   0,   0, 104,   0,
+		0,   2,   3,   0,   0,   0,
+		93,   8,   0,   1,  92,  40,
+		0,   1, 103,   0,   0,   4,
+		242,  32,  16,   0,   0,   0,
+		0,   0,   1,   0,   0,   0,
+		101,   0,   0,   3,  50,  32,
+		16,   0,   1,   0,   0,   0,
+		101,   0,   0,   3, 242,  32,
+		16,   0,   2,   0,   0,   0,
+		94,   0,   0,   2,   4,   0,
+		0,   0,   9,   0,   0,   1,
+		50,   0,   0,  15, 242,   0,
+		16,   0,   0,   0,   0,   0,
+		70, 132,  32, 128,  65,   0,
+		0,   0,   0,   0,   0,   0,
+		0,   0,   0,   0,   2,  64,
+		0,   0,   0,   0,   0,  63,
+		0,   0,   0,  63,   0,   0,
+		0,  63,   0,   0,   0,  63,
+		70,  20,  32,   0,   0,   0,
+		0,   0,   0,   0,   0,   0,
+		50,   0,   0,  13, 242,   0,
+		16,   0,   0,   0,   0,   0,
+		230,  30,  32,   0,   0,   0,
+		0,   0,   1,   0,   0,   0,
+		2,  64,   0,   0,   0,   0,
+		0,  63,   0,   0,   0,  63,
+		0,   0,   0, 191,   0,   0,
+		0, 191, 102,  12,  16,   0,
+		0,   0,   0,   0,  54,   0,
+		0,   5, 178,   0,  16,   0,
+		1,   0,   0,   0, 102,  14,
+		16,   0,   0,   0,   0,   0,
+		54,   0,   0,   5,  66,   0,
+		16,   0,   1,   0,   0,   0,
+		1,  64,   0,   0,   0,   0,
+		128,  63,  17,   0,   0,   8,
+		18,   0,  16,   0,   2,   0,
+		0,   0,  70,  10,  16,   0,
+		1,   0,   0,   0,  70, 142,
+		32,   0,   0,   0,   0,   0,
+		1,   0,   0,   0,  54,   0,
+		0,   5,  18,  32,  16,   0,
+		0,   0,   0,   0,  10,   0,
+		16,   0,   2,   0,   0,   0,
+		17,   0,   0,   8,  18,   0,
+		16,   0,   2,   0,   0,   0,
+		70,  10,  16,   0,   1,   0,
+		0,   0,  70, 142,  32,   0,
+		0,   0,   0,   0,   2,   0,
+		0,   0,  54,   0,   0,   5,
+		34,  32,  16,   0,   0,   0,
+		0,   0,  10,   0,  16,   0,
+		2,   0,   0,   0,  54,   0,
+		0,   5,  66,  32,  16,   0,
+		0,   0,   0,   0,   1,  64,
+		0,   0,   0,   0, 128,  63,
+		17,   0,   0,   8,  34,   0,
+		16,   0,   1,   0,   0,   0,
+		70,  10,  16,   0,   1,   0,
+		0,   0,  70, 142,  32,   0,
+		0,   0,   0,   0,   4,   0,
+		0,   0,  54,   0,   0,   5,
+		130,  32,  16,   0,   0,   0,
+		0,   0,  26,   0,  16,   0,
+		1,   0,   0,   0,  56,   0,
+		0,  11, 242,   0,  16,   0,
+		2,   0,   0,   0,   2,  64,
+		0,   0,   0,   0,   0,  60,
+		0,   0,   0,  60,   0,   0,
+		0,  60,   0,   0,   0,  60,
+		70,  30,  32,   0,   0,   0,
+		0,   0,   1,   0,   0,   0,
+		54,   0,   0,   5,  50,  32,
+		16,   0,   1,   0,   0,   0,
+		70,   0,  16,   0,   2,   0,
+		0,   0,  54,   0,   0,   6,
+		242,  32,  16,   0,   2,   0,
+		0,   0,  70,  30,  32,   0,
+		0,   0,   0,   0,   2,   0,
+		0,   0,  19,   0,   0,   1,
+		54,   0,   0,   5,  66,   0,
+		16,   0,   0,   0,   0,   0,
+		1,  64,   0,   0,   0,   0,
+		128,  63,  17,   0,   0,   8,
+		34,   0,  16,   0,   1,   0,
+		0,   0,  70,  10,  16,   0,
+		0,   0,   0,   0,  70, 142,
+		32,   0,   0,   0,   0,   0,
+		1,   0,   0,   0,  54,   0,
+		0,   5,  18,  32,  16,   0,
+		0,   0,   0,   0,  26,   0,
+		16,   0,   1,   0,   0,   0,
+		17,   0,   0,   8,  34,   0,
+		16,   0,   1,   0,   0,   0,
+		70,  10,  16,   0,   0,   0,
+		0,   0,  70, 142,  32,   0,
+		0,   0,   0,   0,   2,   0,
+		0,   0,  54,   0,   0,   5,
+		34,  32,  16,   0,   0,   0,
+		0,   0,  26,   0,  16,   0,
+		1,   0,   0,   0,  54,   0,
+		0,   5,  66,  32,  16,   0,
+		0,   0,   0,   0,   1,  64,
+		0,   0,   0,   0, 128,  63,
+		17,   0,   0,   8,  34,   0,
+		16,   0,   0,   0,   0,   0,
+		70,  10,  16,   0,   0,   0,
+		0,   0,  70, 142,  32,   0,
+		0,   0,   0,   0,   4,   0,
+		0,   0,  54,   0,   0,   5,
+		130,  32,  16,   0,   0,   0,
+		0,   0,  26,   0,  16,   0,
+		0,   0,   0,   0,   0,   0,
+		0,   7, 194,   0,  16,   0,
+		2,   0,   0,   0, 166,  14,
+		16,   0,   2,   0,   0,   0,
+		6,   4,  16,   0,   2,   0,
+		0,   0,  54,   0,   0,   5,
+		18,  32,  16,   0,   1,   0,
+		0,   0,  42,   0,  16,   0,
+		2,   0,   0,   0,  54,   0,
+		0,   5,  34,  32,  16,   0,
+		1,   0,   0,   0,  26,   0,
+		16,   0,   2,   0,   0,   0,
+		54,   0,   0,   6, 242,  32,
+		16,   0,   2,   0,   0,   0,
+		70,  30,  32,   0,   0,   0,
+		0,   0,   2,   0,   0,   0,
+		19,   0,   0,   1,  17,   0,
+		0,   8,  34,   0,  16,   0,
+		0,   0,   0,   0, 198,  10,
+		16,   0,   1,   0,   0,   0,
+		70, 142,  32,   0,   0,   0,
+		0,   0,   1,   0,   0,   0,
+		54,   0,   0,   5,  18,  32,
+		16,   0,   0,   0,   0,   0,
+		26,   0,  16,   0,   0,   0,
+		0,   0,  17,   0,   0,   8,
+		34,   0,  16,   0,   0,   0,
+		0,   0, 198,  10,  16,   0,
+		1,   0,   0,   0,  70, 142,
+		32,   0,   0,   0,   0,   0,
+		2,   0,   0,   0,  17,   0,
+		0,   8,  18,   0,  16,   0,
+		1,   0,   0,   0, 198,  10,
+		16,   0,   1,   0,   0,   0,
+		70, 142,  32,   0,   0,   0,
+		0,   0,   4,   0,   0,   0,
+		54,   0,   0,   5, 130,   0,
+		16,   0,   0,   0,   0,   0,
+		58,   0,  16,   0,   1,   0,
+		0,   0,  54,   0,   0,   5,
+		34,  32,  16,   0,   0,   0,
+		0,   0,  26,   0,  16,   0,
+		0,   0,   0,   0,  54,   0,
+		0,   5,  66,  32,  16,   0,
+		0,   0,   0,   0,   1,  64,
+		0,   0,   0,   0, 128,  63,
+		54,   0,   0,   5, 130,  32,
+		16,   0,   0,   0,   0,   0,
+		10,   0,  16,   0,   1,   0,
+		0,   0,  54,   0,   0,   5,
+		18,  32,  16,   0,   1,   0,
+		0,   0,  10,   0,  16,   0,
+		2,   0,   0,   0,  54,   0,
+		0,   5,  34,  32,  16,   0,
+		1,   0,   0,   0,  58,   0,
+		16,   0,   2,   0,   0,   0,
+		54,   0,   0,   6, 242,  32,
+		16,   0,   2,   0,   0,   0,
+		70,  30,  32,   0,   0,   0,
+		0,   0,   2,   0,   0,   0,
+		19,   0,   0,   1,  17,   0,
+		0,   8,  34,   0,  16,   0,
+		0,   0,   0,   0, 198,  10,
+		16,   0,   0,   0,   0,   0,
+		70, 142,  32,   0,   0,   0,
+		0,   0,   1,   0,   0,   0,
+		54,   0,   0,   5,  18,  32,
+		16,   0,   0,   0,   0,   0,
+		26,   0,  16,   0,   0,   0,
+		0,   0,  17,   0,   0,   8,
+		34,   0,  16,   0,   0,   0,
+		0,   0, 198,  10,  16,   0,
+		0,   0,   0,   0,  70, 142,
+		32,   0,   0,   0,   0,   0,
+		2,   0,   0,   0,  17,   0,
+		0,   8,  18,   0,  16,   0,
+		0,   0,   0,   0, 198,  10,
+		16,   0,   0,   0,   0,   0,
+		70, 142,  32,   0,   0,   0,
+		0,   0,   4,   0,   0,   0,
+		54,   0,   0,   5,  34,  32,
+		16,   0,   0,   0,   0,   0,
+		26,   0,  16,   0,   0,   0,
+		0,   0,  54,   0,   0,   5,
+		66,  32,  16,   0,   0,   0,
+		0,   0,   1,  64,   0,   0,
+		0,   0, 128,  63,  54,   0,
+		0,   5, 130,  32,  16,   0,
+		0,   0,   0,   0,  10,   0,
+		16,   0,   0,   0,   0,   0,
+		54,   0,   0,   5,  50,  32,
+		16,   0,   1,   0,   0,   0,
+		230,  10,  16,   0,   2,   0,
+		0,   0,  54,   0,   0,   6,
+		242,  32,  16,   0,   2,   0,
+		0,   0,  70,  30,  32,   0,
+		0,   0,   0,   0,   2,   0,
+		0,   0,  19,   0,   0,   1,
+		9,   0,   0,   1,  62,   0,
+		0,   1
+	};
+
+	// -----------------------------------------------------
+	// pixel shader
+	// -----------------------------------------------------
+	const BYTE DebugText_PS_Main[] =
+	{
+		68,  88,  66,  67, 133, 123,
+		244, 109,  36, 101, 150, 228,
+		91, 135, 209, 221,  54, 143,
+		33,  28,   1,   0,   0,   0,
+		112,   1,   0,   0,   3,   0,
+		0,   0,  44,   0,   0,   0,
+		160,   0,   0,   0, 212,   0,
+		0,   0,  73,  83,  71,  78,
+		108,   0,   0,   0,   3,   0,
+		0,   0,   8,   0,   0,   0,
+		80,   0,   0,   0,   0,   0,
+		0,   0,   1,   0,   0,   0,
+		3,   0,   0,   0,   0,   0,
+		0,   0,  15,   0,   0,   0,
+		92,   0,   0,   0,   0,   0,
+		0,   0,   0,   0,   0,   0,
+		3,   0,   0,   0,   1,   0,
+		0,   0,   3,   3,   0,   0,
+		101,   0,   0,   0,   0,   0,
+		0,   0,   0,   0,   0,   0,
+		3,   0,   0,   0,   2,   0,
+		0,   0,  15,  15,   0,   0,
+		83,  86,  95,  80,  79,  83,
+		73,  84,  73,  79,  78,   0,
+		84,  69,  88,  67,  79,  79,
+		82,  68,   0,  67,  79,  76,
+		79,  82,   0, 171,  79,  83,
+		71,  78,  44,   0,   0,   0,
+		1,   0,   0,   0,   8,   0,
+		0,   0,  32,   0,   0,   0,
+		0,   0,   0,   0,   0,   0,
+		0,   0,   3,   0,   0,   0,
+		0,   0,   0,   0,  15,   0,
+		0,   0,  83,  86,  95,  84,
+		65,  82,  71,  69,  84,   0,
+		171, 171,  83,  72,  68,  82,
+		148,   0,   0,   0,  64,   0,
+		0,   0,  37,   0,   0,   0,
+		90,   0,   0,   3,   0,  96,
+		16,   0,   0,   0,   0,   0,
+		88,  24,   0,   4,   0, 112,
+		16,   0,   0,   0,   0,   0,
+		85,  85,   0,   0,  98,  16,
+		0,   3,  50,  16,  16,   0,
+		1,   0,   0,   0,  98,  16,
+		0,   3, 242,  16,  16,   0,
+		2,   0,   0,   0, 101,   0,
+		0,   3, 242,  32,  16,   0,
+		0,   0,   0,   0, 104,   0,
+		0,   2,   1,   0,   0,   0,
+		69,   0,   0,   9, 242,   0,
+		16,   0,   0,   0,   0,   0,
+		70,  16,  16,   0,   1,   0,
+		0,   0,  70, 126,  16,   0,
+		0,   0,   0,   0,   0,  96,
+		16,   0,   0,   0,   0,   0,
+		56,   0,   0,   7, 242,  32,
+		16,   0,   0,   0,   0,   0,
+		70,  14,  16,   0,   0,   0,
+		0,   0,  70,  30,  16,   0,
+		2,   0,   0,   0,  62,   0,
+		0,   1
+	};
+
+	// -----------------------------------------------------
+	// vertex shader
+	// -----------------------------------------------------
+	const BYTE DebugText_VS_Main[] =
+	{
+		68,  88,  66,  67, 190,  97,
+		0,  55,  77, 152, 190,  30,
+		20, 134, 117, 232, 251, 207,
+		230, 229,   1,   0,   0,   0,
+		176,   1,   0,   0,   3,   0,
+		0,   0,  44,   0,   0,   0,
+		148,   0,   0,   0,   0,   1,
+		0,   0,  73,  83,  71,  78,
+		96,   0,   0,   0,   3,   0,
+		0,   0,   8,   0,   0,   0,
+		80,   0,   0,   0,   0,   0,
+		0,   0,   0,   0,   0,   0,
+		3,   0,   0,   0,   0,   0,
+		0,   0,   7,   7,   0,   0,
+		89,   0,   0,   0,   0,   0,
+		0,   0,   0,   0,   0,   0,
+		3,   0,   0,   0,   1,   0,
+		0,   0,  15,  15,   0,   0,
+		89,   0,   0,   0,   1,   0,
+		0,   0,   0,   0,   0,   0,
+		3,   0,   0,   0,   2,   0,
+		0,   0,  15,  15,   0,   0,
+		80,  79,  83,  73,  84,  73,
+		79,  78,   0,  67,  79,  76,
+		79,  82,   0, 171,  79,  83,
+		71,  78, 100,   0,   0,   0,
+		3,   0,   0,   0,   8,   0,
+		0,   0,  80,   0,   0,   0,
+		0,   0,   0,   0,   1,   0,
+		0,   0,   3,   0,   0,   0,
+		0,   0,   0,   0,  15,   0,
+		0,   0,  92,   0,   0,   0,
+		0,   0,   0,   0,   0,   0,
+		0,   0,   3,   0,   0,   0,
+		1,   0,   0,   0,  15,   0,
+		0,   0,  92,   0,   0,   0,
+		1,   0,   0,   0,   0,   0,
+		0,   0,   3,   0,   0,   0,
+		2,   0,   0,   0,  15,   0,
+		0,   0,  83,  86,  95,  80,
+		79,  83,  73,  84,  73,  79,
+		78,   0,  67,  79,  76,  79,
+		82,   0, 171, 171,  83,  72,
+		68,  82, 168,   0,   0,   0,
+		64,   0,   1,   0,  42,   0,
+		0,   0,  95,   0,   0,   3,
+		114,  16,  16,   0,   0,   0,
+		0,   0,  95,   0,   0,   3,
+		242,  16,  16,   0,   1,   0,
+		0,   0,  95,   0,   0,   3,
+		242,  16,  16,   0,   2,   0,
+		0,   0, 103,   0,   0,   4,
+		242,  32,  16,   0,   0,   0,
+		0,   0,   1,   0,   0,   0,
+		101,   0,   0,   3, 242,  32,
+		16,   0,   1,   0,   0,   0,
+		101,   0,   0,   3, 242,  32,
+		16,   0,   2,   0,   0,   0,
+		54,   0,   0,   5, 114,  32,
+		16,   0,   0,   0,   0,   0,
+		70,  18,  16,   0,   0,   0,
+		0,   0,  54,   0,   0,   5,
+		130,  32,  16,   0,   0,   0,
+		0,   0,   1,  64,   0,   0,
+		0,   0, 128,  63,  54,   0,
+		0,   5, 242,  32,  16,   0,
+		1,   0,   0,   0,  70,  30,
+		16,   0,   1,   0,   0,   0,
+		54,   0,   0,   5, 242,  32,
+		16,   0,   2,   0,   0,   0,
+		70,  30,  16,   0,   2,   0,
+		0,   0,  62,   0,   0,   1
+	};
+
+	
+
+	// -----------------------------------------------------
+	// init
+	// -----------------------------------------------------
+	static void dbgInit() {
+		_ctx->debugItemCount = 0;
+		//
+		// build texture data
+		//
+		uint8_t* data = new uint8_t[128 * 128 * 4];
+		int index = 0;
+		for (int y = 0; y < 128; ++y) {
+			for (int x = 0; x < 16; ++x) {
+				uint8_t t = font[y][x];
+				for (int z = 0; z < 8; ++z) {
+					if ((t >> z) & 1) {
+						data[index++] = 255;
+						data[index++] = 255;
+						data[index++] = 255;
+						data[index++] = 255;
+					}
+					else {
+						data[index++] = 0;
+						data[index++] = 0;
+						data[index++] = 0;
+						data[index++] = 0;
+					}
+				}
+			}
+		}
+		//
+		// create resources
+		//
+		_ctx->debugTextureID = createTexture(128, 128, 4, data, TextureFormat::R8G8B8A8_UNORM);
+		delete[] data; // we do not need this anymore
+		RID vertexShader = createVertexShader(DebugText_VS_Main, sizeof(DebugText_VS_Main));
+		RID pixelShader = createPixelShader(DebugText_PS_Main, sizeof(DebugText_PS_Main));
+		RID geoShader = createGeometryShader(DebugText_GS_Main, sizeof(DebugText_GS_Main));
+		ds::VertexDeclaration decl[] = {
+			{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
+			{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 },
+			{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
+		};
+		RID vertexDeclId = createVertexDeclaration(decl, 3, vertexShader);
+		RID cbid = createConstantBuffer(sizeof(DebugTextConstantBuffer), &_ctx->debugConstantBuffer);
+		_ctx->debugVertexBufferID = createVertexBuffer(BufferType::DYNAMIC, MAX_DBG_TXT_VERTICES, sizeof(DebugTextVertex));
+		RID ssid = createSamplerState(TextureAddressModes::CLAMP, TextureFilters::POINT);
+
+		//
+		// create state group
+		//
+		RID debugTextStateGroup = StateGroupBuilder()
+			.inputLayout(vertexDeclId)
+			.vertexBuffer(_ctx->debugVertexBufferID)
+			.indexBuffer(NO_RID)
+			.vertexShader(vertexShader)
+			.geometryShader(geoShader)
+			.pixelShader(pixelShader)
+			.constantBuffer(cbid, geoShader, 0)
+			.texture(_ctx->debugTextureID, pixelShader, 0)
+			.samplerState(ssid, pixelShader)
+			.build();
+
+		vec2 textureSize = ds::getTextureSize(_ctx->debugTextureID);
+		_ctx->debugConstantBuffer.screenDimension = vec4(ds::getScreenWidth(), ds::getScreenHeight(), textureSize.x, textureSize.y);
+		//
+		// create draw command
+		//
+		DrawCommand drawCmd = { 100, DrawType::DT_VERTICES, PrimitiveTypes::POINT_LIST, 0 };
+		_ctx->debugDrawItem = compile(drawCmd, debugTextStateGroup, "DebugText");
+		//
+		// build ortho view and render pass
+		//
+		matrix orthoView = matIdentity();
+		matrix orthoProjection = matOrthoLH(getScreenWidth(), getScreenHeight(), 0.1f, 1.0f);
+		_ctx->debugOrthoPass = createRenderPass(orthoView, orthoProjection, DepthBufferState::DISABLED);
+		_ctx->debugConstantBuffer.wvp = matTranspose(orthoView * orthoProjection);
+	}
+
+	// -----------------------------------------------------
+	// begin
+	// -----------------------------------------------------
+	void dbgBegin() {
+		_ctx->debugItemCount = 0;
+	}
+
+	// -----------------------------------------------------
+	// internal add
+	// -----------------------------------------------------
+	static void add(uint16_t x, uint16_t y, const ds::vec4& texture, const ds::Color color) {
+		if ((_ctx->debugItemCount + 1) >= MAX_DBG_TXT_VERTICES) {
+			dbgFlush();
+		}
+		_ctx->debugVertices[_ctx->debugItemCount++] = { vec3(x,y,0),texture,color };
+	}
+
+	// -----------------------------------------------------
+	// add
+	// -----------------------------------------------------
+	static void add(uint16_t xp, uint16_t yp, const char* message) {
+		xp *= 10;
+		xp += 10;
+		yp = getScreenHeight() - 20 - yp * 20;
+		int l = strlen(message);
+		for (int i = 0; i < l; ++i) {
+			int c = message[i] - 32;
+			int t = c / 12;
+			int y = t * 16;
+			int x = (c - t * 12) * 10;
+			add(xp + 10 * i, yp, vec4(x, y, 8, 16), Color(255, 255, 255, 255));
+		}
+	}
+
+	// -----------------------------------------------------
+	// format
+	// -----------------------------------------------------
+	void dbgPrint(uint16_t x, uint16_t y, char* format, ...) {
+		if (_ctx->supportDebug) {
+			va_list args;
+			va_start(args, format);
+			char buffer[1024];
+			memset(buffer, 0, sizeof(buffer));
+			int written = vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, format, args);
+			add(x, y, buffer);
+			va_end(args);
+		}
+	}
+
+	// -----------------------------------------------------
+	// flush
+	// -----------------------------------------------------
+	void dbgFlush() {
+		if (_ctx->debugItemCount > 0) {
+			mapBufferData(_ctx->debugVertexBufferID, _ctx->debugVertices, _ctx->debugItemCount * sizeof(DebugTextVertex));
+			submit(_ctx->debugOrthoPass, _ctx->debugDrawItem, _ctx->debugItemCount);
+			_ctx->debugItemCount = 0;
+		}
+	}
+
 }
 #endif
 	
