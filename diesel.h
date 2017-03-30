@@ -51,6 +51,17 @@ const uint16_t NO_RID = UINT16_MAX - 1;
 #endif
 
 namespace ds {
+
+	const uint32_t FNV_Prime = 0x01000193; //   16777619
+	const uint32_t FNV_Seed = 0x811C9DC5; // 2166136261
+
+	inline uint32_t fnv1a(const char* text, uint32_t hash = FNV_Seed) {
+		const unsigned char* ptr = (const unsigned char*)text;
+		while (*ptr) {
+			hash = (*ptr++ ^ hash) * FNV_Prime;
+		}
+		return hash;
+	}
 	// ----------------------------------------------------------------------
 	//
 	// The necessary math
@@ -849,6 +860,19 @@ namespace ds {
 		int _total;
 		RID* _items;
 	};
+
+	class StaticHash {
+
+	public:
+		StaticHash();
+		explicit StaticHash(const char* text);
+		explicit StaticHash(uint32_t hash);
+		~StaticHash() {}
+		const uint32_t get() const;
+		const bool operator<(const StaticHash &rhs) const;
+	private:
+		uint32_t _hash;
+	};
 	
 	// ---------------------------------------------------
 	// Draw Item
@@ -960,6 +984,7 @@ namespace ds {
 
 	//void setDepthBufferState(DepthBufferState state);
 
+	RID findResource(const StaticHash& hash, ResourceType type);
 	// drawing
 	
 	void begin();
@@ -1095,8 +1120,8 @@ namespace ds {
 
 	void dbgPrint(uint16_t x, uint16_t y, char* format, ...);
 
-	void printResources();
-	
+	void saveResourcesToFile(const char* fileName = "resources.txt");
+
 }
 
 #ifdef DS_IMPLEMENTATION
@@ -1129,6 +1154,9 @@ namespace ds {
 #ifndef REPORT
 #define REPORT(s,d) do { ds::reportLastError(__FILE__,__LINE__,s,d); } while(false);
 #endif
+
+#define SID(str) (ds::StaticHash(str))
+#define SID_VAL(str) (fnv1a(str))
 
 namespace ds {
 
@@ -1471,12 +1499,17 @@ namespace ds {
 		const int getNameIndex() const {
 			return _nameIndex;
 		}
-		void setNameIndex(int idx) {
+		const StaticHash& getHash() const {
+			return _hash;
+		}
+		void setNameIndex(int idx, const StaticHash& hash) {
 			_nameIndex = idx;
+			_hash = hash;
 		}
 	private:
 		int _nameIndex;
 		RID _rid;
+		StaticHash _hash;
 	};
 
 	// ------------------------------------------------------
@@ -1558,7 +1591,7 @@ namespace ds {
 	class VertexBufferResource : public AbstractResource<ID3D11Buffer*> {
 
 	public:
-		VertexBufferResource(ID3D11Buffer* t, int size, BufferType type, int vertexSize) : AbstractResource(t), _size(size), _vertexSize(vertexSize) {}
+		VertexBufferResource(ID3D11Buffer* t, int size, BufferType type, unsigned int vertexSize) : AbstractResource(t), _size(size), _vertexSize(vertexSize) {}
 		virtual ~VertexBufferResource() {}
 
 		void release() {
@@ -1576,13 +1609,13 @@ namespace ds {
 		BufferType getBufferType() const {
 			return _type;
 		}
-		int getVertexSize() const {
+		unsigned int getVertexSize() const {
 			return _vertexSize;
 		}
 	private:
 		int _size;
 		BufferType _type;
-		int _vertexSize;
+		unsigned int _vertexSize;
 	};
 
 	// ------------------------------------------------------
@@ -2035,7 +2068,7 @@ namespace ds {
 		_ctx->_resources.push_back(res);
 		RID rid = buildRID(static_cast<uint16_t>(_ctx->_resources.size() - 1), type);
 		res->setRID(rid);		
-		res->setNameIndex(_ctx->charBuffer->append(name));
+		res->setNameIndex(_ctx->charBuffer->append(name), SID(name));
 		return rid;
 	}
 
@@ -2048,6 +2081,16 @@ namespace ds {
 			return idx;
 		}
 		return NO_RID;
+	}
+
+	RID findResource(const StaticHash& hash, ResourceType type) {
+		for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
+			const BaseResource* res = _ctx->_resources[i];
+			if (res->getHash().get() == hash.get() && res->getType() == type) {
+				return res->getRID();
+			}
+		}
+		return buildRID(NO_RID, type);
 	}
 	// -------------------------------------------------------
 	// random
@@ -2973,13 +3016,14 @@ namespace ds {
 				case PLS_GS_RES: _ctx->d3dContext->GSSetConstantBuffers(slot, 1, &buffer); break;
 			}
 		}
-		else {
-			switch (stage) {
-				case PLS_VS_RES: _ctx->d3dContext->VSSetConstantBuffers(slot, 1, NULL); break;
-				case PLS_PS_RES: _ctx->d3dContext->PSSetConstantBuffers(slot, 1, NULL); break;
-				case PLS_GS_RES: _ctx->d3dContext->GSSetConstantBuffers(slot, 1, NULL); break;
-			}
-		}
+		// FIXME: check if there is a way to unbind a CB or if it is ok to just leave it as it is
+		//else {
+			//switch (stage) {
+				//case PLS_VS_RES: _ctx->d3dContext->VSSetConstantBuffers(slot, 1, NULL); break;
+				//case PLS_PS_RES: _ctx->d3dContext->PSSetConstantBuffers(slot, 1, NULL); break;
+				//case PLS_GS_RES: _ctx->d3dContext->GSSetConstantBuffers(slot, 1, NULL); break;
+			//}
+		//}
 	}
 
 	const static int INDEX_BUFFER_SIZE[] = {
@@ -3317,76 +3361,6 @@ namespace ds {
 		_ctx->depthBufferState = state;
 	}
 
-	// ------------------------------------------------------
-	// clear leaking states
-	// ------------------------------------------------------
-	static void clearStates(uint16_t* differences, int num) {
-		FILE* f = fopen("debug.log", "a");		
-		for (int i = 0; i < num; ++i) {
-			uint32_t real = (differences[i] << 16);
-			fprintf(f, "%s / %s / %d\n", RESOURCE_NAMES[type_mask(real)], PIPELINE_STAGE_NAMES[stage_mask(real)], slot_mask(real));
-		}
-		fclose(f);
-	}
-
-	// ------------------------------------------------------
-	// submit draw command
-	// ------------------------------------------------------
-	void submit(RID renderPass, RID drawItemID, int numElements) {
-		uint16_t pidx = getResourceIndex(renderPass, RT_RENDER_PASS);
-		RenderPassResource* rpRes = (RenderPassResource*)_ctx->_resources[pidx];
-		RenderPass* pass = rpRes->get();
-		if (pass->numRenderTargets > 0) {
-			for (int i = 0; i < pass->numRenderTargets; ++i) {
-				setRenderTarget(pass->rts[i]);
-			}
-		}		
-		_ctx->basicConstantBuffer.viewMatrix = matTranspose(pass->viewMatrix);
-		_ctx->basicConstantBuffer.projectionMatrix = matTranspose(pass->projectionMatrix);
-		_ctx->basicConstantBuffer.viewProjectionMatrix = matTranspose(pass->viewProjectionMatrix);
-		// FIXME: how to handle world matrix???
-		setDepthBufferState(pass->depthState);
-		uint16_t ridx = getResourceIndex(drawItemID, RT_DRAW_ITEM);
-		DrawItemResource* res = (DrawItemResource*)_ctx->_resources[ridx];
-		const DrawItem* item = res->get();
-		_ctx->pipelineStates[_ctx->currentDrawCall].reset();
-		_ctx->drawCalls[_ctx->currentDrawCall] = drawItemID;
-		//_ctx->pipelineState->reset();
-		for (int i = 0; i < item->num; ++i) {
-			apply(&_ctx->pipelineStates[_ctx->currentDrawCall], item->groups[i]);
-		}		
-		if (_ctx->lastDrawCall >= 0) {
-			uint16_t differences[64];
-			// build diff between draw calls
-			int num = _ctx->pipelineStates[_ctx->currentDrawCall].diff(_ctx->pipelineStates[_ctx->lastDrawCall], differences, 64);
-			if (num > 0) {
-				int sidx = id_mask(drawItemID);
-				FILE* f = fopen("debug.log", "a");
-				fprintf(f, "call: %d - %s previous: %d\n", sidx, _ctx->charBuffer->get(item->nameIndex), id_mask(_ctx->drawCalls[_ctx->lastDrawCall]));
-				fclose(f);
-				clearStates(differences, num);
-			}
-		}
-		// toggle draw call
-		_ctx->lastDrawCall = (_ctx->lastDrawCall + 1) & 1;
-		_ctx->currentDrawCall = (_ctx->currentDrawCall + 1) & 1;
-		const DrawCommand& cmd = item->command;
-		int num = cmd.size;
-		if (numElements != -1) {
-			num = numElements;
-		}
-		_ctx->d3dContext->IASetPrimitiveTopology(PRIMITIVE_TOPOLOGIES[cmd.topology]);
-		switch (cmd.drawType) {
-			case DT_VERTICES: _ctx->d3dContext->Draw(num, 0); break;
-			case DT_INDEXED: _ctx->d3dContext->DrawIndexed(num, 0, 0); break;
-			case DT_INSTANCED: _ctx->d3dContext->DrawInstanced(num, cmd.instances, 0, 0); break;
-		}
-		// FIXME: this is wrong since there might be several submit which would like to use the same rt
-		if (pass->numRenderTargets > 0) {
-			restoreBackBuffer();
-		}
-	}
-	
 	// ------------------------------------------------------
 	// create vertex shader
 	// ------------------------------------------------------
@@ -3991,6 +3965,121 @@ namespace ds {
 		return rid;
 	}
 
+	static void applyResource(RID current, int type) {
+		if (type == ResourceType::RT_VERTEX_DECLARATION) {
+			setVertexDeclaration(current);
+		}
+		else if (type == ResourceType::RT_SAMPLER_STATE) {
+			setSamplerState(current);
+		}
+		else if (type == ResourceType::RT_BLENDSTATE) {
+			setBlendState(current);
+		}
+		else if (type == ResourceType::RT_RASTERIZER_STATE) {
+			setRasterizerState(current);
+		}
+		else if (type == ResourceType::RT_VERTEX_BUFFER) {
+			setVertexBuffer(current);
+		}
+		else if (type == ResourceType::RT_INSTANCED_VERTEX_BUFFER) {
+			setInstancedVertexBuffer(current);
+		}
+		else if (type == ResourceType::RT_INDEX_BUFFER) {
+			setIndexBuffer(current);
+		}
+		else if (type == ResourceType::RT_VERTEX_SHADER) {
+			setVertexShader(current);
+		}
+		else if (type == ResourceType::RT_GEOMETRY_SHADER) {
+			setGeometryShader(current);
+		}
+		else if (type == ResourceType::RT_PIXEL_SHADER) {
+			setPixelShader(current);
+		}
+		else if (type == ResourceType::RT_SRV) {
+			setTexture(current);
+		}
+		else if (type == ResourceType::RT_TEXTURE_FROM_RT) {
+			setTextureFromRenderTarget(current);
+		}
+		else if (type == ResourceType::RT_CONSTANT_BUFFER) {
+			setConstantBuffer(current);
+		}
+	}
+
+
+	// ------------------------------------------------------
+	// clear leaking states
+	// ------------------------------------------------------
+	static void clearStates(uint16_t* differences, int num) {
+		//FILE* f = fopen("debug.log", "a");		
+		for (int i = 0; i < num; ++i) {
+			uint32_t real = (differences[i] << 16);
+			applyResource(real + NO_RID, type_mask(real));
+			// FIXME: clear state
+			//fprintf(f, "%s / %s / %d\n", RESOURCE_NAMES[type_mask(real)], PIPELINE_STAGE_NAMES[stage_mask(real)], slot_mask(real));
+		}
+		//fclose(f);
+	}
+
+
+	// ------------------------------------------------------
+	// submit draw command
+	// ------------------------------------------------------
+	void submit(RID renderPass, RID drawItemID, int numElements) {
+		uint16_t pidx = getResourceIndex(renderPass, RT_RENDER_PASS);
+		RenderPassResource* rpRes = (RenderPassResource*)_ctx->_resources[pidx];
+		RenderPass* pass = rpRes->get();
+		if (pass->numRenderTargets > 0) {
+			for (int i = 0; i < pass->numRenderTargets; ++i) {
+				setRenderTarget(pass->rts[i]);
+			}
+		}
+		_ctx->basicConstantBuffer.viewMatrix = matTranspose(pass->viewMatrix);
+		_ctx->basicConstantBuffer.projectionMatrix = matTranspose(pass->projectionMatrix);
+		_ctx->basicConstantBuffer.viewProjectionMatrix = matTranspose(pass->viewProjectionMatrix);
+		// FIXME: how to handle world matrix???
+		setDepthBufferState(pass->depthState);
+		uint16_t ridx = getResourceIndex(drawItemID, RT_DRAW_ITEM);
+		DrawItemResource* res = (DrawItemResource*)_ctx->_resources[ridx];
+		const DrawItem* item = res->get();
+		_ctx->pipelineStates[_ctx->currentDrawCall].reset();
+		_ctx->drawCalls[_ctx->currentDrawCall] = drawItemID;
+		for (int i = 0; i < item->num; ++i) {
+			apply(&_ctx->pipelineStates[_ctx->currentDrawCall], item->groups[i]);
+		}
+		if (_ctx->lastDrawCall >= 0) {
+			uint16_t differences[64];
+			// build diff between draw calls
+			int num = _ctx->pipelineStates[_ctx->currentDrawCall].diff(_ctx->pipelineStates[_ctx->lastDrawCall], differences, 64);
+			if (num > 0) {
+				int sidx = id_mask(drawItemID);
+				//FILE* f = fopen("debug.log", "a");
+				//fprintf(f, "call: %d - %s previous: %d\n", sidx, _ctx->charBuffer->get(item->nameIndex), id_mask(_ctx->drawCalls[_ctx->lastDrawCall]));
+				//fclose(f);
+				clearStates(differences, num);
+			}
+		}
+		// toggle draw call
+		_ctx->lastDrawCall = (_ctx->lastDrawCall + 1) & 1;
+		_ctx->currentDrawCall = (_ctx->currentDrawCall + 1) & 1;
+		const DrawCommand& cmd = item->command;
+		int num = cmd.size;
+		if (numElements != -1) {
+			num = numElements;
+		}
+		_ctx->d3dContext->IASetPrimitiveTopology(PRIMITIVE_TOPOLOGIES[cmd.topology]);
+		switch (cmd.drawType) {
+		case DT_VERTICES: _ctx->d3dContext->Draw(num, 0); break;
+		case DT_INDEXED: _ctx->d3dContext->DrawIndexed(num, 0, 0); break;
+		case DT_INSTANCED: _ctx->d3dContext->DrawInstanced(num, cmd.instances, 0, 0); break;
+		}
+		// FIXME: this is wrong since there might be several submit which would like to use the same rt
+		if (pass->numRenderTargets > 0) {
+			restoreBackBuffer();
+		}
+	}
+
 	static void apply(PipelineState* pipelineState, RID groupID) {
 		StateGroupResource* res = (StateGroupResource*)_ctx->_resources[id_mask(groupID)];
 		StateGroup* group = res->get();
@@ -3998,45 +4087,7 @@ namespace ds {
 			RID current = group->items[i];
 			int type = type_mask(current);
 			if (!pipelineState->isUsed(current)) {
-				if (type == ResourceType::RT_VERTEX_DECLARATION) {
-					setVertexDeclaration(current);
-				}
-				else if (type == ResourceType::RT_SAMPLER_STATE) {
-					setSamplerState(current);
-				}
-				else if (type == ResourceType::RT_BLENDSTATE) {
-					setBlendState(current);
-				}
-				else if (type == ResourceType::RT_RASTERIZER_STATE) {
-					setRasterizerState(current);
-				}
-				else if (type == ResourceType::RT_VERTEX_BUFFER) {
-					setVertexBuffer(current);
-				}
-				else if (type == ResourceType::RT_INSTANCED_VERTEX_BUFFER) {
-					setInstancedVertexBuffer(current);
-				}
-				else if (type == ResourceType::RT_INDEX_BUFFER) {
-					setIndexBuffer(current);
-				}
-				else if (type == ResourceType::RT_VERTEX_SHADER) {
-					setVertexShader(current);
-				}
-				else if (type == ResourceType::RT_GEOMETRY_SHADER) {
-					setGeometryShader(current);
-				}
-				else if (type == ResourceType::RT_PIXEL_SHADER) {
-					setPixelShader(current);
-				}
-				else if (type == ResourceType::RT_SRV) {
-					setTexture(current);
-				}
-				else if (type == ResourceType::RT_TEXTURE_FROM_RT) {
-					setTextureFromRenderTarget(current);
-				}
-				else if (type == ResourceType::RT_CONSTANT_BUFFER) {
-					setConstantBuffer(current);
-				}
+				applyResource(current, type);
 			}
 			pipelineState->add(current);
 		}
@@ -4353,8 +4404,8 @@ namespace ds {
 	// DEBUG - print resources
 	//
 	// ******************************************************
-	void printResources() {
-		FILE* fp = fopen("log.txt", "w");
+	void saveResourcesToFile(const char* fileName) {
+		FILE* fp = fopen(fileName, "w");
 		fprintf(fp, " index | resource type       | Name\n");
 		fprintf(fp, "--------------------------------------------------------------\n");
 		for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
@@ -4374,11 +4425,17 @@ namespace ds {
 					StateGroupResource* res = (StateGroupResource*)_ctx->_resources[id_mask(groupID)];
 					StateGroup* group = res->get();
 					fprintf(fp, "Group: %d (%s)\n", id_mask(group->rid), _ctx->charBuffer->get(res->getNameIndex()));
-					fprintf(fp, "resource type        | id    | stage    | slot\n");
-					fprintf(fp, "----------------------------------------------\n");
+					fprintf(fp, "resource type        | id    | stage    | slot | Name\n");
+					fprintf(fp, "------------------------------------------------------------------------------------------\n");
 					for (int k = 0; k < group->num; ++k) {
 						RID current = group->items[k];
-						fprintf(fp, "%-20s | %5d | %-8s | %2d\n", RESOURCE_NAMES[type_mask(current)], id_mask(current), PIPELINE_STAGE_NAMES[stage_mask(current)], slot_mask(current));
+						if (id_mask(current) != NO_RID) {
+							BaseResource* res = _ctx->_resources[id_mask(current)];
+							fprintf(fp, "%-20s | %5d | %-8s | %2d   | %s\n", RESOURCE_NAMES[type_mask(current)], id_mask(current), PIPELINE_STAGE_NAMES[stage_mask(current)], slot_mask(current),_ctx->charBuffer->get(res->getNameIndex()));
+						}
+						else {
+							fprintf(fp, "%-20s | %5d | %-8s | %2d   | NO_RID\n", RESOURCE_NAMES[type_mask(current)], id_mask(current), PIPELINE_STAGE_NAMES[stage_mask(current)], slot_mask(current));
+						}
 					}
 				}
 			}
@@ -5229,19 +5286,19 @@ namespace ds {
 		//
 		// create resources
 		//
-		_ctx->debugTextureID = createTexture(128, 128, 4, data, TextureFormat::R8G8B8A8_UNORM);
+		_ctx->debugTextureID = createTexture(128, 128, 4, data, TextureFormat::R8G8B8A8_UNORM, "DebugTextFont");
 		delete[] data; // we do not need this anymore
-		RID vertexShader = createVertexShader(DebugText_VS_Main, sizeof(DebugText_VS_Main));
-		RID pixelShader = createPixelShader(DebugText_PS_Main, sizeof(DebugText_PS_Main));
-		RID geoShader = createGeometryShader(DebugText_GS_Main, sizeof(DebugText_GS_Main));
+		RID vertexShader = createVertexShader(DebugText_VS_Main, sizeof(DebugText_VS_Main), "DebugVS");
+		RID pixelShader = createPixelShader(DebugText_PS_Main, sizeof(DebugText_PS_Main), "DebugPS");
+		RID geoShader = createGeometryShader(DebugText_GS_Main, sizeof(DebugText_GS_Main), "DebugGS");
 		ds::VertexDeclaration decl[] = {
 			{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 			{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 },
 			{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
 		};
-		RID vertexDeclId = createVertexDeclaration(decl, 3, vertexShader);
-		RID cbid = createConstantBuffer(sizeof(DebugTextConstantBuffer), &_ctx->debugConstantBuffer);
-		_ctx->debugVertexBufferID = createVertexBuffer(BufferType::DYNAMIC, MAX_DBG_TXT_VERTICES, sizeof(DebugTextVertex));
+		RID vertexDeclId = createVertexDeclaration(decl, 3, vertexShader, "PCC_Layout");
+		RID cbid = createConstantBuffer(sizeof(DebugTextConstantBuffer), &_ctx->debugConstantBuffer, "DebugTextConstantBuffer");
+		_ctx->debugVertexBufferID = createVertexBuffer(BufferType::DYNAMIC, MAX_DBG_TXT_VERTICES, sizeof(DebugTextVertex), 0, "DebugTextVertexBuffer");
 		RID ssid = createSamplerState(TextureAddressModes::CLAMP, TextureFilters::POINT);
 
 		//
@@ -5271,7 +5328,7 @@ namespace ds {
 		//
 		matrix orthoView = matIdentity();
 		matrix orthoProjection = matOrthoLH(getScreenWidth(), getScreenHeight(), 0.1f, 1.0f);
-		_ctx->debugOrthoPass = createRenderPass(orthoView, orthoProjection, DepthBufferState::DISABLED);
+		_ctx->debugOrthoPass = createRenderPass(orthoView, orthoProjection, DepthBufferState::DISABLED, "DebugTextOrthoPass");
 		_ctx->debugConstantBuffer.wvp = matTranspose(orthoView * orthoProjection);
 	}
 
@@ -5334,6 +5391,27 @@ namespace ds {
 			_ctx->debugItemCount = 0;
 		}
 	}
+
+	// ----------------------------------------------------
+	// Static Hash 
+	// ----------------------------------------------------
+	StaticHash::StaticHash() {
+		_hash = 0;
+	}
+	StaticHash::StaticHash(const char* text) {
+		_hash = fnv1a(text);
+	}
+	StaticHash::StaticHash(uint32_t hash) {
+		_hash = hash;
+	}
+	const uint32_t StaticHash::get() const {
+		return _hash;
+	}
+	const bool StaticHash::operator<(const StaticHash &rhs) const {
+		return _hash < rhs.get();
+	}
+
+	const StaticHash INVALID_HASH = StaticHash(static_cast<unsigned int>(0));
 
 }
 #endif

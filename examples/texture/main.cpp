@@ -32,7 +32,7 @@ struct CubeConstantBuffer {
 RID loadImage(const char* name) {
 	int x, y, n;
 	unsigned char *data = stbi_load(name, &x, &y, &n, 4);
-	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
+	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM, name);
 	stbi_image_free(data);
 	return textureID;
 }
@@ -86,8 +86,8 @@ int main(int argc, char *argv[]) {
 	RID textureID = loadImage("..\\common\\cube_map.png");
 	RID cubeTextureID = loadImage("..\\common\\grid.png");
 	
-	RID vertexShader = ds::loadVertexShader("..\\common\\Textured_vs.cso");
-	RID pixelShader = ds::loadPixelShader("..\\common\\Textured_ps.cso");
+	RID vertexShader = ds::loadVertexShader("..\\common\\Textured_vs.cso", "TextureVS");
+	RID pixelShader = ds::loadPixelShader("..\\common\\Textured_ps.cso", "TexturePS");
 
 	float gridWidth = 3.0f;
 	float gridHeight = 3.0f;
@@ -112,11 +112,13 @@ int main(int argc, char *argv[]) {
 	RID staticCubes = ds::createVertexBuffer(ds::BufferType::STATIC, totalCubeVertices, sizeof(Vertex), sv, "StaticCubes");
 
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR, "CLAMP_LINEAR_SAMPLER");
+	RID blendStateID = ds::findResource(SID("DefaultBlendState"), ds::ResourceType::RT_BLENDSTATE);
 
 	worldMatrix wm;
 
 	RID basicGroup = ds::StateGroupBuilder()
 		.inputLayout(rid)
+		.blendState(blendStateID)
 		.constantBuffer(cbid, vertexShader, 0)
 		.texture(textureID, pixelShader, 0)
 		.vertexShader(vertexShader)
@@ -152,7 +154,7 @@ int main(int argc, char *argv[]) {
 	ds::vec3 position = ds::vec3(0.0f, 0.0f, 0.0f);
 
 	
-	ds::printResources();
+	ds::saveResourcesToFile("log.txt");
 
 	int state = 1;
 	while (ds::isRunning()) {

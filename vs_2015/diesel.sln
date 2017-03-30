@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+VisualStudioVersion = 14.0.23107.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "diesel", "diesel.vcxproj", "{4248D58D-2A87-4E81-BF1D-D97337EECE8A}"
 EndProject
@@ -54,8 +54,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BinaryClock", "..\examples\binary_clock\BinaryClock.vcxproj", "{08FD4D93-9E9E-4E36-AE10-4BD54E33C558}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MonochromeFont", "..\examples\monochrome_font\MonochromeFont.vcxproj", "{1704B168-0C4C-46CB-B59D-B853FF063ADE}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Components", "..\components\Components.vcxproj", "{2E4FDBEF-CCFA-4B6A-8779-57D21EA62F01}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -273,14 +271,6 @@ Global
 		{1704B168-0C4C-46CB-B59D-B853FF063ADE}.Release|x64.Build.0 = Release|x64
 		{1704B168-0C4C-46CB-B59D-B853FF063ADE}.Release|x86.ActiveCfg = Release|Win32
 		{1704B168-0C4C-46CB-B59D-B853FF063ADE}.Release|x86.Build.0 = Release|Win32
-		{2E4FDBEF-CCFA-4B6A-8779-57D21EA62F01}.Debug|x64.ActiveCfg = Debug|x64
-		{2E4FDBEF-CCFA-4B6A-8779-57D21EA62F01}.Debug|x64.Build.0 = Debug|x64
-		{2E4FDBEF-CCFA-4B6A-8779-57D21EA62F01}.Debug|x86.ActiveCfg = Debug|Win32
-		{2E4FDBEF-CCFA-4B6A-8779-57D21EA62F01}.Debug|x86.Build.0 = Debug|Win32
-		{2E4FDBEF-CCFA-4B6A-8779-57D21EA62F01}.Release|x64.ActiveCfg = Release|x64
-		{2E4FDBEF-CCFA-4B6A-8779-57D21EA62F01}.Release|x64.Build.0 = Release|x64
-		{2E4FDBEF-CCFA-4B6A-8779-57D21EA62F01}.Release|x86.ActiveCfg = Release|Win32
-		{2E4FDBEF-CCFA-4B6A-8779-57D21EA62F01}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

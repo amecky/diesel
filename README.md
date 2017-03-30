@@ -31,6 +31,10 @@ There are a lot of examples in the examples dircetory. Not all of these examples
 Sometimes I just add something for the fun of it. The list will grow.
 [Examples](Examples.md) is the 
 
+## Debugging resources
+
+Diesel supports one method to debug the resources and draw items. Please read [here](Debugging.md)
+
 ## GPU Profiler
 
 diesel includes a simple GPU profiler. You can read about it [here](GPUProfiler.md)

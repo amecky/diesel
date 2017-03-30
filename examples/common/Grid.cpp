@@ -16,10 +16,10 @@ void Grid::create(ds::vec3* positions, int numCells, RID vertexShader, RID pixel
 		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }
 	};
 
-	RID vertexDeclaration = ds::createVertexDeclaration(decl, 2, vertexShader);
-	RID bufferID = ds::createConstantBuffer(sizeof(GridConstantBuffer), &_constantBuffer);
-	RID indexBuffer = ds::createQuadIndexBuffer(1);
-	RID gridBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 4, sizeof(GridVertex), _vertices);
+	RID vertexDeclaration = ds::createVertexDeclaration(decl, 2, vertexShader, "PT_Layout");
+	RID bufferID = ds::createConstantBuffer(sizeof(GridConstantBuffer), &_constantBuffer, "GridConstantBuffer");
+	RID indexBuffer = ds::createQuadIndexBuffer(1, "GridIndexBuffer");
+	RID gridBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 4, sizeof(GridVertex), _vertices, "GridVertexBuffer");
 	RID samplerState = ds::createSamplerState(ds::TextureAddressModes::WRAP, ds::TextureFilters::LINEAR);
 
 	RID gridStates = ds::StateGroupBuilder()

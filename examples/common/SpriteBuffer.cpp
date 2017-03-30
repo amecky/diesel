@@ -7,9 +7,9 @@ SpriteBuffer::SpriteBuffer(int maxSprites, RID textureID) : _max(maxSprites) {
 
 	_vertices = new SpriteBufferVertex[maxSprites];
 
-	RID vertexShader = ds::createVertexShader(Sprite_VS_Main, sizeof(Sprite_VS_Main));
-	_pixelShader = ds::createPixelShader(Sprite_PS_Main, sizeof(Sprite_PS_Main));
-	RID geoShader = ds::createGeometryShader(Sprite_GS_Main, sizeof(Sprite_GS_Main));
+	RID vertexShader = ds::createVertexShader(Sprite_VS_Main, sizeof(Sprite_VS_Main), "SpriteVS");
+	_pixelShader = ds::createPixelShader(Sprite_PS_Main, sizeof(Sprite_PS_Main), "SpritePS");
+	RID geoShader = ds::createGeometryShader(Sprite_GS_Main, sizeof(Sprite_GS_Main), "SpriteGS");
 
 	// very special buffer layout 
 	ds::VertexDeclaration decl[] = {
@@ -19,10 +19,10 @@ SpriteBuffer::SpriteBuffer(int maxSprites, RID textureID) : _max(maxSprites) {
 		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
 	};
 
-	RID vertexDeclId = ds::createVertexDeclaration(decl, 4, vertexShader);
+	RID vertexDeclId = ds::createVertexDeclaration(decl, 4, vertexShader, "PCNC_Layout");
 
-	RID cbid = ds::createConstantBuffer(sizeof(SpriteBufferConstantBuffer), &_constantBuffer);
-	_vertexBufferID = ds::createVertexBuffer(ds::BufferType::DYNAMIC, maxSprites, sizeof(SpriteBufferVertex));
+	RID cbid = ds::createConstantBuffer(sizeof(SpriteBufferConstantBuffer), &_constantBuffer,"SpriteBufferConstantBuffer");
+	_vertexBufferID = ds::createVertexBuffer(ds::BufferType::DYNAMIC, maxSprites, sizeof(SpriteBufferVertex), "SpriteBufferVertex");
 
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::POINT);
 
@@ -46,7 +46,7 @@ SpriteBuffer::SpriteBuffer(int maxSprites, RID textureID) : _max(maxSprites) {
 
 	ds::matrix orthoView = ds::matIdentity();
 	ds::matrix orthoProjection = ds::matOrthoLH(ds::getScreenWidth(), ds::getScreenHeight(), 0.1f, 1.0f);
-	_orthoPass = ds::createRenderPass(orthoView, orthoProjection, ds::DepthBufferState::DISABLED);
+	_orthoPass = ds::createRenderPass(orthoView, orthoProjection, ds::DepthBufferState::DISABLED, "SpriteOrthoPass");
 	_constantBuffer.wvp = ds::matTranspose(orthoView * orthoProjection);
 
 	_current = 0;

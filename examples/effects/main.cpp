@@ -124,7 +124,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::DrawCommand ppCmd = { 3, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::TRIANGLE_LIST };
 	RID ppItem = ds::compile(ppCmd, ppGroup);
 	
-	ds::printResources();
+	ds::saveResourcesToFile("log.txt");
 
 	while (ds::isRunning()) {
 		ds::begin();
