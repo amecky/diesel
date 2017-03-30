@@ -2301,9 +2301,9 @@ namespace ds {
 
 		unsigned int creationFlags = 0;
 
-#ifdef DEBUG
+//#ifdef DEBUG
 		creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
-#endif
+//#endif
 
 		HRESULT result;
 		unsigned int driver = 0;
@@ -2863,6 +2863,7 @@ namespace ds {
 		D3D11_INPUT_ELEMENT_DESC* descriptors = new D3D11_INPUT_ELEMENT_DESC[num];
 		uint32_t index = 0;
 		uint32_t counter = 0;
+		//char nb[64];
 		int si[8] = { 0 };
 		for (int i = 0; i < num; ++i) {
 			D3D11_INPUT_ELEMENT_DESC& desc = descriptors[i];
@@ -2872,6 +2873,8 @@ namespace ds {
 				return INVALID_RID;
 			}
 			const DXBufferAttributeType& formatType = DXBufferAttributeTypes[fidx];
+			//sprintf(nb, "%s%d", DXBufferAttributeNames[decl[i].attribute], si[decl[i].attribute]);
+			//desc.SemanticName = nb;
 			desc.SemanticName = DXBufferAttributeNames[decl[i].attribute];
 			desc.SemanticIndex = si[decl[i].attribute];
 			desc.Format = formatType.format;
