@@ -87,15 +87,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	descriptor.particleDimension = ds::vec2(64, 64);
 	descriptor.scale = ds::vec2(0.2f, 0.2f);
 	descriptor.growth = ds::vec2(-0.5f, -0.5f);
-	descriptor.startColor = ds::Color(248, 213, 131, 255);
+	descriptor.startColor = ds::Color(250,250,250, 255);
 	descriptor.endColor = ds::Color(248, 213, 131, 0);
 	descriptor.textureRect = ds::vec4(0, 0, 64, 64);
 
 	ParticlesystemDescriptor spsDescriptor;
 	spsDescriptor.maxParticles = 1024;
 	spsDescriptor.particleDimension = ds::vec2(64, 64);
-	spsDescriptor.scale = ds::vec2(0.2f, 0.1f);
-	spsDescriptor.growth = ds::vec2(4.0f, 0.0f);
+	spsDescriptor.scale = ds::vec2(1.1f, 0.1f);
+	spsDescriptor.growth = ds::vec2(-0.9f, 0.0f);
 	spsDescriptor.startColor = ds::Color(248, 213, 131, 255);
 	spsDescriptor.endColor = ds::Color(248, 213, 131, 0);
 	spsDescriptor.textureRect = ds::vec4(0, 0, 64, 64);

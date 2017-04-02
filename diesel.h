@@ -775,6 +775,27 @@ namespace ds {
 		DT_INSTANCED,
 		DT_INDEXED_INSTANCED
 	};
+
+	enum ResourceType {
+		RT_NONE,
+		RT_VERTEX_DECLARATION,
+		RT_CONSTANT_BUFFER,
+		RT_INDEX_BUFFER,
+		RT_VERTEX_BUFFER,
+		RT_SAMPLER_STATE,
+		RT_BLENDSTATE,
+		RT_SRV,
+		RT_RASTERIZER_STATE,
+		RT_INSTANCED_VERTEX_BUFFER,
+		RT_VERTEX_SHADER,
+		RT_GEOMETRY_SHADER,
+		RT_PIXEL_SHADER,
+		RT_RENDER_TARGET,
+		RT_RENDER_PASS,
+		RT_DRAW_ITEM,
+		RT_STATE_GROUP,
+		RT_TEXTURE_FROM_RT
+	};
 	
 	// ---------------------------------------------------
 	// Render settings 
@@ -1124,6 +1145,13 @@ namespace ds {
 
 }
 
+#ifndef SID
+#define SID(str) (ds::StaticHash(str))
+#endif
+#ifndef SID_VAL
+#define SID_VAL(str) (fnv1a(str))
+#endif
+
 #ifdef DS_IMPLEMENTATION
 
 #include <Windows.h>
@@ -1155,8 +1183,7 @@ namespace ds {
 #define REPORT(s,d) do { ds::reportLastError(__FILE__,__LINE__,s,d); } while(false);
 #endif
 
-#define SID(str) (ds::StaticHash(str))
-#define SID_VAL(str) (fnv1a(str))
+
 
 namespace ds {
 
@@ -1184,27 +1211,6 @@ namespace ds {
 		"PS_RES", // pixel shader resources
 		"OM", // output merger
 		"UNKNOWN"
-	};
-
-	enum ResourceType {
-		RT_NONE,
-		RT_VERTEX_DECLARATION,
-		RT_CONSTANT_BUFFER,
-		RT_INDEX_BUFFER,
-		RT_VERTEX_BUFFER,
-		RT_SAMPLER_STATE,
-		RT_BLENDSTATE,
-		RT_SRV,
-		RT_RASTERIZER_STATE,		
-		RT_INSTANCED_VERTEX_BUFFER,
-		RT_VERTEX_SHADER,
-		RT_GEOMETRY_SHADER,
-		RT_PIXEL_SHADER,
-		RT_RENDER_TARGET,
-		RT_RENDER_PASS,
-		RT_DRAW_ITEM,
-		RT_STATE_GROUP,
-		RT_TEXTURE_FROM_RT
 	};
 
 	const char* RESOURCE_NAMES[] {
