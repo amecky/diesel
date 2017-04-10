@@ -31,6 +31,11 @@ There are a lot of examples in the examples dircetory. Not all of these examples
 Sometimes I just add something for the fun of it. The list will grow.
 [Examples](Examples.md) is the 
 
+## More examples
+
+There is also a complete game developed with diesel. It is a simple arena shooter. You
+can find here: [ds_arena](https://github.com/amecky/ds_arena)
+
 ## Debugging resources
 
 Diesel supports one method to debug the resources and draw items. Please read [here](Debugging.md)
@@ -41,6 +46,7 @@ diesel includes a simple GPU profiler. You can read about it [here](GPUProfiler.
 
 
 ## Math
+
 A rendering engine uses vectors and matrices in some way. Therefore diesel comes with a 
 template based Vector 2D/3D/4D and matrix implementation inside the header file. 
 You can easily 
