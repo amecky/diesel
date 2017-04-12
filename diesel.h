@@ -1046,6 +1046,8 @@ namespace ds {
 
 	vec2 getMousePosition();
 
+	bool isMouseButtonClicked(int button);
+
 	bool isMouseButtonPressed(int button);	
 
 	// timing
@@ -2002,6 +2004,7 @@ namespace ds {
 		std::vector<BaseResource*> _resources;
 		std::vector<StateGroup*> _groups;
 
+		bool mouseButtonClicked[2];
 		int mouseButtonState[2];
 		int keyState[256];
 
@@ -2590,6 +2593,9 @@ namespace ds {
 		return _ctx->keyState[key] == 80;
 	}
 
+	bool isMouseButtonClicked(int button) {
+		return _ctx->mouseButtonClicked[button];
+	}
 	// ------------------------------------------------------
 	// is mouse button pressed
 	// ------------------------------------------------------
@@ -2631,12 +2637,14 @@ namespace ds {
 				return 0;
 			case WM_LBUTTONUP:
 				_ctx->mouseButtonState[0] = 0;
+				_ctx->mouseButtonClicked[0] = true;
 				return 0;
 			case WM_RBUTTONDOWN:
 				_ctx->mouseButtonState[1] = 80;
 				return 0;
 			case WM_RBUTTONUP:
 				_ctx->mouseButtonState[1] = 0;
+				_ctx->mouseButtonClicked[1] = true;
 				return 0;
 			case WM_CLOSE:
 				_ctx->running = false;
@@ -2828,6 +2836,8 @@ namespace ds {
 		}
 		_ctx->swapChain->Present(0, 0);
 		_ctx->numInputKeys = 0;
+		_ctx->mouseButtonClicked[0] = false;
+		_ctx->mouseButtonClicked[1] = false;
 		gpu::endFrame();
 	}
 
