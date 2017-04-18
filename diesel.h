@@ -2,6 +2,9 @@
 #include <stdint.h>
 #include <stdio.h>
 
+/**
+* @file diesel.h
+*/
 // ------------------------------------------------------------------------------------
 // MIT License
 // 
@@ -25,7 +28,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 // ------------------------------------------------------------------------------------
-// https://www.dropbox.com/sh/4uvmgy14je7eaxv/AABboa6UE5Pzfg3d9updwUexa?dl=0&preview=Designing+a+Modern+GPU+Interface.pdf
+
+// ------------------------------------------------------------------------------------
+// Chanelog:
+// 
+// 0.1 - initial release
+// ------------------------------------------------------------------------------------
 
 
 //#define DS_IMPLEMENTATION
@@ -51,6 +59,10 @@ const uint16_t NO_RID = UINT16_MAX - 1;
 #endif
 
 namespace ds {
+
+#ifndef DS_VERSION
+	#define VERSION "0.1"
+#endif
 
 	const uint32_t FNV_Prime = 0x01000193; //   16777619
 	const uint32_t FNV_Seed = 0x811C9DC5; // 2166136261
@@ -836,6 +848,9 @@ namespace ds {
 	// ---------------------------------------------------
 	// State group
 	// ---------------------------------------------------	
+	/**
+	* A StateGroup is a combination of several resources.
+	*/
 	struct StateGroup {
 		RID* items;
 		int num;
@@ -882,6 +897,9 @@ namespace ds {
 		RID* _items;
 	};
 
+	/**
+	* StaticHash is a helper class to support building a hash at compile time.
+	*/
 	class StaticHash {
 
 	public:
@@ -918,18 +936,60 @@ namespace ds {
 		DepthBufferState depthState;
 	};
 
+	/**
+	* Creates a render pass.
+	*
+	* @param viewMatrix the view matrix
+	* @param projectionMatrix the projection matrix
+	* @param state the depth buffer state (enabled or disabled)
+	* @param name the name of the pixel shader - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state, const char* name = "UNKNOWN");
 
+	/**
+	* Creates a render pass using render targets
+	*
+	* @param viewMatrix the view matrix
+	* @param projectionMatrix the projection matrix
+	* @param state the depth buffer state
+	* @param renderTargets pointer to an array of render targets
+	* @param numRenderTargets the number of render targets
+	* @param name the name of the pixel shader - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state, RID* renderTargets,int numRenderTargets, const char* name = "UNKNOWN");
 
 	// items, groups, passes
-
+	/**
+	* Compiles a draw command and a list of StateGroups into a DrawCommand
+	*
+	* @param cmd the DrawCommand
+	* @param groups a pointer to a list of StateGroups
+	* @param num number of StateGroups
+	* @param name optional name of the DrawItem - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	RID compile(const DrawCommand cmd, RID* groups, int num, const char* name = "UNKNOWN");
-
+	/**
+	* Compiles a DrawCommand and one StateGroup into a DrawItem. The default state group
+	* is added automatically.
+	*
+	* @param cmd the DrawCommand
+	* @param group the StateGroup
+	* @param name the name of the pixel shader - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	RID compile(const DrawCommand cmd, RID group, const char* name = "UNKNOWN");
 
 	void submit(RID renderPass, RID drawItemID, int numElements = -1);
 
+	/**
+	* Initialize the rendering engine.
+	*
+	* @param settings the RenderSettings
+	* @return true if the engine could be instantiated
+	*/
 	bool init(const RenderSettings& settings);
 
 	// vertex declaration / buffer input layout
@@ -939,61 +999,176 @@ namespace ds {
 	RID createInstanceDeclaration(VertexDeclaration* decl, uint8_t num, InstanceLayoutDeclaration* instDecl, uint8_t instNum, RID shaderId, const char* name = "UNKNOWN");
 
 	// constant buffer
-
+	/**
+	* Creates a new constant buffer which can be bound to a vertex shader or pixel and so on
+	*
+	* @param byteWidth the size of the bytes
+	* @param data optional data - the buffer will be filled with the data when created
+	* @param name optiomal name of the constant buffer - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	RID createConstantBuffer(int byteWidth, void* data = 0, const char* name = "UNKNOWN");
 
 	// index buffer
-
+	/**
+	* Creates an index buffer.
+	* 
+	* @param numIndices the number of maximum indices
+	* @param indexType the actual type of the index buffer (UINT_16 or UINT_32)
+	* @param type the buffer type (static or dynamic)
+	* @param name the name of the pixel shader - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	RID createIndexBuffer(uint32_t numIndices, IndexType indexType, BufferType type, const char* name = "UNKNOWN");
-
+	/**
+	* Creates an index buffer and fills it wit the supplied data
+	*
+	* @param numIndices the maximum number of indices
+	* @param indexType the type of the index buffer (UINT_16 or UINT_32)
+	* @param type the buffer type (static or dynamic)
+	* @param data the actul data
+	* @param name the name of the pixel shader - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	RID createIndexBuffer(uint32_t numIndices, IndexType indexType, BufferType type, void* data, const char* name = "UNKNOWN");
-
+	/**
+	* Creates a quad index buffer. 
+	* @param name the name of the pixel shader - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	RID createQuadIndexBuffer(int numQuads, const char* name = "UNKNOWN");
 
 	// vertex buffer
-
+	/**
+	* Creates a vertex buffer
+	*
+	* @param type the buffer type (STATIC or DYNAMIC)
+	* @param numVertices the maximum number of vertices
+	* @param vertexSize the size of every vertex
+	* @param data optional data that will be used to fill up the buffer
+	* @param name the name of the pixel shader - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	RID createVertexBuffer(BufferType type, int numVertices, uint32_t vertexSize, void* data = 0, const char* name = "UNKNOWN");
-
+	/**
+	* Maps the data to a constant buffer or vertex buffer or index buffer
+	* 
+	* @param rid the unique resource identifier of the resource
+	* @param data the actual data
+	* @param size the size of the data
+	*/
 	void mapBufferData(RID rid, void* data, uint32_t size);
-
+	/**
+	*
+	* @param name the name of the pixel shader - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	RID createInstancedBuffer(RID vertexBuffer, RID instanceBuffer, const char* name = "UNKNOWN");
 
 	// sampler state
-
+	/**
+	* Creates a sampler state
+	*
+	* @param addressMode the texture address mode
+	* @param filter the texture filter
+	* @param name the name of the pixel shader - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	RID createSamplerState(TextureAddressModes addressMode, TextureFilters filter, const char* name = "UNKNOWN");
 
 	// blendstate
-
+	/**
+	*
+	* @param name the name of the pixel shader - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	RID createBlendState(BlendStates srcBlend, BlendStates srcAlphaBlend, BlendStates destBlend, BlendStates destAlphaBlend, bool alphaEnabled, const char* name = "UNKNOWN");
-
+	/**
+	*
+	* @param name the name of the pixel shader - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	RID createAlphaBlendState(BlendStates srcBlend, BlendStates destBlend, const char* name = "UNKNOWN");
 
-	//void setBlendState(RID rid, float* blendFactor,uint32_t mask);
-
 	// shader
-
+	/**
+	* Creates a vertex shader from raw data.
+	*
+	* @param data the data containing the vertex shader
+	* @param size the size of the data
+	* @param name the name of the vertex shader - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	RID createVertexShader(const void* data, int size, const char* name = "UNKNOWN");
-
+	/**
+	* Creates a geometry shader from raw data.
+	*
+	* @param data the data containing the geometry shader
+	* @param size the size of the data
+	* @param name the name of the geometry shader - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	RID createGeometryShader(const void* data, int size, const char* name = "UNKNOWN");
-
+	/**
+	* Creates a pixel shader from raw data.
+	*
+	* @param data the data containing the pixel shader
+	* @param size the size of the data
+	* @param name the name of the pixel shader - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	RID createPixelShader(const void* data, int size, const char* name = "UNKNOWN");
-
+	/**
+	*
+	* @param name the name of the pixel shader - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	RID loadVertexShader(const char* csoName, const char* name = "UNKNOWN");
-
+	/**
+	*
+	* @param name the name of the pixel shader - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	RID loadGeometryShader(const char* csoName, const char* name = "UNKNOWN");
-
+	/**
+	*
+	* @param name the name of the pixel shader - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	RID loadPixelShader(const char* csoName, const char* name = "UNKNOWN");
 
 	// texture
-
+	/**
+	* Creates a new shader resource view. 
+	*
+	* @param width the width of the texture
+	* @param height the height of the texture
+	* @param channels number of channels (usually 4 which means RGBA)
+	* @param data the data that will be used for the texture
+	* @param format the TextureFormat
+	* @param name the name of the texture - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	RID createTexture(int width, int height, uint8_t channels, void* data, TextureFormat format, const char* name = "UNKNOWN");
 
-	//void setTextureFromRenderTarget(RID rtID, RID shader, uint8_t slot);
-
+	/**
+	* Returns the size of a texture
+	*
+	* @param rid the unique resource identifier
+	* @return a ds::vec2 containing the size or (0,0) if the resource was not found 
+	*/
 	ds::vec2 getTextureSize(RID rid);
 
 	// render target
-
+	/**
+	* Creates a render target.
+	*
+	* @param width the width of the render target
+	* @param height the height of the render target
+	* @param clearColor the color that will be used to clear the render target
+	* @param name the name of the pixel shader - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	RID createRenderTarget(uint16_t width, uint16_t height, const ds::Color& clearColor, const char* name = "UNKNOWN");
 
 	void setRenderTarget(RID rtID);
@@ -1001,19 +1176,34 @@ namespace ds {
 	void restoreBackBuffer();
 
 	// rasterizer state
+	/**
+	*
+	* @param name the name of the pixel shader - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	RID createRasterizerState(CullMode cullMode, FillMode fillMode, bool multiSample, bool scissor, float depthBias, float slopeDepthBias, const char* name = "UNKNOWN");
 
 	//void setDepthBufferState(DepthBufferState state);
 
 	RID findResource(const StaticHash& hash, ResourceType type);
 	// drawing
-	
+	/**
+	* Starts the rendering. Must be called at the beginning of each frame
+	*/
 	void begin();
-
+	/**
+	* Ends the rendering. Must be called at the end of the frame
+	*/
 	void end();
-
+	/**
+	* Returns wether the engine is running or not
+	*
+	* @return true if still running
+	*/
 	bool isRunning();
-
+	/**
+	* Stops the rendering and will shutdown the engine. It will also clean up all resources
+	*/
 	void shutdown();
 
 	// view and projection matrix
@@ -1067,23 +1257,51 @@ namespace ds {
 	// GPU profiling
 
 	namespace gpu {
-
+		/**
+		* Initializes the GPU profiler. This will be handled by the engine of you the render settings useGPUProfiler to true
+		*/
 		void init();
-
+		/**
+		* Will reset the GPU profiler and will start a new frame. If the GPU profiler is enabled it will be called by the engine
+		*/
 		void beginFrame();
-
+		/**
+		* Ends the current frame. This will be handled by the engine if the GPU profiler is active
+		*/
 		void endFrame();
-
+		/**
+		* Adds a spot to measure. 
+		*
+		* @param index the index of this spot
+		*/
 		void measure(int index);
-
+		/**
+		* Waits for the data from the GPU. You need to call this before you can get the timing data
+		*/
 		void waitForData();
-
+		/**
+		* Returns the elapsed time for the given measurement
+		*
+		* @param index index of the measurement
+		* @return the elapsed time
+		*/
 		float dt(int index);
-
+		/**
+		* Returns the average time measured between several frames for a measurement
+		*
+		* @param index the index of the measurement
+		* @return the average time
+		*/
 		float dtAvg(int index);
-
+		/**
+		* Returns the total time of the frame
+		*
+		* @return the total time
+		*/
 		float totalTime();
-
+		/**
+		* Will shutdown and clean up the GPU profiler. This is automatically handled by the engine.
+		*/
 		void shutdown();
 	}
 
@@ -1140,9 +1358,17 @@ namespace ds {
 	const InputKey& getInputKey(int index);
 
 	// ------------------------------------------
-
+	/**
+	*
+	* @param name the name of the pixel shader - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	void dbgPrint(uint16_t x, uint16_t y, char* format, ...);
-
+	/**
+	*
+	* @param name the name of the pixel shader - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	void saveResourcesToFile(const char* fileName = "resources.txt");
 
 }
