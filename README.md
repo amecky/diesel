@@ -8,8 +8,7 @@ project and that is all. There are only two dependencies:
 
 ## Basic concepts
 
-The main concept diesel is heavily inspired by https://www.dropbox.com/sh/4uvmgy14je7eaxv/AABboa6UE5Pzfg3d9updwUexa?dl=0&preview=Designing+a+Modern+GPU+Interface.pdf.
-
+The [basic concept of diesel](TheBasics.md) describes the main concept.
 
 ## Getting Started
 

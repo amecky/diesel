@@ -75,4 +75,119 @@ namespace geometry {
 			}
 		}
 	}
+
+	void buildSphere(float radius, int sliceCount, int stackCount, MeshData* data) {
+
+		data->add(ds::vec3(0, radius, 0),ds::vec3(0, 1, 0), ds::vec3(1, 0, 0),ds::vec2(0, 0));
+
+		float phiStep = ds::PI / stackCount;
+		float thetaStep = 2.0f * ds::PI / sliceCount;
+
+		for (int i = 1; i <= stackCount - 1; ++i) {
+			float phi = i * phiStep;
+			for (int j = 0; j <= sliceCount; ++j) {
+				float theta = j * thetaStep;
+				ds::vec3 p = ds::vec3(
+					(radius*sin(phi)*cos(theta)),
+					(radius*cos(phi)),
+					(radius* sin(phi)*sin(theta))
+					);
+
+				ds::vec3 t = ds::vec3(-radius*sin(phi)*sin(theta), 0, radius*sin(phi)*cos(theta));
+				t = normalize(t);
+				ds::vec3 n = p;
+				n = normalize(n);
+				ds::vec2 uv = ds::vec2(theta / (ds::PI * 2), phi / ds::PI);
+				data->add(p, n, t, uv);
+			}
+		}
+		data->add(ds::vec3(0, -radius, 0),ds::vec3( 0, -1, 0), ds::vec3(1, 0, 0), ds::vec2(0, 1));
+
+		for (int i = 1; i <= sliceCount; ++i) {
+			data->indices.push_back(0);
+			data->indices.push_back(i + 1);
+			data->indices.push_back(i);
+		}
+		int baseIndex = 1;
+		int ringVertexCount = sliceCount + 1;
+		for (int i = 0; i < stackCount - 2; ++i) {
+			for (int j = 0; j < sliceCount; ++j) {
+				data->indices.push_back(baseIndex + i*ringVertexCount + j);
+				data->indices.push_back(baseIndex + i*ringVertexCount + j + 1);
+				data->indices.push_back(baseIndex + (i + 1)*ringVertexCount + j);
+
+				data->indices.push_back(baseIndex + (i + 1)*ringVertexCount + j);
+				data->indices.push_back(baseIndex + i*ringVertexCount + j + 1);
+				data->indices.push_back(baseIndex + (i + 1)*ringVertexCount + j + 1);
+			}
+		}
+		int southPoleIndex = data->vertices.size() - 1;
+		baseIndex = southPoleIndex - ringVertexCount;
+		for (int i = 0; i < sliceCount; ++i) {
+			data->indices.push_back(southPoleIndex);
+			data->indices.push_back(baseIndex + i);
+			data->indices.push_back(baseIndex + i + 1);
+		}
+
+	}
+
+	void buildSphere2(float radius, int tessellation, MeshData* data) {
+		size_t verticalSegments = tessellation;
+		size_t horizontalSegments = tessellation * 2;		
+
+		// Create rings of vertices at progressively higher latitudes.
+		for (size_t i = 0; i <= verticalSegments; i++)
+		{
+			float v = 1 - (float)i / verticalSegments;
+
+			float latitude = (i * ds::PI / verticalSegments) - ds::PI * 0.5f;
+			//float dy, dxz;
+
+			float dy = sin(latitude);
+			float dxz = cos(latitude);
+			//XMScalarSinCos(&dy, &dxz, latitude);
+
+			// Create a single ring of vertices at this latitude.
+			for (size_t j = 0; j <= horizontalSegments; j++)
+			{
+				float u = (float)j / horizontalSegments;
+
+				float longitude = j * ds::TWO_PI / horizontalSegments;
+				//float dx, dz;
+
+				float dx = sin(longitude);
+				float dz = cos(longitude);
+
+				//XMScalarSinCos(&dx, &dz, longitude);
+
+				dx *= dxz;
+				dz *= dxz;
+
+				ds::vec3 normal = ds::vec3(dx, dy, dz);
+				//ds:: vec23textureCoordinate = XMVectorSet(u, v, 0, 0);
+
+				data->add(normal * radius, normal, ds::vec3(0,0,0),ds::vec2(u,v));
+			}
+		}
+
+		// Fill the index buffer with triangles joining each pair of latitude rings.
+		size_t stride = horizontalSegments + 1;
+
+		for (size_t i = 0; i < verticalSegments; i++)
+		{
+			for (size_t j = 0; j <= horizontalSegments; j++)
+			{
+				size_t nextI = i + 1;
+				size_t nextJ = (j + 1) % stride;
+
+				data->indices.push_back(i * stride + j);
+				data->indices.push_back(nextI * stride + j);
+				data->indices.push_back(i * stride + nextJ);
+
+				data->indices.push_back(i * stride + nextJ);
+				data->indices.push_back(nextI * stride + j);
+				data->indices.push_back(nextI * stride + nextJ);
+			}
+		}
+	}
 }

@@ -137,7 +137,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	for (int i = 0; i < 24; ++i) {
 		v[i] = Vertex(positions[i], uvs[i], normals[i],tangents[i]);
 	}
-	
+
+	geometry::MeshData meshData;
+	geometry::buildSphere(0.5f, 20, 20, &meshData);
+	Vertex sv[401];
+	for (int i = 0; i < 401; ++i) {
+		sv[i] = Vertex(meshData.vertices[i], meshData.uvs[i], meshData.normals[i], meshData.tangents[i]);
+	}
+	int indices[2280];
+	for (int i = 0; i < 2280; ++i) {
+		indices[i] = meshData.indices[i];
+	}
+
 	CubeConstantBuffer constantBuffer;
 	float t = 0.0f;
 	ds::RenderSettings rs;
@@ -148,7 +159,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.multisampling = 1;
 	ds::init(rs);
 
-	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 2.0f, -6.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
+	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 2.0f, -3.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
 	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
 	RID basicPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED);
 
@@ -186,10 +197,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v);
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 
+	RID sphereBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 401, sizeof(Vertex), sv, "sphere_vertex_buffer");
+	RID sphereIndexBuffer = ds::createIndexBuffer(2280, ds::IndexType::UINT_32, ds::BufferType::STATIC, indices, "sphere_index_buffer");
+
 	worldMatrix wm;
 
 	FPSCamera camera(basicPass);
-	camera.setPosition(ds::vec3(0, 2, -12));
+	camera.setPosition(ds::vec3(0, 2, -8));
 
 	RID stateGroup = ds::StateGroupBuilder()
 		.inputLayout(rid)
@@ -204,9 +218,29 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		.texture(cubeTextureID, bumpPS, 0)
 		.texture(cubeNormalID, bumpPS, 1)
 		.build();
+
+
 	ds::DrawCommand drawCmd = { 36, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
 
+	RID sphereGroup = ds::StateGroupBuilder()
+		.inputLayout(rid)
+		.constantBuffer(cbid, bumpVS, 0)
+		.constantBuffer(cbid, bumpPS, 0)
+		.blendState(bs_id)
+		.samplerState(ssid, bumpPS)
+		.vertexBuffer(sphereBuffer)
+		.vertexShader(bumpVS)
+		.pixelShader(bumpPS)
+		.indexBuffer(sphereIndexBuffer)
+		.texture(cubeTextureID, bumpPS, 0)
+		.texture(cubeNormalID, bumpPS, 1)
+		.build();
+
+	ds::DrawCommand sphereCmd = { 2280, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
+
 	RID drawItem = ds::compile(drawCmd, stateGroup);
+
+	RID sphereDrawItem = ds::compile(sphereCmd, sphereGroup);
 		
 	while (ds::isRunning()) {
 		ds::begin();
@@ -217,14 +251,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		grid.render();
 			
 		constantBuffer.viewprojectionMatrix = ds::matTranspose(vpm);
-
-		//wm.rotateBy(ds::vec3(static_cast<float>(ds::getElapsedSeconds()), 2.0f  * static_cast<float>(ds::getElapsedSeconds()), 0.0f));
+		wm.setPosition(ds::vec3(-2, 0, 0));
 		wm.rotateBy(ds::vec3(0.0f, 1.0f  * static_cast<float>(ds::getElapsedSeconds()), 0.0f));
 		constantBuffer.worldMatrix = wm.getTransposedMatrix();
 		constantBuffer.eyePos = camera.getPosition();
 		constantBuffer.padding = 0.0f;
 		
 		ds::submit(basicPass, drawItem);
+
+		wm.setPosition(ds::vec3(2, 0, 0));
+		wm.rotateBy(ds::vec3(0.0f, 1.0f  * static_cast<float>(ds::getElapsedSeconds()), 0.0f));
+		constantBuffer.worldMatrix = wm.getTransposedMatrix();
+		constantBuffer.eyePos = camera.getPosition();
+		constantBuffer.padding = 0.0f;
+
+		ds::submit(basicPass, sphereDrawItem);
 
 		ds::end();
 	}
