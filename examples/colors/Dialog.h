@@ -9,6 +9,8 @@ namespace gui {
 
 	void begin();
 
+	void Image(const ds::vec2& pos, const ds::vec4& rect);
+
 	bool Button(const ds::vec2& pos, const ds::vec4& rect);
 
 	void Text(const ds::vec2& pos, const char* text);

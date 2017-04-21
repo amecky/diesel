@@ -14,6 +14,7 @@ enum GameMode {
 	GM_RUNNING,
 	GM_GAMEOVER
 };
+
 // ---------------------------------------------------------------
 // initialize rendering system
 // ---------------------------------------------------------------
@@ -30,18 +31,23 @@ void initialize() {
 // ---------------------------------------------------------------
 // show game over menu
 // ---------------------------------------------------------------
-int showGameOverMenu() {
+int showGameOverMenu(const Score& score) {
 	int ret = 0;
+	char buffer[256];
 	gui::begin();
+	gui::Image(ds::vec2(512, 620), ds::vec4(0, 880, 640, 56));
 	ds::vec2 mp = ds::getMousePosition();
-	gui::Text(ds::vec2(400, 500), "Pieces left: 32");
-	gui::Text(ds::vec2(400, 450), "Time: 01:35");
-	gui::Text(ds::vec2(400, 400), "Score: 1234");
-	gui::Text(ds::vec2(400, 350), "Total score: 10456");
-	if (gui::Button(ds::vec2(512, 300), ds::vec4(0, 70, 260, 60))) {
+	sprintf_s(buffer, 256, "Pieces cleared: %d", score.itemsCleared);
+	gui::Text(ds::vec2(400, 500), buffer);
+	sprintf_s(buffer, 256, "Time: %02d:%02d", score.minutes, score.seconds);
+	gui::Text(ds::vec2(400, 450), buffer);
+	sprintf_s(buffer, 256, "Score: %d", score.points);
+	gui::Text(ds::vec2(400, 400), buffer);
+	//gui::Text(ds::vec2(400, 350), "Total score: 10456");
+	if (gui::Button(ds::vec2(512, 320), ds::vec4(0, 70, 260, 60))) {
 		ret = 1;
 	}
-	if (gui::Button(ds::vec2(512, 250), ds::vec4(270, 130, 260, 60))) {
+	if (gui::Button(ds::vec2(512, 230), ds::vec4(270, 130, 260, 60))) {
 		ret = 2;
 	}
 	gui::end();
@@ -54,8 +60,6 @@ int showGameOverMenu() {
 int showMainMenu() {
 	int ret = 0;
 	gui::begin();
-	ds::vec2 mp = ds::getMousePosition();
-	gui::FormattedText(ds::vec2(30, 720), "M: %g %g", mp.x, mp.y);
 	if (gui::Button(ds::vec2(512, 438), ds::vec4(0, 70, 260, 60))) {
 		ret = 1;
 	}
@@ -91,24 +95,22 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	Board* board = new Board(&spriteBuffer,textureID, &settings);
 
-	HUD hud(&spriteBuffer, textureID);
+	Score score;
+
+	HUD hud(&spriteBuffer, textureID, &score);
 	hud.reset();
 
 	char txt[256];
 
 	bool pressed = false;
 
-	int score = 0;
-
-	GameMode mode = GM_GAMEOVER;
+	GameMode mode = GM_MENU;
 
 	gui::init(&spriteBuffer, textureID);
+	bool running = true;
 
-	while (ds::isRunning()) {
+	while (ds::isRunning() && running) {
 
-		if (ds::isKeyPressed('A')) {
-			board->fill(4);
-		}
 		if (ds::isKeyPressed('C')) {
 			board->clearBoard();
 			mode = GM_GAMEOVER;
@@ -118,9 +120,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 		spriteBuffer.begin();
 
-		spriteBuffer.add(ds::vec2(512, 714), ds::vec4(0, 720, 1024, 68));
-		spriteBuffer.add(ds::vec2(512, 16), ds::vec4(0, 800, 1024, 68));
-		board->render();
+		spriteBuffer.add(ds::vec2(512, 734), ds::vec4(0, 720, 1024, 68));
+		spriteBuffer.add(ds::vec2(512, 34), ds::vec4(0, 800, 1024, 68));
+
+		if (mode == GM_RUNNING) {
+			board->render();
+		}
 
 		if (mode == GM_MENU) {
 			int ret = showMainMenu();
@@ -128,20 +133,27 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				board->fill(4);
 				mode = GM_RUNNING;
 			}
+			else  if (ret == 2) {
+				running = false;
+			}
 		}
 		else if (mode == GM_GAMEOVER) {
-			int ret = showGameOverMenu();
+			int ret = showGameOverMenu(score);
 			if (ret == 1) {
 				board->fill(4);
 				mode = GM_RUNNING;
+			}
+			else if (ret == 2) {
+				mode = GM_MENU;
 			}
 		}
 		else if (mode == GM_RUNNING) {
 			if (ds::isMouseButtonPressed(0) && !pressed) {
 				int points = board->select();
 				if (points > 0) {
-					score += points * 10;
-					hud.setNumber(score);
+					score.points += points * 10;
+					score.itemsCleared += points;
+					hud.rebuildScore();
 				}
 				pressed = true;
 			}

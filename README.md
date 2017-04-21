@@ -16,7 +16,7 @@ Please read the [Getting started](GettingStarted.md) for the "Hello world" of di
 
 ## Resources
 
-A resource is the gerenal name for textures or shaders or constant buffers and so on. 
+A resource is the general name for textures or shaders or constant buffers and so on. 
 Please note that all resources are managed within diesel. You have no direct access to the
 underlying resources. The engine uses always a RID (resource identifier) to access or bind resources.
 The lifecycle management is also handled by the engine. There is no need to free or delete any
@@ -43,7 +43,6 @@ Diesel supports one method to debug the resources and draw items. Please read [h
 
 diesel includes a simple GPU profiler. You can read about it [here](GPUProfiler.md)
 
-
 ## Math
 
 A rendering engine uses vectors and matrices in some way. Therefore diesel comes with a 
@@ -53,8 +52,14 @@ You can easily
 ## Status
 
 The engine itself is still in a beta state. I do not expect many changes to the API anymore.
-But the state tracking system is not yet working 100% correct. So right now the engine is not completely
-stateless since certain states might be leaking.
+It is working as expected. But I maybe add some more default resources that users can
+then easily integrate like a orthographic render pass and probably some more.
+Also I need to work on the documentation. 
+
+## Compiling
+
+There is a Visual Studio 2015 solution included. This one contains the diesel.h and all examples.
+You might need to update the "VC++ Directories" to point to your DirectX SDK installation.
 
 ## Contact
 

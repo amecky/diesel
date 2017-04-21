@@ -3,15 +3,23 @@
 
 class SpriteBuffer;
 
+struct Score {
+	int itemsCleared;
+	int seconds;
+	int minutes;
+	int points;
+	int totalPoints;
+};
+
 class HUD {
 
 public:
-	HUD(SpriteBuffer* buffer, RID textureID);
+	HUD(SpriteBuffer* buffer, RID textureID, Score* score);
 	~HUD();
 	void render();
 	void tick(float dt);
 	void reset();
-	void setNumber(int value);
+	void rebuildScore();
 private:
 	float _timer;
 	int _numbers[6];
@@ -19,5 +27,6 @@ private:
 	int _seconds[2];
 	SpriteBuffer* _buffer;
 	RID _textureID;
+	Score* _score;
 };
 

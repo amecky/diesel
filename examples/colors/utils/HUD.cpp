@@ -1,7 +1,7 @@
 #include "HUD.h"
-#include "..´\..\..\..\common\SpriteBuffer.h"
+#include "..\..\common\SpriteBuffer.h"
 
-HUD::HUD(SpriteBuffer* buffer, RID textureID) : _buffer(buffer) , _textureID(textureID) {
+HUD::HUD(SpriteBuffer* buffer, RID textureID, Score* score) : _buffer(buffer) , _textureID(textureID) , _score(score) {
 	reset();
 }
 
@@ -20,7 +20,11 @@ void HUD::reset() {
 	_seconds[0] = 0;
 	_seconds[1] = 0;
 	_timer = 0.0f;
-	setNumber(0);
+	_score->points = 0;
+	_score->minutes = 0;
+	_score->seconds = 0;
+	_score->itemsCleared = 0;
+	rebuildScore();
 }
 
 // ------------------------------------------------------
@@ -49,8 +53,8 @@ void HUD::tick(float dt) {
 // ------------------------------------------------------
 // set number
 // ------------------------------------------------------
-void HUD::setNumber(int value) {
-	int tmp = value;
+void HUD::rebuildScore() {
+	int tmp = _score->points;
 	int div = 1;
 	for (int i = 0; i < 6; ++i) {
 		if (i > 0) {
@@ -70,7 +74,7 @@ void HUD::setNumber(int value) {
 // ------------------------------------------------------
 void HUD::render() {
 	
-	ds::vec2 p(103, 13);
+	ds::vec2 p(103, 30);
 	for (int i = 0; i < 6; ++i) {
 		_buffer->add(p, ds::vec4(340 + _numbers[i] * 48, 0, 46, 42));
 		p.x += 48.0f;

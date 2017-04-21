@@ -89,6 +89,13 @@ namespace gui {
 		return isClicked(pos, dim);
 	}
 
+	void Image(const ds::vec2& pos, const ds::vec4& rect) {
+		DrawCall call;
+		call.pos = pos;
+		call.rect = rect;
+		_guiCtx->calls.push_back(call);
+	}
+
 	void Text(const ds::vec2& pos, const char* text) {
 		int l = strlen(text);
 		ds::vec2 p = pos;
