@@ -130,12 +130,15 @@
     <ClCompile Include="..\common\imgui.cpp" />
     <ClCompile Include="..\common\SpriteBuffer.cpp" />
     <ClCompile Include="APath.cpp" />
+    <ClCompile Include="FlowField.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\common\imgui.h" />
     <ClInclude Include="..\common\SpriteBuffer.h" />
     <ClInclude Include="APath.h" />
+    <ClInclude Include="FlowField.h" />
+    <ClInclude Include="Grid.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

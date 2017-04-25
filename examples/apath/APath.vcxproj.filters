@@ -5,10 +5,13 @@
     <ClCompile Include="APath.cpp" />
     <ClCompile Include="..\common\imgui.cpp" />
     <ClCompile Include="..\common\SpriteBuffer.cpp" />
+    <ClCompile Include="FlowField.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="APath.h" />
     <ClInclude Include="..\common\SpriteBuffer.h" />
     <ClInclude Include="..\common\imgui.h" />
+    <ClInclude Include="FlowField.h" />
+    <ClInclude Include="Grid.h" />
   </ItemGroup>
 </Project>

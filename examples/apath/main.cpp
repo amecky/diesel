@@ -5,6 +5,7 @@
 #include "..\common\SpriteBuffer.h"
 #include "..\common\imgui.h"
 #include "APath.h"
+#include "FlowField.h"
 
 struct Walker {
 	ds::vec2 points[64];
@@ -123,12 +124,12 @@ int main(int argc, char *argv[]) {
 
 	int state = 1;
 
-	Grid grid(10,8);
+	Grid grid(20,14);
 	grid.set(3, 1, 1);
 	grid.set(3, 2, 1);
 	grid.set(3, 3, 1);
 	grid.setStart(0, 2);
-	grid.setEnd(9, 2);
+	grid.setEnd(19, 2);
 
 	int totalX = grid.width * 46;
 	int totalY = grid.height * 46;
@@ -138,10 +139,13 @@ int main(int argc, char *argv[]) {
 	APath ap(&grid);
 	p2i points[64];
 
+	FlowField flowField = FlowField(&grid);
+	flowField.build(p2i(19,11));
+
 	int num = ap.find(grid.start, grid.end, points, 64);
 
 	ds::vec2 start = ds::vec2(0, 2);
-	ds::vec2 end = ds::vec2(9, 2);
+	ds::vec2 end = ds::vec2(19, 2);
 
 	bool clicked = false;
 	bool pressed = false;
@@ -203,17 +207,21 @@ int main(int argc, char *argv[]) {
 					t = ds::vec4(184, 0, 46, 46);
 				}
 				spriteBuffer.add(p, t);
+				ds::vec2 ffp = flowField.get(x, y);
+				drawNumber(&spriteBuffer, ffp.x, p);
 			}
 		}
+		/*
 		for (int i = 0; i < num; ++i) {
 			p2i wp = points[i];
 			ds::vec2 p = ds::vec2(sx + wp.x * 46, sy + 46 * wp.y);
 			drawNumber(&spriteBuffer, i, p);
 		}
 
-		spriteBuffer.add(walker.pos, ds::vec4(184, 90, 24, 24), ds::vec2(1, 1), walker.rotation);
-
+		spriteBuffer.add(walker.pos, ds::vec4(184, 92, 24, 24), ds::vec2(1, 1), walker.rotation);
+		*/
 		spriteBuffer.flush();
+		/*
 		// GUI
 		guiBuffer.begin();
 		gui::start(ds::vec2(0, 750));
@@ -231,7 +239,7 @@ int main(int argc, char *argv[]) {
 		}
 		gui::end();
 		guiBuffer.flush();
-
+		*/
 		ds::end();
 	}
 	ds::shutdown();
