@@ -14,6 +14,8 @@ struct Walker {
 	ds::vec2 velocity;
 	ds::vec2 pos;
 	float rotation;
+
+	p2i gridPos;
 };
 
 // ---------------------------------------------------------------
@@ -95,6 +97,17 @@ RID loadImage(const char* name) {
 }
 
 // ---------------------------------------------------------------
+// convert screen coordinates to grid position if possible
+// ---------------------------------------------------------------
+bool convert(int screenX, int screenY, int startX, int startY, p2i* ret) {
+	if (screenX >= (startX - 23) && screenY >= (startY - 23)) {
+		ret->x = (screenX - startX + 23) / 46;
+		ret->y = (screenY - startY + 23) / 46;
+		return true;
+	}
+	return false;
+}
+// ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------
 //int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
@@ -109,6 +122,7 @@ int main(int argc, char *argv[]) {
 	rs.clearColor = ds::Color(0.1f, 0.1f, 0.1f, 1.0f);
 	rs.multisampling = 4;
 	rs.useGPUProfiling = false;
+	rs.supportDebug = true;
 	ds::init(rs);
 	
 	RID guiTextureID = loadImage("..\\common\\imgui.png");
@@ -129,7 +143,7 @@ int main(int argc, char *argv[]) {
 	grid.set(3, 2, 1);
 	grid.set(3, 3, 1);
 	grid.setStart(0, 2);
-	grid.setEnd(19, 2);
+	grid.setEnd(19, 11);
 
 	int totalX = grid.width * 46;
 	int totalY = grid.height * 46;
@@ -145,7 +159,7 @@ int main(int argc, char *argv[]) {
 	int num = ap.find(grid.start, grid.end, points, 64);
 
 	ds::vec2 start = ds::vec2(0, 2);
-	ds::vec2 end = ds::vec2(19, 2);
+	ds::vec2 end = ds::vec2(19, 11);
 
 	bool clicked = false;
 	bool pressed = false;
@@ -155,6 +169,12 @@ int main(int argc, char *argv[]) {
 
 	Walker walker;
 	resetWalker(&walker, points, num, sx, sy);
+
+	walker.gridPos = p2i(0,2);
+
+	float step = ds::PI * 0.25f;
+
+	p2i current(0, 0);
 
 	while (ds::isRunning()) {
 
@@ -182,6 +202,7 @@ int main(int argc, char *argv[]) {
 				else {
 					grid.items[idx] = 1;
 				}
+				flowField.build(p2i(19, 11));
 			}
 			else {
 				gx = -1;
@@ -190,7 +211,15 @@ int main(int argc, char *argv[]) {
 			clicked = false;
 		}
 
-		moveWalker(&walker,static_cast<float>(ds::getElapsedSeconds()));
+		//moveWalker(&walker,static_cast<float>(ds::getElapsedSeconds()));
+
+		if (convert(walker.pos.x, walker.pos.y, sx, sy, &current)) {
+			int dir = flowField.get(current.x, current.y);
+			float angle = static_cast<float>(dir) * step;
+			walker.rotation = angle;
+			ds::vec2 v = ds::vec2(cos(angle), sin(angle)) * 40.0f;
+			walker.pos += v * static_cast<float>(ds::getElapsedSeconds());
+		}
 
 		spriteBuffer.begin();
 		for (int y = 0; y < grid.height; ++y) {
@@ -207,8 +236,12 @@ int main(int argc, char *argv[]) {
 					t = ds::vec4(184, 0, 46, 46);
 				}
 				spriteBuffer.add(p, t);
-				ds::vec2 ffp = flowField.get(x, y);
-				drawNumber(&spriteBuffer, ffp.x, p);
+				int d = flowField.get(x, y);
+				if (d >= 0 && d < 9) {
+					//int d = flowField.getCost(x, y);
+					//drawNumber(&spriteBuffer, d, p);
+					spriteBuffer.add(p, ds::vec4(d * 46, 138, 46, 46));
+				}
 			}
 		}
 		/*
@@ -217,9 +250,8 @@ int main(int argc, char *argv[]) {
 			ds::vec2 p = ds::vec2(sx + wp.x * 46, sy + 46 * wp.y);
 			drawNumber(&spriteBuffer, i, p);
 		}
-
-		spriteBuffer.add(walker.pos, ds::vec4(184, 92, 24, 24), ds::vec2(1, 1), walker.rotation);
 		*/
+		spriteBuffer.add(walker.pos, ds::vec4(276, 0, 24, 24), ds::vec2(1, 1), walker.rotation);
 		spriteBuffer.flush();
 		/*
 		// GUI
@@ -240,6 +272,7 @@ int main(int argc, char *argv[]) {
 		gui::end();
 		guiBuffer.flush();
 		*/
+		ds::dbgPrint(0,0,"angle: %g", walker.rotation);
 		ds::end();
 	}
 	ds::shutdown();
