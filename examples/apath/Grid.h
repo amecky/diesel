@@ -62,59 +62,46 @@ struct Grid {
 		if (isValid(s) && isAvailable(s)) {
 			if (s != INVALID_POINT) {
 				set(start, 0);
-				
 			}
 			set(s, 2);
 			start = s;
-			
 		}
-		
 	}
 	
 	void setEnd(int x, int y) {
 		setEnd(p2i(x, y));
-		
 	}
 	
 	void setEnd(p2i e) {
 		if (isValid(e) && isAvailable(e)) {
 			if (end != INVALID_POINT) {
 				set(end, 0);
-				
 			}
 			set(e, 3);
 			end = e;
-			
 		}
-		
 	}
 	
 	bool isValid(p2i p) const {
 		return isValid(p.x, p.y);
-		
 	}
 	
 	void set(p2i p, int v) {
 		set(p.x, p.y, v);
-		
 	}
 	
 	void set(int x, int y, int v) {
 		if (isValid(x, y)) {
 			int idx = x + y * width;
 			items[idx] = v;
-			
 		}
-		
 	}
 	
 	bool isValid(int x, int y) const {
 		if (x < 0 || y < 0 || x >= width || y >= height) {
 			return false;
-			
 		}
 		return true;
-		
 	}
 	
 	bool isAvailable(p2i p) const {
@@ -125,8 +112,7 @@ struct Grid {
 	bool isAvailable(int x, int y) const {
 		if (isValid(x, y)) {
 			int idx = x + y * width;
-			return items[idx] != 1;
-			
+			return items[idx] != 1 && items[idx] < 4;
 		}
 		return false;
 		
@@ -134,12 +120,10 @@ struct Grid {
 	
 	int getIndex(p2i p) const {
 		return getIndex(p.x, p.y);
-		
 	}
 	
 	int getIndex(int x, int y) const {
 		return x + y * width;
-		
 	}
 	
 };

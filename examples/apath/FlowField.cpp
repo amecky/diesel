@@ -1,6 +1,11 @@
 #include "FlowField.h"
 #include <list>
 
+// the directions are:
+//  321
+//  4x0
+//  567
+//
 const p2i DIRECTIONS[] = { p2i(1,0),p2i(1,1),p2i(0,1),p2i(-1,1),p2i(-1,0),p2i(-1,-1),p2i(0,-1),p2i(1,-1) };
 
 FlowField::FlowField(Grid* grid) : _grid(grid) {
@@ -9,8 +14,13 @@ FlowField::FlowField(Grid* grid) : _grid(grid) {
 }
 
 FlowField::~FlowField() {
+	delete[] _dir;
+	delete[] _fields;
 }
 
+// -------------------------------------------------------------
+// Checks whether the index is already in the list
+// -------------------------------------------------------------
 bool FlowField::checkIfContains(unsigned int idx, const std::list<unsigned int>& lst) const {
 	std::list<unsigned int>::const_iterator it = lst.begin();
 	while (it != lst.end()) {
@@ -22,6 +32,9 @@ bool FlowField::checkIfContains(unsigned int idx, const std::list<unsigned int>&
 	return false;
 }
 
+// -------------------------------------------------------------
+// get neighbors (N, S, W and E). Will return the indices
+// -------------------------------------------------------------
 int FlowField::getNeighbors(int x, int y, int * ret, int max) {
 	int cnt = 0;
 	if (_grid->isValid(x, y - 1) && _grid->isAvailable(x, y - 1)) {
@@ -39,9 +52,11 @@ int FlowField::getNeighbors(int x, int y, int * ret, int max) {
 	return cnt;
 }
 
+// -------------------------------------------------------------
+// find the index of the neighbor with the lowest cost
+// -------------------------------------------------------------
 int FlowField::findLowestCost(int x, int y) {
 	int m = 255;
-	//int cidx = x + y * _grid->width;
 	int ret = 14;
 	for (int i = 0; i < 8; ++i) {
 		p2i c = p2i(x, y) + DIRECTIONS[i];
@@ -56,6 +71,9 @@ int FlowField::findLowestCost(int x, int y) {
 	return ret;
 }
 
+// -------------------------------------------------------------
+// reset fields and directions
+// -------------------------------------------------------------
 void FlowField::resetFields() {
 	int total = _grid->width * _grid->height;
 	for (int i = 0; i < total; ++i) {
@@ -64,49 +82,36 @@ void FlowField::resetFields() {
 	}
 }
 
+// -------------------------------------------------------------
+// build the flow field
+// -------------------------------------------------------------
 void FlowField::build(const p2i & end) {
-
+	_end = end;
+	// simple Dijstra flood fill first
 	unsigned int targetID = end.y * _grid->width + end.x;
-
-	resetFields();//Set total cost in all cells to 65535
+	resetFields();
 	std::list<unsigned int> openList;
-
-	//Set goal node cost to 0 and add it to the open list
 	_fields[targetID] = 0;
 	openList.push_back(targetID);
 	int neighbors[4];
-
 	while (openList.size() > 0)	{
-		//Get the next node in the open list
 		unsigned currentID = openList.front();
 		openList.pop_front();
-
 		unsigned short currentX = currentID % _grid->width;
 		unsigned short currentY = currentID / _grid->width;
-
-		//Get the N, E, S, and W neighbors of the current node
 		int neighborCount = getNeighbors(currentX, currentY, neighbors, 4);
-
-		//Iterate through the neighbors of the current node
 		for (int i = 0; i < neighborCount; ++i) {             
-			//Calculate the new cost of the neighbor node             
-			// based on the cost of the current node and the weight of the next node             
-			unsigned int endNodeCost = _fields[currentID] + 1;// getCostField()->getCostByIndex(neighbors[i]);
-
-																 //If a shorter path has been found, add the node into the open list
+			unsigned int endNodeCost = _fields[currentID] + 1;
 			if (endNodeCost < _fields[neighbors[i]]) {
-				//Check if the neighbor cell is already in the list.
-				//If it is not then add it to the end of the list.
 				if (!checkIfContains(neighbors[i], openList)) {
 					openList.push_back(neighbors[i]);
 				}
-				//Set the new cost of the neighbor node.
 				_fields[neighbors[i]] = endNodeCost;
 			}
 		}
 
 	}
-
+	// now calculate the directions
 	for (int x = 0; x < _grid->width; ++x) {
 		for (int y = 0; y < _grid->height; ++y) {
 			if (_grid->isAvailable(x, y)) {
@@ -120,20 +125,33 @@ void FlowField::build(const p2i & end) {
 
 }
 
+// -------------------------------------------------------------
+// get direction
+// -------------------------------------------------------------
 int FlowField::get(int x, int y) const {
 	int idx = x + y * _grid->width;
 	return _dir[idx];
 }
 
+// -------------------------------------------------------------
+// get cost of cell
+// -------------------------------------------------------------
 int FlowField::getCost(int x, int y) const {
 	int idx = x + y * _grid->width;
 	return _fields[idx];
 }
 
-/*
-const ds::vec2 & FlowField::get(int x, int y) const {
-	int idx = x + y * _grid->width;
-	int xv = _fields[idx];
-	return ds::vec2(xv, 0);
+// -------------------------------------------------------------
+// get the next field based on the direction of the current cell
+// -------------------------------------------------------------
+p2i FlowField::next(const p2i & current) {
+	int dir = get(current.x, current.y);
+	return current + DIRECTIONS[dir];
 }
-*/
+
+// -------------------------------------------------------------
+// check wether there are steps left
+// -------------------------------------------------------------
+bool FlowField::hasNext(const p2i & current) {
+	return current != _end;
+}
