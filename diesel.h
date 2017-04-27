@@ -807,7 +807,9 @@ namespace ds {
 		RT_DRAW_ITEM,
 		RT_STATE_GROUP,
 		RT_TEXTURE_FROM_RT,
-		RT_COMPUTE_SHADER
+		RT_COMPUTE_SHADER,
+		RT_STRUCTURED_BUFFER,
+		RT_UA_SRV
 	};
 	
 	// ---------------------------------------------------
@@ -896,6 +898,43 @@ namespace ds {
 		int _num;
 		int _total;
 		RID* _items;
+	};
+
+	// ---------------------------------------------------
+	// ComputeShaderBuilder
+	// ---------------------------------------------------	
+	struct ComputeShader {
+		RID* items;
+		int num;
+		RID rid;
+		int x;
+		int y;
+		int z;
+	};
+
+	class ComputeShaderBuilder {
+
+	public:
+		ComputeShaderBuilder() : _num(0), _total(0), _items(0) {}
+		~ComputeShaderBuilder() {
+			if (_items != 0) {
+				delete[] _items;
+			}
+		}
+		ComputeShaderBuilder& x(int xv);
+		ComputeShaderBuilder& y(int yv);
+		ComputeShaderBuilder& z(int zv);
+		ComputeShaderBuilder& shader(RID shaderID);
+		ComputeShaderBuilder& resourceView(RID srv, int slot);
+		ComputeShaderBuilder& unorderedAccessView(RID srv, int slot);
+		RID build(const char* name = "ComputeShader");
+	private:
+		RID* _items;
+		int _num;
+		int _total;
+		int _x;
+		int _y;
+		int _z;
 	};
 
 	/**
@@ -1066,6 +1105,9 @@ namespace ds {
 	*/
 	RID createInstancedBuffer(RID vertexBuffer, RID instanceBuffer, const char* name = "UNKNOWN");
 
+	// GPU buffer
+	RID createBuffer(int byteWidth, int byteStride, void* data = 0, const char* name = "UNKNOWN");
+
 	// sampler state
 	/**
 	* Creates a sampler state
@@ -1076,6 +1118,9 @@ namespace ds {
 	* @return RID the unique resource identifier
 	*/
 	RID createSamplerState(TextureAddressModes addressMode, TextureFilters filter, const char* name = "UNKNOWN");
+
+	
+
 
 	// blendstate
 	/**
@@ -1163,6 +1208,10 @@ namespace ds {
 	* @return a ds::vec2 containing the size or (0,0) if the resource was not found 
 	*/
 	ds::vec2 getTextureSize(RID rid);
+
+	RID createShaderResourceView(RID bufferID, const char* name = "UNKNOWN");
+
+	RID createUnorderedAccessView(RID bufferID, const char* name = "UNKNOWN");
 
 	// render target
 	/**
@@ -1858,6 +1907,26 @@ namespace ds {
 	};
 
 	// ------------------------------------------------------
+	// VertexBufferResource
+	// ------------------------------------------------------
+	class BufferResource : public AbstractResource<ID3D11Buffer*> {
+
+	public:
+		BufferResource(ID3D11Buffer* t) : AbstractResource(t) {}
+		virtual ~BufferResource() {}
+
+		void release() {
+			if (_data != 0) {
+				_data->Release();
+				_data = 0;
+			}
+		}
+		const ResourceType getType() const {
+			return RT_STRUCTURED_BUFFER;
+		}
+	};
+
+	// ------------------------------------------------------
 	// InstancedVertexBufferResource
 	// ------------------------------------------------------
 	struct InstancedBindData {
@@ -1941,6 +2010,27 @@ namespace ds {
 		}
 	private:
 		ds::vec2 _size;
+	};
+
+	// ------------------------------------------------------
+	// ShaderResourceViewResource
+	// ------------------------------------------------------
+	class UAResourceViewResource : public AbstractResource<ID3D11UnorderedAccessView*> {
+
+	public:
+		UAResourceViewResource(ID3D11UnorderedAccessView* t) : AbstractResource(t) {
+		}
+		virtual ~UAResourceViewResource() {}
+		void release() {
+			if (_data != 0) {
+				_data->Release();
+				delete _data;
+				_data = 0;
+			}
+		}
+		const ResourceType getType() const {
+			return RT_UA_SRV;
+		}
 	};
 
 	// ------------------------------------------------------
@@ -3416,6 +3506,24 @@ namespace ds {
 		return addResource(res, RT_INSTANCED_VERTEX_BUFFER, name);
 	}
 
+	RID createBuffer(int byteWidth, int byteStride, void* data, const char* name) {
+		// First we create a buffer in GPU memory
+		D3D11_BUFFER_DESC descGPUBuffer;
+		ZeroMemory(&descGPUBuffer, sizeof(descGPUBuffer));
+		descGPUBuffer.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
+		descGPUBuffer.ByteWidth = byteWidth;
+		descGPUBuffer.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+		descGPUBuffer.StructureByteStride = byteStride;	
+
+		D3D11_SUBRESOURCE_DATA InitData;
+		InitData.pSysMem = data;
+		ID3D11Buffer* buffer = 0;
+		_ctx->d3dDevice->CreateBuffer(&descGPUBuffer, &InitData, &buffer);
+		BufferResource* res = new BufferResource(buffer);
+		return addResource(res, RT_STRUCTURED_BUFFER, name);
+
+	}
+
 	// ------------------------------------------------------
 	// list of primitive topologies
 	// ------------------------------------------------------
@@ -3895,6 +4003,51 @@ namespace ds {
 		ShaderResourceViewResource* res = (ShaderResourceViewResource*)_ctx->_resources[ridx];
 		return res->getSize();
 	}
+
+	RID createShaderResourceView(RID bufferID, const char* name) {
+		uint16_t ridx = getResourceIndex(bufferID, RT_STRUCTURED_BUFFER);
+		BufferResource* bufferRes = (BufferResource*)_ctx->_resources[ridx];
+		D3D11_BUFFER_DESC descBuf;
+		ZeroMemory(&descBuf, sizeof(descBuf));
+		bufferRes->get()->GetDesc(&descBuf);
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC descView;
+		ZeroMemory(&descView, sizeof(descView));
+		descView.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
+		descView.BufferEx.FirstElement = 0;
+
+		descView.Format = DXGI_FORMAT_UNKNOWN;
+		descView.BufferEx.NumElements = descBuf.ByteWidth / descBuf.StructureByteStride;
+		ID3D11ShaderResourceView* srv;
+		ASSERT_RESULT(_ctx->d3dDevice->CreateShaderResourceView(bufferRes->get(), &descView, &srv), "Failed to create resource view");
+		InternalTexture* tex = new InternalTexture;
+		// FIXME: get size!!
+		tex->width = 0;
+		tex->height = 0;
+		tex->srv = srv;
+		ShaderResourceViewResource* res = new ShaderResourceViewResource(tex);
+		return addResource(res, RT_SRV, name);
+	}
+
+	RID createUnorderedAccessView(RID bufferID, const char* name = "UNKNOWN") {
+		uint16_t ridx = getResourceIndex(bufferID, RT_STRUCTURED_BUFFER);
+		BufferResource* bufferRes = (BufferResource*)_ctx->_resources[ridx];
+		D3D11_BUFFER_DESC descBuf;
+		ZeroMemory(&descBuf, sizeof(descBuf));
+		bufferRes->get()->GetDesc(&descBuf);
+
+		D3D11_UNORDERED_ACCESS_VIEW_DESC descView;
+		ZeroMemory(&descView, sizeof(descView));
+		descView.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+		descView.Buffer.FirstElement = 0;
+
+		descView.Format = DXGI_FORMAT_UNKNOWN;      // Format must be must be DXGI_FORMAT_UNKNOWN, when creating a View of a Structured Buffer
+		descView.Buffer.NumElements = descBuf.ByteWidth / descBuf.StructureByteStride;
+		ID3D11UnorderedAccessView* srv;
+		ASSERT_RESULT(_ctx->d3dDevice->CreateUnorderedAccessView(bufferRes->get(), &descView, &srv), "Failed to create uav resource view");
+		UAResourceViewResource* res = new UAResourceViewResource(srv);
+		return addResource(res, RT_UA_SRV, name);
+	}
 	// ------------------------------------------------------
 	// set texture
 	// ------------------------------------------------------
@@ -4303,6 +4456,23 @@ namespace ds {
 		}
 	}
 
+	// ------------------------------------------------------
+	// ComputeShaderBuilder
+	// ------------------------------------------------------
+	ComputeShaderBuilder& ComputeShaderBuilder::x(int xv) {
+		_x = xv;
+		return *this;
+	}
+
+	ComputeShaderBuilder& ComputeShaderBuilder::y(int yv) {
+		_y = yv;
+		return *this;
+	}
+
+	ComputeShaderBuilder& ComputeShaderBuilder::z(int zv) {
+		_z = zv;
+		return *this;
+	}
 
 	// ------------------------------------------------------
 	// clear leaking states
