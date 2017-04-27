@@ -806,7 +806,8 @@ namespace ds {
 		RT_RENDER_PASS,
 		RT_DRAW_ITEM,
 		RT_STATE_GROUP,
-		RT_TEXTURE_FROM_RT
+		RT_TEXTURE_FROM_RT,
+		RT_COMPUTE_SHADER
 	};
 	
 	// ---------------------------------------------------
@@ -1118,6 +1119,8 @@ namespace ds {
 	* @return RID the unique resource identifier
 	*/
 	RID createPixelShader(const void* data, int size, const char* name = "UNKNOWN");
+
+	RID createComputeShader(const void* data, int size, const char* name = "UNKNOWN");
 	/**
 	*
 	* @param name the name of the pixel shader - default is UNKNOWN
@@ -1136,6 +1139,8 @@ namespace ds {
 	* @return RID the unique resource identifier
 	*/
 	RID loadPixelShader(const char* csoName, const char* name = "UNKNOWN");
+
+	RID loadComputeShader(const char* csoName, const char* name = "UNKNOWN");
 
 	// texture
 	/**
@@ -2056,6 +2061,25 @@ namespace ds {
 		}
 		const ResourceType getType() const {
 			return RT_PIXEL_SHADER;
+		}
+	};
+
+	// ------------------------------------------------------
+	// ComputeShaderResource
+	// ------------------------------------------------------
+	class ComputeShaderResource : public AbstractResource<ID3D11ComputeShader*> {
+
+	public:
+		ComputeShaderResource(ID3D11ComputeShader* t) : AbstractResource(t) {}
+		virtual ~ComputeShaderResource() {}
+		void release() {
+			if (_data != 0) {
+				_data->Release();
+				_data = 0;
+			}
+		}
+		const ResourceType getType() const {
+			return RT_COMPUTE_SHADER;
 		}
 	};
 
@@ -3639,6 +3663,16 @@ namespace ds {
 		return addResource(res, RT_PIXEL_SHADER, name);
 	}
 
+	// ------------------------------------------------------
+	// create compute shader
+	// ------------------------------------------------------
+	RID createComputeShader(const void* data, int size, const char* name) {
+		ID3D11ComputeShader* s;
+		assert_result(_ctx->d3dDevice->CreateComputeShader(data, size, nullptr, &s), "Failed to create compute shader");
+		ComputeShaderResource* res = new ComputeShaderResource(s);
+		return addResource(res, RT_COMPUTE_SHADER, name);
+	}
+
 	struct DataFile {
 		char* data;
 		int size;
@@ -3698,6 +3732,23 @@ namespace ds {
 		delete[] file.data;
 		PixelShaderResource* res = new PixelShaderResource(s);
 		return addResource(res, RT_PIXEL_SHADER, name);
+	}
+
+	// ------------------------------------------------------
+	// load compute shader
+	// ------------------------------------------------------
+	RID loadComputeShader(const char* csoName, const char* name) {
+		DataFile file = read_data(csoName);
+		XASSERT(file.size != -1, "Cannot load compute shader file: '%s'", csoName);
+		ID3D11ComputeShader* s;
+		assert_result(_ctx->d3dDevice->CreateComputeShader(
+			file.data,
+			file.size,
+			nullptr,
+			&s), "Failed to create compute shader");
+		delete[] file.data;
+		ComputeShaderResource* res = new ComputeShaderResource(s);
+		return addResource(res, RT_COMPUTE_SHADER, name);
 	}
 
 	// ------------------------------------------------------

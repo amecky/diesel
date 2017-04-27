@@ -202,7 +202,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	float step = ds::PI * 0.25f;
 
-	p2i current(0, 0);
+	//p2i current(0, 0);
 
 	while (ds::isRunning()) {
 
@@ -265,6 +265,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				}
 				if (type != 4) {
 					spriteBuffer.add(p, t);
+					// draw direction
 					int d = flowField.get(x, y);
 					if (d >= 0 && d < 9) {
 						spriteBuffer.add(p, ds::vec4(d * 46, 138, 46, 46));

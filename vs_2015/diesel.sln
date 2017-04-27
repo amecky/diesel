@@ -55,6 +55,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BinaryClock", "..\examples\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MonochromeFont", "..\examples\monochrome_font\MonochromeFont.vcxproj", "{1704B168-0C4C-46CB-B59D-B853FF063ADE}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ComputeShader", "..\examples\compute_shader\ComputeShader.vcxproj", "{E7EB3F62-0864-48A4-9665-B28F6C8E13CA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -271,6 +273,14 @@ Global
 		{1704B168-0C4C-46CB-B59D-B853FF063ADE}.Release|x64.Build.0 = Release|x64
 		{1704B168-0C4C-46CB-B59D-B853FF063ADE}.Release|x86.ActiveCfg = Release|Win32
 		{1704B168-0C4C-46CB-B59D-B853FF063ADE}.Release|x86.Build.0 = Release|Win32
+		{E7EB3F62-0864-48A4-9665-B28F6C8E13CA}.Debug|x64.ActiveCfg = Debug|x64
+		{E7EB3F62-0864-48A4-9665-B28F6C8E13CA}.Debug|x64.Build.0 = Debug|x64
+		{E7EB3F62-0864-48A4-9665-B28F6C8E13CA}.Debug|x86.ActiveCfg = Debug|Win32
+		{E7EB3F62-0864-48A4-9665-B28F6C8E13CA}.Debug|x86.Build.0 = Debug|Win32
+		{E7EB3F62-0864-48A4-9665-B28F6C8E13CA}.Release|x64.ActiveCfg = Release|x64
+		{E7EB3F62-0864-48A4-9665-B28F6C8E13CA}.Release|x64.Build.0 = Release|x64
+		{E7EB3F62-0864-48A4-9665-B28F6C8E13CA}.Release|x86.ActiveCfg = Release|Win32
+		{E7EB3F62-0864-48A4-9665-B28F6C8E13CA}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
