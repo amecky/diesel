@@ -26,8 +26,7 @@ float4 PS_Main( PS_Input frag ) : SV_TARGET {
     else {
         frag.tex.y -= 0.5;
 	    float4 c = desaturatedMap.Sample(colorSampler, frag.tex * float2(1,2));
-	    float3 greyscale = dot(c.rgb, float3(0.30, 0.59, 0.11));
-	    float3 rgb = lerp(c.rgb, greyscale, 1.0);
-	    return float4(rgb, c.a);
+		c.a = 1.0;
+	    return c;
     }
 }

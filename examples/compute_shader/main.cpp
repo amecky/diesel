@@ -2,7 +2,6 @@
 #include "..\..\diesel.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "..\common\stb_image.h"
-typedef unsigned char BYTE;
 #include "Fullscreen_PS_Main.h"
 #include "Fullscreen_VS_Main.h"
 #include "desaturate_CSMain.h"
@@ -26,6 +25,27 @@ int main(int argc, char *argv[]) {
 	unsigned char *data = stbi_load("martian_oasis_by_smnbrnr.png", &x, &y, &n, 4);
 	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
 
+	RID computeShader = ds::createComputeShader(desaturate_CSMain, sizeof(desaturate_CSMain), "Desaturate");
+	RID inputBuffer = ds::createBuffer(x * y * 4, 4, data, "InputBuffer");
+	RID inputSRV = ds::createShaderResourceView(inputBuffer, "InputSRV");
+	RID outputBuffer = ds::createBuffer(x * y * 4, 4, 0, "OutputBuffer");
+	RID outputSRV = ds::createUnorderedAccessView(outputBuffer, "OutputSRV");
+
+	RID csID = ds::ComputeShaderBuilder()
+		.shader(computeShader)
+		.resourceView(inputSRV, 0)
+		.unorderedAccessView(outputSRV, 0)
+		.x(32)
+		.y(24)
+		.z(1)
+		.build();
+
+	ds::dispatch(csID);
+
+	byte* nd = ds::getBufferData(outputBuffer);
+
+	RID ext = ds::createTexture(x, y, n, nd, ds::TextureFormat::R8G8B8A8_UNORM);
+
 	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 0.0f, -1.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
 	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
 	RID ppPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::DISABLED);
@@ -41,7 +61,7 @@ int main(int argc, char *argv[]) {
 		.indexBuffer(NO_RID)
 		.vertexBuffer(NO_RID)
 		.texture(textureID, fsPixelShader, 0)
-		.texture(textureID, fsPixelShader, 1)
+		.texture(ext, fsPixelShader, 1)
 		.vertexShader(fsVertexShader)
 		.pixelShader(fsPixelShader)
 		.samplerState(ssid, fsPixelShader)
@@ -50,22 +70,7 @@ int main(int argc, char *argv[]) {
 	ds::DrawCommand ppCmd = { 3, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::TRIANGLE_LIST };
 	RID ppItem = ds::compile(ppCmd, ppGroup);
 
-	RID computeShader = ds::createComputeShader(desaturate_CSMain, sizeof(desaturate_CSMain), "Desaturate");
-	RID inputBuffer = ds::createBuffer(x * y, 4, data, "InputBuffer");
-	RID inputSRV = ds::createShaderResourceView(inputBuffer, "InputSRV");
-	RID outputBuffer = ds::createBuffer(x * y, 4, 0, "OutputBuffer");
-	RID outputSRV = ds::createUnorderedAccessView(outputBuffer, "OutputSRV");
-
-	RID csID = ds::ComputeShaderBuilder()
-		.shader(computeShader)
-		.resourceView(inputBuffer, 1)
-		.unorderedAccessView(outputBuffer, 1)
-		.x(32)
-		.y(21)
-		.z(1)
-		.build();
-
-	//ds::dispatch(csID);
+	
 
 	while (ds::isRunning()) {
 		ds::begin();

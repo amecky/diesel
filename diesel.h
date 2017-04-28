@@ -30,7 +30,7 @@
 // ------------------------------------------------------------------------------------
 
 // ------------------------------------------------------------------------------------
-// Chanelog:
+// Change log:
 // 
 // 0.1 - initial release
 // ------------------------------------------------------------------------------------
@@ -38,6 +38,8 @@
 
 //#define DS_IMPLEMENTATION
 
+typedef unsigned char BYTE;
+typedef unsigned char byte;
 // ----------------------------------------------------
 // RID - resource identifier
 //
@@ -809,7 +811,8 @@ namespace ds {
 		RT_TEXTURE_FROM_RT,
 		RT_COMPUTE_SHADER,
 		RT_STRUCTURED_BUFFER,
-		RT_UA_SRV
+		RT_UA_SRV,
+		RT_CS_GROUP
 	};
 	
 	// ---------------------------------------------------
@@ -864,16 +867,30 @@ namespace ds {
 	// ---------------------------------------------------
 	// State group
 	// ---------------------------------------------------	
-
-	class StateGroupBuilder {
+	class BasicGroupBuilder {
 
 	public:
-		StateGroupBuilder() : _num(0), _total(0), _items(0) {}
-		~StateGroupBuilder() {
+		BasicGroupBuilder() : _num(0), _total(0), _items(0) {}
+		virtual ~BasicGroupBuilder() {
 			if (_items != 0) {
 				delete[] _items;
 			}
 		}
+	protected:
+		void add(uint16_t index, ResourceType type, int stage, int slot = 0);
+		void basicBinding(RID rid, ResourceType rt, int stage, int slot = 0);
+		int partition(RID* a, int l, int r);
+		void quickSort(RID* a, int l, int r);
+		int _num;
+		int _total;
+		RID* _items;
+	};
+
+	class StateGroupBuilder : public BasicGroupBuilder {
+
+	public:
+		StateGroupBuilder() : BasicGroupBuilder() {}
+		virtual ~StateGroupBuilder() {}
 		StateGroupBuilder& inputLayout(RID rid);
 		StateGroupBuilder& constantBuffer(RID rid, RID shader, int slot = 0);
 		StateGroupBuilder& basicConstantBuffer(RID shader, int slot = 0);
@@ -891,19 +908,14 @@ namespace ds {
 		StateGroupBuilder& noResource(ResourceType type, int stage, int slot);
 		RID build(const char* name = "StateGroup");
 	private:
-		void add(uint16_t index, ResourceType type, int stage, int slot = 0);
-		void basicBinding(RID rid, ResourceType rt, int stage, int slot = 0);
 		int partition(RID* a, int l, int r);
 		void quickSort(RID* a, int l, int r);
-		int _num;
-		int _total;
-		RID* _items;
 	};
 
 	// ---------------------------------------------------
 	// ComputeShaderBuilder
 	// ---------------------------------------------------	
-	struct ComputeShader {
+	struct ComputeShaderGroup {
 		RID* items;
 		int num;
 		RID rid;
@@ -912,15 +924,11 @@ namespace ds {
 		int z;
 	};
 
-	class ComputeShaderBuilder {
+	class ComputeShaderBuilder : public BasicGroupBuilder {
 
 	public:
-		ComputeShaderBuilder() : _num(0), _total(0), _items(0) {}
-		~ComputeShaderBuilder() {
-			if (_items != 0) {
-				delete[] _items;
-			}
-		}
+		ComputeShaderBuilder() : BasicGroupBuilder() {}
+		virtual ~ComputeShaderBuilder() {}
 		ComputeShaderBuilder& x(int xv);
 		ComputeShaderBuilder& y(int yv);
 		ComputeShaderBuilder& z(int zv);
@@ -929,9 +937,6 @@ namespace ds {
 		ComputeShaderBuilder& unorderedAccessView(RID srv, int slot);
 		RID build(const char* name = "ComputeShader");
 	private:
-		RID* _items;
-		int _num;
-		int _total;
 		int _x;
 		int _y;
 		int _z;
@@ -1044,7 +1049,7 @@ namespace ds {
 	*
 	* @param byteWidth the size of the bytes
 	* @param data optional data - the buffer will be filled with the data when created
-	* @param name optiomal name of the constant buffer - default is UNKNOWN
+	* @param name optional name of the constant buffer - default is UNKNOWN
 	* @return RID the unique resource identifier
 	*/
 	RID createConstantBuffer(int byteWidth, void* data = 0, const char* name = "UNKNOWN");
@@ -1066,7 +1071,7 @@ namespace ds {
 	* @param numIndices the maximum number of indices
 	* @param indexType the type of the index buffer (UINT_16 or UINT_32)
 	* @param type the buffer type (static or dynamic)
-	* @param data the actul data
+	* @param data the actual data
 	* @param name the name of the pixel shader - default is UNKNOWN
 	* @return RID the unique resource identifier
 	*/
@@ -1086,7 +1091,7 @@ namespace ds {
 	* @param numVertices the maximum number of vertices
 	* @param vertexSize the size of every vertex
 	* @param data optional data that will be used to fill up the buffer
-	* @param name the name of the pixel shader - default is UNKNOWN
+	* @param name the name of the vertex buffer - default is UNKNOWN
 	* @return RID the unique resource identifier
 	*/
 	RID createVertexBuffer(BufferType type, int numVertices, uint32_t vertexSize, void* data = 0, const char* name = "UNKNOWN");
@@ -1106,6 +1111,15 @@ namespace ds {
 	RID createInstancedBuffer(RID vertexBuffer, RID instanceBuffer, const char* name = "UNKNOWN");
 
 	// GPU buffer
+	/**
+	* Creates a buffer in GPU memory
+	*
+	* @param byteWidth the size of the buffer
+	* @param byteStride the stride of every byte
+	* @param data optional initial data
+	* @param name the name of the buffer - default is UNKNOWN
+	* @return RID the unique resource identifier
+	*/
 	RID createBuffer(int byteWidth, int byteStride, void* data = 0, const char* name = "UNKNOWN");
 
 	// sampler state
@@ -1213,6 +1227,7 @@ namespace ds {
 
 	RID createUnorderedAccessView(RID bufferID, const char* name = "UNKNOWN");
 
+	byte* getBufferData(RID bufferID);
 	// render target
 	/**
 	* Creates a render target.
@@ -1250,7 +1265,7 @@ namespace ds {
 	*/
 	void end();
 	/**
-	* Returns wether the engine is running or not
+	* Returns whether the engine is running or not
 	*
 	* @return true if still running
 	*/
@@ -1259,6 +1274,12 @@ namespace ds {
 	* Stops the rendering and will shutdown the engine. It will also clean up all resources
 	*/
 	void shutdown();
+
+	//
+	// the compute shader functions
+	//
+
+	void dispatch(RID computeShaderID);
 
 	// view and projection matrix
 
@@ -1513,7 +1534,11 @@ namespace ds {
 		"RENDER_PASS",
 		"DRAW_ITEM",
 		"STATE_GROUP",
-		"TEXTURE_FROM_RT"
+		"TEXTURE_FROM_RT",
+		"COMPUTE_SHADER",
+		"STRUCTURED_BUFFER",
+		"UA_SRV",
+		"CS_GROUP"
 	};
 
 	void dbgInit();
@@ -2022,11 +2047,11 @@ namespace ds {
 		}
 		virtual ~UAResourceViewResource() {}
 		void release() {
-			if (_data != 0) {
-				_data->Release();
-				delete _data;
-				_data = 0;
-			}
+			//if (_data != 0) {
+				//_data->Release();
+				//delete _data;
+				//_data = 0;
+			//}
 		}
 		const ResourceType getType() const {
 			return RT_UA_SRV;
@@ -2263,6 +2288,24 @@ namespace ds {
 		}
 	};
 
+	// ------------------------------------------------------
+	// ComputeShaderResource
+	// ------------------------------------------------------
+	class ComputeShaderGroupResource : public AbstractResource<ComputeShaderGroup*> {
+
+	public:
+		ComputeShaderGroupResource(ComputeShaderGroup* t) : AbstractResource(t) {}
+		virtual ~ComputeShaderGroupResource() {}
+		void release() {
+			if (_data != 0) {
+				delete _data;
+			}
+		}
+		const ResourceType getType() const {
+			return RT_CS_GROUP;
+		}
+	};
+
 	class GPUProfiler;
 
 	// ---------------------------------------------------------------
@@ -2343,6 +2386,7 @@ namespace ds {
 
 		std::vector<BaseResource*> _resources;
 		std::vector<StateGroup*> _groups;
+		std::vector<ComputeShaderGroup*> _computeShaderGroups;
 
 		bool mouseButtonClicked[2];
 		int mouseButtonState[2];
@@ -2826,7 +2870,6 @@ namespace ds {
 		RenderPassResource* res = (RenderPassResource*)_ctx->_resources[ridx];
 		return res->get();
 	}
-
 	// ------------------------------------------------------
 	// set view position
 	// ------------------------------------------------------
@@ -3514,11 +3557,15 @@ namespace ds {
 		descGPUBuffer.ByteWidth = byteWidth;
 		descGPUBuffer.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 		descGPUBuffer.StructureByteStride = byteStride;	
-
-		D3D11_SUBRESOURCE_DATA InitData;
-		InitData.pSysMem = data;
 		ID3D11Buffer* buffer = 0;
-		_ctx->d3dDevice->CreateBuffer(&descGPUBuffer, &InitData, &buffer);
+		if (data != 0) {
+			D3D11_SUBRESOURCE_DATA InitData;
+			InitData.pSysMem = data;			
+			_ctx->d3dDevice->CreateBuffer(&descGPUBuffer, &InitData, &buffer);
+		}
+		else {
+			_ctx->d3dDevice->CreateBuffer(&descGPUBuffer, NULL, &buffer);
+		}
 		BufferResource* res = new BufferResource(buffer);
 		return addResource(res, RT_STRUCTURED_BUFFER, name);
 
@@ -3673,7 +3720,7 @@ namespace ds {
 	}
 
 	// ------------------------------------------------------
-	// cretae blend state
+	// create blend state
 	// ------------------------------------------------------
 	RID createBlendState(BlendStates srcBlend, BlendStates srcAlphaBlend, BlendStates destBlend, BlendStates destAlphaBlend, bool alphaEnabled, const char* name) {
 		D3D11_BLEND_DESC blendDesc;
@@ -3953,7 +4000,7 @@ namespace ds {
 		desc.SampleDesc.Count = 1;// _ctx->multisampling;
 		desc.SampleDesc.Quality = 0;		
 		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		desc.CPUAccessFlags = 0;
+		desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		desc.MiscFlags = 0;
 		ID3D11Texture2D *texture2D = 0;
 		/*
@@ -3968,13 +4015,20 @@ namespace ds {
 		}
 		else {
 		*/
-			desc.Usage = D3D11_USAGE_IMMUTABLE;
+			//desc.Usage = D3D11_USAGE_IMMUTABLE;
+		desc.Usage = D3D11_USAGE_DYNAMIC;
+		if (data != 0) {
 			D3D11_SUBRESOURCE_DATA subres;
 			subres.pSysMem = data;
 			subres.SysMemPitch = width * channels;
-			subres.SysMemSlicePitch = 0;			
+			subres.SysMemSlicePitch = 0;
+
 			ASSERT_RESULT(_ctx->d3dDevice->CreateTexture2D(&desc, &subres, &texture2D), "Failed to create Texture2D");
-		//}
+		}
+		else {
+			ASSERT_RESULT(_ctx->d3dDevice->CreateTexture2D(&desc, NULL, &texture2D), "Failed to create Texture2D");
+		}
+
 		ID3D11ShaderResourceView* srv = 0;
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
 		//if (_ctx->multisampling > 1) {
@@ -4029,7 +4083,7 @@ namespace ds {
 		return addResource(res, RT_SRV, name);
 	}
 
-	RID createUnorderedAccessView(RID bufferID, const char* name = "UNKNOWN") {
+	RID createUnorderedAccessView(RID bufferID, const char* name) {
 		uint16_t ridx = getResourceIndex(bufferID, RT_STRUCTURED_BUFFER);
 		BufferResource* bufferRes = (BufferResource*)_ctx->_resources[ridx];
 		D3D11_BUFFER_DESC descBuf;
@@ -4048,12 +4102,6 @@ namespace ds {
 		UAResourceViewResource* res = new UAResourceViewResource(srv);
 		return addResource(res, RT_UA_SRV, name);
 	}
-	// ------------------------------------------------------
-	// set texture
-	// ------------------------------------------------------
-	//void setTexture(RID rid, ShaderType type) {
-		//setTexture(rid, type, 0);
-	//}
 
 	// ------------------------------------------------------
 	// set texture
@@ -4271,7 +4319,7 @@ namespace ds {
 	// StateGroupBuilder
 	//
 	// ******************************************************
-	void StateGroupBuilder::add(uint16_t index, ResourceType type, int stage, int slot) {
+	void BasicGroupBuilder::add(uint16_t index, ResourceType type, int stage, int slot) {
 		if ((_num + 1 ) > _total) {
 			if (_items == 0) {
 				_items = new RID[16];
@@ -4288,7 +4336,7 @@ namespace ds {
 		_items[_num++] = buildRID(index, type, stage, slot);
 	}
 
-	void StateGroupBuilder::basicBinding(RID rid, ResourceType type, int stage, int slot) {
+	void BasicGroupBuilder::basicBinding(RID rid, ResourceType type, int stage, int slot) {
 		uint16_t id = id_mask(rid);
 		if (id == NO_RID) {
 			rid = buildRID(NO_RID, type, stage, 0);
@@ -4459,6 +4507,20 @@ namespace ds {
 	// ------------------------------------------------------
 	// ComputeShaderBuilder
 	// ------------------------------------------------------
+	ComputeShaderBuilder& ComputeShaderBuilder::shader(RID shaderID) {
+		basicBinding(shaderID, RT_COMPUTE_SHADER, 0, 0);
+		return *this;
+	}
+
+	ComputeShaderBuilder& ComputeShaderBuilder::resourceView(RID srv, int slot) {
+		basicBinding(srv, RT_SRV, 0, slot);
+		return *this;
+	}
+
+	ComputeShaderBuilder& ComputeShaderBuilder::unorderedAccessView(RID srv, int slot) {
+		basicBinding(srv, RT_UA_SRV, 0, slot);
+		return *this;
+	}
 	ComputeShaderBuilder& ComputeShaderBuilder::x(int xv) {
 		_x = xv;
 		return *this;
@@ -4474,6 +4536,55 @@ namespace ds {
 		return *this;
 	}
 
+	RID ComputeShaderBuilder::build(const char* name) {
+		ComputeShaderGroup* csg = new ComputeShaderGroup();
+		csg->x = _x;
+		csg->y = _y;
+		csg->z = _z;
+		csg->num = _num;
+		csg->items = new RID[_num];
+		memcpy(csg->items, _items, _num * sizeof(RID));
+		RID rid = addResource(new ComputeShaderGroupResource(csg), RT_CS_GROUP, name);
+		csg->rid = rid;
+		return rid;
+	}
+	
+	// ------------------------------------------------------
+	// dispatch compute shader
+	// ------------------------------------------------------
+	void dispatch(RID computeShaderID) {
+		uint16_t ridx = getResourceIndex(computeShaderID, RT_CS_GROUP);
+		ComputeShaderGroupResource* res = (ComputeShaderGroupResource*)_ctx->_resources[ridx];
+		ComputeShaderGroup* group = res->get();
+		for (int i = 0; i < group->num; ++i) {
+			RID current = group->items[i];
+			int type = type_mask(current);
+			if (type == RT_COMPUTE_SHADER) {
+				uint16_t sidx = getResourceIndex(current, RT_COMPUTE_SHADER);
+				ComputeShaderResource* sres = (ComputeShaderResource*)_ctx->_resources[sidx];
+				_ctx->d3dContext->CSSetShader(sres->get(), NULL, 0);
+			}
+			else if (type == RT_SRV) {
+				uint16_t sridx = getResourceIndex(current, RT_SRV);
+				ShaderResourceViewResource* srvRes = (ShaderResourceViewResource*)_ctx->_resources[sridx];
+				InternalTexture* tex = srvRes->get();
+				int slot = slot_mask(current);
+				_ctx->d3dContext->CSSetShaderResources(slot, 1, &tex->srv);
+			}
+			else if (type == RT_UA_SRV) {
+				uint16_t uaidx = getResourceIndex(current, RT_UA_SRV);
+				UAResourceViewResource* uar = (UAResourceViewResource*)_ctx->_resources[uaidx];
+				int slot = slot_mask(current);
+				ID3D11UnorderedAccessView* view = uar->get();
+				_ctx->d3dContext->CSSetUnorderedAccessViews(slot, 1, &view, NULL);
+			}
+		}
+		_ctx->d3dContext->Dispatch(group->x, group->y, group->z);
+		// FIXME: clean up
+		_ctx->d3dContext->CSSetShader(NULL, NULL, 0);
+		//_ctx->d3dContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, NULL);
+		//_ctx->d3dContext->CSSetShaderResources(0, 2, ppSRVNULL);
+	}
 	// ------------------------------------------------------
 	// clear leaking states
 	// ------------------------------------------------------
@@ -4488,6 +4599,42 @@ namespace ds {
 		//fclose(f);
 	}
 
+
+	byte* getBufferData(RID bufferID) {
+		ID3D11Buffer* debugbuf = NULL;
+
+		uint16_t ridx = getResourceIndex(bufferID, RT_STRUCTURED_BUFFER);
+		BufferResource* bufferRes = (BufferResource*)_ctx->_resources[ridx];
+		D3D11_BUFFER_DESC desc;
+		ZeroMemory(&desc, sizeof(desc));
+		bufferRes->get()->GetDesc(&desc);
+
+		UINT byteSize = desc.ByteWidth;
+
+		desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+		desc.Usage = D3D11_USAGE_STAGING;
+		desc.BindFlags = 0;
+		desc.MiscFlags = 0;
+
+		HRESULT r = _ctx->d3dDevice->CreateBuffer(&desc, NULL, &debugbuf);
+		if ( r == S_OK) {
+			_ctx->d3dContext->CopyResource(debugbuf, bufferRes->get());
+
+			D3D11_MAPPED_SUBRESOURCE mappedResource;
+			if (_ctx->d3dContext->Map(debugbuf, 0, D3D11_MAP_READ, 0, &mappedResource) != S_OK)
+				return 0;
+
+			byte* outBuff = new byte[byteSize];
+			memcpy(outBuff, mappedResource.pData, byteSize);
+
+			_ctx->d3dContext->Unmap(debugbuf, 0);
+
+			debugbuf->Release();
+
+			return outBuff;
+		}
+		return 0;
+	}
 
 	// ------------------------------------------------------
 	// submit draw command

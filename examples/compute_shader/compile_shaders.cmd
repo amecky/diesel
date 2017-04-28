@@ -9,8 +9,8 @@ rem Copyright (c) Microsoft Corporation. All rights reserved.
 setlocal
 set error=0
 
-set FX_PATH=C:\devtools\DirectX_SDK\Utilities\bin\x86
-rem set FX_PATH=C:\devtools\DirectX\Utilities\bin\x86
+rem set FX_PATH=C:\devtools\DirectX_SDK\Utilities\bin\x86
+set FX_PATH=C:\devtools\DirectX\Utilities\bin\x86
 
 rem SpriteBuffer
 call :CompileShader%1 Fullscreen Fullscreen vs VS_Main
