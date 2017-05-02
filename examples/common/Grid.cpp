@@ -39,7 +39,7 @@ void Grid::create(ds::vec3* positions, int numCells, RID vertexShader, RID pixel
 }
 
 void Grid::render() {
-	_constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix(_renderPass));
+	_constantBuffer.viewprojectionMatrix = ds::matTranspose(_camera->viewProjectionMatrix);
 	ds::matrix world = ds::matIdentity();
 	_constantBuffer.worldMatrix = ds::matTranspose(world);
 	ds::submit(_renderPass, _drawItem);

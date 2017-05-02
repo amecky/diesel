@@ -775,6 +775,19 @@ namespace ds {
 		BACK = 3
 	};
 
+	enum BindFlag {
+		BF_VERTEX_BUFFER = 0x1L,
+		BF_INDEX_BUFFER = 0x2L,
+		BF_CONSTANT_BUFFER = 0x4L,
+		BF_SHADER_RESOURCE = 0x8L,
+		BF_STREAM_OUTPUT = 0x10L,
+		BF_RENDER_TARGET = 0x20L,
+		BF_DEPTH_STENCIL = 0x40L,
+		BF_UNORDERED_ACCESS = 0x80L,
+		BF_DECODER = 0x200L,
+		BF_VIDEO_ENCODER = 0x400L
+	};
+	
 	// ---------------------------------------------------
 	// fill mode
 	// ---------------------------------------------------
@@ -837,6 +850,20 @@ namespace ds {
 			supportDebug = true;
 		}
 	};
+
+	struct Camera {
+		matrix viewMatrix;
+		matrix projectionMatrix;
+		matrix viewProjectionMatrix;
+		ds::vec3 position;
+		ds::vec3 target;
+		ds::vec3 up;
+		ds::vec3 right;
+		float roll;
+		float pitch;
+		float yaw;
+
+	};
 	
 	// ---------------------------------------------------
 	// Draw Command
@@ -848,9 +875,23 @@ namespace ds {
 		uint32_t instances;
 	};
 
+	// ---------------------------------------------------
+	// StructuredBufferInfo
+	// ---------------------------------------------------
+	struct StructuredBufferInfo {
+		unsigned int numElements;
+		int elementSize;
+		bool cpuWritable;
+		bool gpuWritable;
+		void* data;
+		RID textureID;
+		RID renderTarget;
+	};
+
 	class PipelineState;
 	enum ResourceType;
 	enum PipelineStage;
+
 	// ---------------------------------------------------
 	// State group
 	// ---------------------------------------------------	
@@ -879,8 +920,6 @@ namespace ds {
 	protected:
 		void add(uint16_t index, ResourceType type, int stage, int slot = 0);
 		void basicBinding(RID rid, ResourceType rt, int stage, int slot = 0);
-		int partition(RID* a, int l, int r);
-		void quickSort(RID* a, int l, int r);
 		int _num;
 		int _total;
 		RID* _items;
@@ -919,9 +958,6 @@ namespace ds {
 		RID* items;
 		int num;
 		RID rid;
-		int x;
-		int y;
-		int z;
 	};
 
 	class ComputeShaderBuilder : public BasicGroupBuilder {
@@ -929,17 +965,11 @@ namespace ds {
 	public:
 		ComputeShaderBuilder() : BasicGroupBuilder() {}
 		virtual ~ComputeShaderBuilder() {}
-		ComputeShaderBuilder& x(int xv);
-		ComputeShaderBuilder& y(int yv);
-		ComputeShaderBuilder& z(int zv);
 		ComputeShaderBuilder& shader(RID shaderID);
-		ComputeShaderBuilder& resourceView(RID srv, int slot);
-		ComputeShaderBuilder& unorderedAccessView(RID srv, int slot);
+		ComputeShaderBuilder& input(RID srv, int slot);
+		ComputeShaderBuilder& output(RID srv, int slot);
+		ComputeShaderBuilder& constantBuffer(RID buffer, int slot);
 		RID build(const char* name = "ComputeShader");
-	private:
-		int _x;
-		int _y;
-		int _z;
 	};
 
 	/**
@@ -969,41 +999,28 @@ namespace ds {
 	};
 
 	struct RenderPass {
-		ds::vec3 viewPosition;
-		ds::vec3 lookAt;
-		ds::vec3 up;
-		matrix viewMatrix;
-		matrix projectionMatrix;
-		matrix viewProjectionMatrix;
+		Camera* camera;
 		RID rts[4];
 		int numRenderTargets;
 		//DepthTarget depthTarget;
 		DepthBufferState depthState;
 	};
 
+	struct RenderPassInfo {
+		Camera* camera;
+		// FIXME: RID depthBuffer
+		DepthBufferState depthBufferState;
+		RID* renderTargets;
+		int numRenderTargets;
+	};
 	/**
 	* Creates a render pass.
 	*
-	* @param viewMatrix the view matrix
-	* @param projectionMatrix the projection matrix
-	* @param state the depth buffer state (enabled or disabled)
-	* @param name the name of the pixel shader - default is UNKNOWN
+	* @param info the RenderPassInfo
+	* @param name the name of the render pass - default is RenderPass
 	* @return RID the unique resource identifier
 	*/
-	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state, const char* name = "UNKNOWN");
-
-	/**
-	* Creates a render pass using render targets
-	*
-	* @param viewMatrix the view matrix
-	* @param projectionMatrix the projection matrix
-	* @param state the depth buffer state
-	* @param renderTargets pointer to an array of render targets
-	* @param numRenderTargets the number of render targets
-	* @param name the name of the pixel shader - default is UNKNOWN
-	* @return RID the unique resource identifier
-	*/
-	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state, RID* renderTargets,int numRenderTargets, const char* name = "UNKNOWN");
+	RID createRenderPass(const RenderPassInfo& info, const char* name = "RenderPass");
 
 	// items, groups, passes
 	/**
@@ -1054,34 +1071,31 @@ namespace ds {
 	*/
 	RID createConstantBuffer(int byteWidth, void* data = 0, const char* name = "UNKNOWN");
 
+	struct IndexBufferInfo {
+		uint32_t numIndices;
+		IndexType indexType;
+		BufferType type;
+		void* data;
+	};
 	// index buffer
 	/**
 	* Creates an index buffer.
 	* 
-	* @param numIndices the number of maximum indices
-	* @param indexType the actual type of the index buffer (UINT_16 or UINT_32)
-	* @param type the buffer type (static or dynamic)
-	* @param name the name of the pixel shader - default is UNKNOWN
+	* @param info the IndexBufferInfo
+	* @param name the name of the index buffer - default is IndexBuffer
 	* @return RID the unique resource identifier
 	*/
-	RID createIndexBuffer(uint32_t numIndices, IndexType indexType, BufferType type, const char* name = "UNKNOWN");
-	/**
-	* Creates an index buffer and fills it wit the supplied data
-	*
-	* @param numIndices the maximum number of indices
-	* @param indexType the type of the index buffer (UINT_16 or UINT_32)
-	* @param type the buffer type (static or dynamic)
-	* @param data the actual data
-	* @param name the name of the pixel shader - default is UNKNOWN
-	* @return RID the unique resource identifier
-	*/
-	RID createIndexBuffer(uint32_t numIndices, IndexType indexType, BufferType type, void* data, const char* name = "UNKNOWN");
+	RID createIndexBuffer(const IndexBufferInfo& info, const char* name = "IndexBuffer");
+
+
+	
 	/**
 	* Creates a quad index buffer. 
-	* @param name the name of the pixel shader - default is UNKNOWN
+	* @param name the name of the index buffer - default is QuadIndexBuffer
 	* @return RID the unique resource identifier
 	*/
-	RID createQuadIndexBuffer(int numQuads, const char* name = "UNKNOWN");
+	// FIXME: replace with buildQuadsIndices(int numQuads,int* order,const char* name);
+	RID createQuadIndexBuffer(int numQuads, const char* name = "QuadIndexBuffer");
 
 	// vertex buffer
 	/**
@@ -1114,13 +1128,15 @@ namespace ds {
 	/**
 	* Creates a buffer in GPU memory
 	*
-	* @param byteWidth the size of the buffer
+	* @param numElemens the number of elements for this buffer
 	* @param byteStride the stride of every byte
 	* @param data optional initial data
 	* @param name the name of the buffer - default is UNKNOWN
 	* @return RID the unique resource identifier
 	*/
-	RID createBuffer(int byteWidth, int byteStride, void* data = 0, const char* name = "UNKNOWN");
+	RID createBuffer(int numElements, int byteStride, void* data = 0, const char* name = "UNKNOWN");
+
+	RID createStructuredBuffer(const StructuredBufferInfo& info, const char* name = "StructuredBuffer");
 
 	// sampler state
 	/**
@@ -1133,22 +1149,21 @@ namespace ds {
 	*/
 	RID createSamplerState(TextureAddressModes addressMode, TextureFilters filter, const char* name = "UNKNOWN");
 
-	
-
-
+	// FIXME: add blendOperation!!! and blendMask!!!
+	struct BlendStateInfo {
+		BlendStates srcBlend;
+		BlendStates srcAlphaBlend;
+		BlendStates destBlend;
+		BlendStates destAlphaBlend;
+		bool alphaEnabled;
+	};
 	// blendstate
 	/**
-	*
+	* @param info the BlendStateInfo
 	* @param name the name of the pixel shader - default is UNKNOWN
 	* @return RID the unique resource identifier
 	*/
-	RID createBlendState(BlendStates srcBlend, BlendStates srcAlphaBlend, BlendStates destBlend, BlendStates destAlphaBlend, bool alphaEnabled, const char* name = "UNKNOWN");
-	/**
-	*
-	* @param name the name of the pixel shader - default is UNKNOWN
-	* @return RID the unique resource identifier
-	*/
-	RID createAlphaBlendState(BlendStates srcBlend, BlendStates destBlend, const char* name = "UNKNOWN");
+	RID createBlendState(const BlendStateInfo& info, const char* name = "BlendState");
 
 	// shader
 	/**
@@ -1202,6 +1217,14 @@ namespace ds {
 	RID loadComputeShader(const char* csoName, const char* name = "UNKNOWN");
 
 	// texture
+	struct TextureInfo {
+		uint16_t width;
+		uint16_t height;
+		uint8_t channels;
+		void* data;
+		TextureFormat format;
+		uint16_t bindFlags;
+	};
 	/**
 	* Creates a new shader resource view. 
 	*
@@ -1210,10 +1233,10 @@ namespace ds {
 	* @param channels number of channels (usually 4 which means RGBA)
 	* @param data the data that will be used for the texture
 	* @param format the TextureFormat
-	* @param name the name of the texture - default is UNKNOWN
+	* @param name the name of the texture - default is Texture
 	* @return RID the unique resource identifier
 	*/
-	RID createTexture(int width, int height, uint8_t channels, void* data, TextureFormat format, const char* name = "UNKNOWN");
+	RID createTexture(const TextureInfo& info, const char* name = "Texture");
 
 	/**
 	* Returns the size of a texture
@@ -1222,10 +1245,6 @@ namespace ds {
 	* @return a ds::vec2 containing the size or (0,0) if the resource was not found 
 	*/
 	ds::vec2 getTextureSize(RID rid);
-
-	RID createShaderResourceView(RID bufferID, const char* name = "UNKNOWN");
-
-	RID createUnorderedAccessView(RID bufferID, const char* name = "UNKNOWN");
 
 	byte* getBufferData(RID bufferID);
 	// render target
@@ -1279,25 +1298,7 @@ namespace ds {
 	// the compute shader functions
 	//
 
-	void dispatch(RID computeShaderID);
-
-	// view and projection matrix
-
-	const matrix& getViewMatrix(RID renderPass);
-
-	void setViewMatrix(RID pass, const matrix& m);
-
-	void setProjectionMatrix(RID pass, const matrix& m);
-
-	const matrix& getProjectionMatrix(RID renderPass);
-
-	const matrix& getViewProjectionMatrix(RID renderPass);
-
-	void setViewPosition(RID renderPass, const vec3& viewPos);
-
-	vec3 getViewPosition(RID renderPass);
-
-	void lookAt(RID renderPass, const vec3& pos);
+	void dispatch(RID computeShaderID, int x, int y, int z);
 
 	uint16_t getScreenWidth();
 
@@ -1489,6 +1490,14 @@ namespace ds {
 
 
 namespace ds {
+
+	struct StructuredBuffer {
+		ID3D11Buffer* buffer;
+		ID3D11ShaderResourceView*  srv;
+		ID3D11UnorderedAccessView* uav;
+		unsigned int numElements;
+		int elementSize;
+	};
 
 	enum PipelineStage {
 		PLS_IA, // input assembler
@@ -1780,6 +1789,7 @@ namespace ds {
 		int height;
 		RID samplerState;
 		ID3D11ShaderResourceView* srv;
+		ID3D11Texture2D* texture;
 	};
 
 	struct RenderTarget {
@@ -1934,15 +1944,24 @@ namespace ds {
 	// ------------------------------------------------------
 	// VertexBufferResource
 	// ------------------------------------------------------
-	class BufferResource : public AbstractResource<ID3D11Buffer*> {
+	class BufferResource : public AbstractResource<StructuredBuffer*> {
 
 	public:
-		BufferResource(ID3D11Buffer* t) : AbstractResource(t) {}
+		BufferResource(StructuredBuffer* t) : AbstractResource(t) {}
 		virtual ~BufferResource() {}
 
 		void release() {
 			if (_data != 0) {
-				_data->Release();
+				if (_data->buffer != 0) {
+					_data->buffer->Release();
+				}
+				if (_data->srv != 0) {
+					_data->srv->Release();
+				}
+				if (_data->uav != 0) {
+					_data->uav->Release();
+				}
+				delete _data;
 				_data = 0;
 			}
 		}
@@ -2430,6 +2449,7 @@ namespace ds {
 		DebugTextConstantBuffer debugConstantBuffer;
 		RID debugDrawItem;
 		RID debugOrthoPass;
+		Camera orthoCamera;
 		DebugTextVertex debugVertices[MAX_DBG_TXT_VERTICES];
 		RID debugVertexBufferID;
 		int debugItemCount;
@@ -2816,23 +2836,11 @@ namespace ds {
 			REPORT("failed to create depth stencil state", result);
 			return false;
 		}
-		/*
-		_ctx->viewMatrix = matIdentity();
-
-		_ctx->viewPosition = vec3(0, 0, -6);
-		_ctx->lookAt = vec3(0, 0, 0);
-		_ctx->up = vec3(0, 1, 0);
-		_ctx->viewMatrix = matLookAtLH(_ctx->viewPosition, _ctx->lookAt, _ctx->up);
-
-		float fieldOfView = PI / 4.0f;
-		float screenAspect = (float)_ctx->screenWidth / (float)_ctx->screenHeight;
-		_ctx->projectionMatrix = matPerspectiveFovLH(fieldOfView, screenAspect, 0.01f, 100.0f);
-		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
-		*/
 		//_ctx->pipelineState = new PipelineState;
 
 		// create default state group
-		RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true, "DefaultBlendState");
+		BlendStateInfo defaultBlendState = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
+		RID bs_id = ds::createBlendState( defaultBlendState, "DefaultBlendState");
 		RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR, "DefaultSamplerState");
 		RID rasterizerStateID = ds::createRasterizerState(ds::CullMode::BACK, ds::FillMode::SOLID, true, false, 0.0f, 0.0f, "DefaultRasterizerState");
 
@@ -2870,53 +2878,7 @@ namespace ds {
 		RenderPassResource* res = (RenderPassResource*)_ctx->_resources[ridx];
 		return res->get();
 	}
-	// ------------------------------------------------------
-	// set view position
-	// ------------------------------------------------------
-	void setViewPosition(RID renderPass, const vec3& viewPos) {
-		RenderPass* pass = getRenderPass(renderPass);
-		pass->viewPosition = viewPos;
-		pass->viewMatrix = matLookAtLH(pass->viewPosition, pass->lookAt, pass->up);
-		pass->viewProjectionMatrix = pass->viewMatrix * pass->projectionMatrix;
-	}
-
-	vec3 getViewPosition(RID renderPass) {
-		RenderPass* pass = getRenderPass(renderPass);
-		return pass->viewPosition;
-	}
-
-	// ------------------------------------------------------
-	// look at
-	// ------------------------------------------------------
-	void lookAt(RID renderPass, const vec3& pos) {
-		RenderPass* pass = getRenderPass(renderPass);
-		pass->lookAt = pos;
-		pass->viewMatrix = matLookAtLH(pass->viewPosition, pass->lookAt, pass->up);
-		pass->viewProjectionMatrix = pass->viewMatrix * pass->projectionMatrix;
-	}
-
-	/*
-	// ------------------------------------------------------
-	// set projection matrix
-	// ------------------------------------------------------
-	void setProjectionMatrix(float fieldOfView, float aspectRatio) {
-		_ctx->projectionMatrix = matPerspectiveFovLH(fieldOfView, aspectRatio, 0.01f, 100.0f);
-		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
-	}
-
-	void setProjectionMatrix(const matrix& m) {
-		_ctx->projectionMatrix = m;
-		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
-	}
-
-	// ------------------------------------------------------
-	// set projection matrix
-	// ------------------------------------------------------
-	void setProjectionMatrix(float fieldOfView, float aspectRatio, float minDepth, float maxDepth) {
-		_ctx->projectionMatrix = matPerspectiveFovLH(fieldOfView, aspectRatio, minDepth, maxDepth);
-		_ctx->viewProjectionMatrix = _ctx->viewMatrix * _ctx->projectionMatrix;
-	}
-	*/
+	
 	// ------------------------------------------------------
 	// internal windows procedure
 	// ------------------------------------------------------
@@ -3158,43 +3120,7 @@ namespace ds {
 			delete _ctx;
 		}
 	}
-
-	// ------------------------------------------------------
-	// get view matrix
-	// ------------------------------------------------------
-	const matrix& getViewMatrix(RID renderPass) {
-		RenderPass* pass = getRenderPass(renderPass);
-		return pass->viewMatrix;
-	}
-
-	void setViewMatrix(RID renderPass, const matrix& m) {
-		RenderPass* pass = getRenderPass(renderPass);
-		pass->viewMatrix = m;
-		pass->viewProjectionMatrix = m * pass->projectionMatrix;
-	}
-
-	void setProjectionMatrix(RID renderPass, const matrix& m) {
-		RenderPass* pass = getRenderPass(renderPass);
-		pass->projectionMatrix = m;
-		pass->viewProjectionMatrix = pass->viewMatrix * pass->projectionMatrix;
-	}
-
-	// ------------------------------------------------------
-	// get projection matrix
-	// ------------------------------------------------------
-	const matrix& getProjectionMatrix(RID renderPass) {
-		RenderPass* pass = getRenderPass(renderPass);
-		return pass->projectionMatrix;
-	}
-
-	// ------------------------------------------------------
-	// get view projection matrix
-	// ------------------------------------------------------
-	const matrix& getViewProjectionMatrix(RID renderPass) {
-		RenderPass* pass = getRenderPass(renderPass);
-		return pass->viewProjectionMatrix;
-	}
-
+	
 	// ------------------------------------------------------
 	// begin rendering
 	// ------------------------------------------------------
@@ -3440,9 +3366,9 @@ namespace ds {
 	// ------------------------------------------------------
 	// index buffer with data
 	// ------------------------------------------------------
-	RID createIndexBuffer(uint32_t numIndices, IndexType indexType, BufferType type, void* data, const char* name) {
+	RID createIndexBuffer(const IndexBufferInfo& info, const char* name) {
 		D3D11_BUFFER_DESC bufferDesc;
-		if (type == BufferType::DYNAMIC) {
+		if (info.type == BufferType::DYNAMIC) {
 			bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
 			bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		}
@@ -3450,27 +3376,19 @@ namespace ds {
 			bufferDesc.Usage = D3D11_USAGE_DEFAULT;
 			bufferDesc.CPUAccessFlags = 0;
 		}
-		bufferDesc.ByteWidth = numIndices * INDEX_BUFFER_SIZE[indexType];
+		bufferDesc.ByteWidth = info.numIndices * INDEX_BUFFER_SIZE[info.indexType];
 		bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 		bufferDesc.MiscFlags = 0;
 
 		D3D11_SUBRESOURCE_DATA InitData;
-		InitData.pSysMem = data;
+		InitData.pSysMem = info.data;
 		InitData.SysMemPitch = 0;
 		InitData.SysMemSlicePitch = 0;
 		ID3D11Buffer* buffer = 0;
-		assert_result(_ctx->d3dDevice->CreateBuffer(&bufferDesc, data ? &InitData : NULL, &buffer), "Failed to create index buffer");
-		IndexBufferResource* res = new IndexBufferResource(buffer, INDEX_BUFFER_FORMATS[indexType], numIndices, type);
+		assert_result(_ctx->d3dDevice->CreateBuffer(&bufferDesc, info.data ? &InitData : NULL, &buffer), "Failed to create index buffer");
+		IndexBufferResource* res = new IndexBufferResource(buffer, INDEX_BUFFER_FORMATS[info.indexType], info.numIndices, info.type);
 		return addResource(res, RT_INDEX_BUFFER, name);
 	}
-
-	// ------------------------------------------------------
-	// index buffer
-	// ------------------------------------------------------
-	RID createIndexBuffer(uint32_t numIndices, IndexType indexType, BufferType type, const char* name) {
-		return createIndexBuffer(numIndices, indexType, type, 0, name);
-	}
-
 	// ------------------------------------------------------
 	// set index buffer
 	// ------------------------------------------------------
@@ -3488,7 +3406,7 @@ namespace ds {
 	// ------------------------------------------------------
 	// create a quad index buffer 0, 1, 2, 2, 3, 0
 	// ------------------------------------------------------
-	RID createQuadIndexBuffer(int numQuads, const char* name) {
+	RID createQuadIndexBuffer(int numQuads, const char* name) {		
 		int size = numQuads * 6;
 		uint32_t* data = new uint32_t[size];
 		int base = 0;
@@ -3503,7 +3421,8 @@ namespace ds {
 			base += 6;
 			cnt += 4;
 		}
-		RID rid = createIndexBuffer(size, ds::IndexType::UINT_32, ds::BufferType::STATIC, data, name);
+		IndexBufferInfo info = { size, ds::IndexType::UINT_32, ds::BufferType::STATIC, data };
+		RID rid = createIndexBuffer(info, name);
 		delete[] data;
 		return rid;
 	}
@@ -3549,24 +3468,105 @@ namespace ds {
 		return addResource(res, RT_INSTANCED_VERTEX_BUFFER, name);
 	}
 
-	RID createBuffer(int byteWidth, int byteStride, void* data, const char* name) {
+	RID createBuffer(int numElements, int byteStride, void* data, const char* name) {
 		// First we create a buffer in GPU memory
 		D3D11_BUFFER_DESC descGPUBuffer;
 		ZeroMemory(&descGPUBuffer, sizeof(descGPUBuffer));
 		descGPUBuffer.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
-		descGPUBuffer.ByteWidth = byteWidth;
+		descGPUBuffer.ByteWidth = numElements;
 		descGPUBuffer.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 		descGPUBuffer.StructureByteStride = byteStride;	
-		ID3D11Buffer* buffer = 0;
+		StructuredBuffer* sb = new StructuredBuffer;
+		sb->buffer = 0;
+		sb->uav = 0;
+		sb->numElements = numElements;
+		sb->elementSize = byteStride;
+		sb->srv = 0;
 		if (data != 0) {
 			D3D11_SUBRESOURCE_DATA InitData;
 			InitData.pSysMem = data;			
-			_ctx->d3dDevice->CreateBuffer(&descGPUBuffer, &InitData, &buffer);
+			_ctx->d3dDevice->CreateBuffer(&descGPUBuffer, &InitData, &sb->buffer);
 		}
 		else {
-			_ctx->d3dDevice->CreateBuffer(&descGPUBuffer, NULL, &buffer);
+			_ctx->d3dDevice->CreateBuffer(&descGPUBuffer, NULL, &sb->buffer);
 		}
-		BufferResource* res = new BufferResource(buffer);
+		BufferResource* res = new BufferResource(sb);
+		return addResource(res, RT_STRUCTURED_BUFFER, name);
+
+	}
+
+	// ------------------------------------------------------
+	// createStructuredBuffer
+	// ------------------------------------------------------
+	// FIXME: do we need to add a paramter to info like SRV/UAV buffer?
+	RID createStructuredBuffer(const StructuredBufferInfo& info, const char* name) {
+		StructuredBuffer* sb = new StructuredBuffer;
+		sb->buffer = 0;
+		sb->uav = 0;
+		sb->numElements = info.numElements;
+		sb->elementSize = info.elementSize;
+		sb->srv = 0;
+		D3D11_BUFFER_DESC bufferDesc;
+		ZeroMemory(&bufferDesc, sizeof(bufferDesc));
+		bufferDesc.ByteWidth = info.numElements;
+		bufferDesc.StructureByteStride = info.elementSize;
+		if ((!info.cpuWritable) && (!info.gpuWritable)) {
+			bufferDesc.CPUAccessFlags = 0;
+			bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+			bufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		}
+		else if (info.cpuWritable && (!info.gpuWritable)) {
+			bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+			bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+			bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+		}
+		else if ((!info.cpuWritable) && info.gpuWritable) {
+			bufferDesc.CPUAccessFlags = 0;
+			bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+			bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+		}
+		bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+		bufferDesc.StructureByteStride = info.elementSize;
+		if (info.data != 0) {
+			D3D11_SUBRESOURCE_DATA bufferInitData;
+			ZeroMemory(&bufferInitData, sizeof(bufferInitData));
+			bufferInitData.pSysMem = info.data;
+			ASSERT_RESULT(_ctx->d3dDevice->CreateBuffer(&bufferDesc, &bufferInitData, &sb->buffer), "Cannot create buffer");
+		}
+		else {
+			ASSERT_RESULT(_ctx->d3dDevice->CreateBuffer(&bufferDesc, NULL, &sb->buffer), "Cannot create buffer");
+		}
+		// FIXME: correct?
+		if (info.cpuWritable) {
+			D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+			ZeroMemory(&srvDesc, sizeof(srvDesc));
+			srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+			srvDesc.BufferEx.FirstElement = 0;
+			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
+			srvDesc.BufferEx.NumElements = info.numElements / info.elementSize;
+			ASSERT_RESULT(_ctx->d3dDevice->CreateShaderResourceView(sb->buffer, &srvDesc, &sb->srv), "Cannot create shader resource view");
+		}
+		if (info.gpuWritable) {
+			D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc;
+			ZeroMemory((&uavDesc), sizeof(uavDesc));
+			uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+			uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+			uavDesc.Buffer.NumElements = info.numElements;
+			if (info.textureID != NO_RID) {
+				uint16_t ridx = getResourceIndex(info.textureID, RT_SRV);
+				ShaderResourceViewResource* bufferRes = (ShaderResourceViewResource*)_ctx->_resources[ridx];
+				InternalTexture* tex = bufferRes->get();
+				uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+				ASSERT_RESULT(_ctx->d3dDevice->CreateUnorderedAccessView(tex->texture, &uavDesc, &sb->uav), "Cannot create unordered access view");
+			}
+			else if (info.renderTarget != NO_RID) {
+
+			}
+			else {
+				ASSERT_RESULT(_ctx->d3dDevice->CreateUnorderedAccessView(sb->buffer, &uavDesc, &sb->uav), "Cannot create unordered access view");
+			}
+		}
+		BufferResource* res = new BufferResource(sb);
 		return addResource(res, RT_STRUCTURED_BUFFER, name);
 
 	}
@@ -3713,19 +3713,12 @@ namespace ds {
 	};
 
 	// ------------------------------------------------------
-	// create alpha enabled blend state
-	// ------------------------------------------------------
-	RID createAlphaBlendState(BlendStates srcBlend, BlendStates destBlend, const char* name) {
-		return createBlendState(srcBlend, srcBlend, destBlend, destBlend, true, name);
-	}
-
-	// ------------------------------------------------------
 	// create blend state
 	// ------------------------------------------------------
-	RID createBlendState(BlendStates srcBlend, BlendStates srcAlphaBlend, BlendStates destBlend, BlendStates destAlphaBlend, bool alphaEnabled, const char* name) {
+	RID createBlendState(const BlendStateInfo& info, const char* name) {
 		D3D11_BLEND_DESC blendDesc;
 		ZeroMemory(&blendDesc, sizeof(blendDesc));
-		if (alphaEnabled) {
+		if (info.alphaEnabled) {
 			blendDesc.RenderTarget[0].BlendEnable = TRUE;
 		}
 		else {
@@ -3733,11 +3726,11 @@ namespace ds {
 			//blendDesc.RenderTarget[0].BlendEnable = (srcBlend != D3D11_BLEND_ONE) || (destBlend != D3D11_BLEND_ZERO);
 		}
 		blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-		blendDesc.RenderTarget[0].SrcBlend = BLEND_STATEMAPPINGS[srcBlend];
-		blendDesc.RenderTarget[0].DestBlend = BLEND_STATEMAPPINGS[destBlend];
+		blendDesc.RenderTarget[0].SrcBlend = BLEND_STATEMAPPINGS[info.srcBlend];
+		blendDesc.RenderTarget[0].DestBlend = BLEND_STATEMAPPINGS[info.destBlend];
 		blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-		blendDesc.RenderTarget[0].SrcBlendAlpha = BLEND_STATEMAPPINGS[srcAlphaBlend];
-		blendDesc.RenderTarget[0].DestBlendAlpha = BLEND_STATEMAPPINGS[destAlphaBlend];
+		blendDesc.RenderTarget[0].SrcBlendAlpha = BLEND_STATEMAPPINGS[info.srcAlphaBlend];
+		blendDesc.RenderTarget[0].DestBlendAlpha = BLEND_STATEMAPPINGS[info.destAlphaBlend];
 		blendDesc.RenderTarget[0].RenderTargetWriteMask = 0x0F;
 
 		ID3D11BlendState* state;
@@ -3987,22 +3980,28 @@ namespace ds {
 		DXGI_FORMAT_R8G8B8A8_UNORM,
 		DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
 	};
+
 	// ------------------------------------------------------
 	// create texture
-	// ------------------------------------------------------
-	RID createTexture(int width, int height, uint8_t channels, void* data, TextureFormat format, const char* name) {
+	// ------------------------------------------------------	
+	RID createTexture(const TextureInfo& info, const char* name) {
+
+		InternalTexture* tex = new InternalTexture;
+		tex->width = info.width;
+		tex->height = info.height;
+
 		D3D11_TEXTURE2D_DESC desc;
-		desc.Width = width;
-		desc.Height = height;
+		desc.Width = info.width;
+		desc.Height = info.height;
 		desc.MipLevels = 1;
 		desc.ArraySize = 1;
-		desc.Format = TEXTURE_FOMATS[format];
+		desc.Format = TEXTURE_FOMATS[info.format];
 		desc.SampleDesc.Count = 1;// _ctx->multisampling;
 		desc.SampleDesc.Quality = 0;		
-		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		desc.BindFlags = info.bindFlags;
 		desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		desc.MiscFlags = 0;
-		ID3D11Texture2D *texture2D = 0;
+		//ID3D11Texture2D *texture2D = 0;
 		/*
 		if (_ctx->multisampling > 1) {
 			desc.Usage = D3D11_USAGE_DEFAULT;
@@ -4016,17 +4015,17 @@ namespace ds {
 		else {
 		*/
 			//desc.Usage = D3D11_USAGE_IMMUTABLE;
-		desc.Usage = D3D11_USAGE_DYNAMIC;
-		if (data != 0) {
+		desc.Usage = D3D11_USAGE_DEFAULT;// D3D11_USAGE_DYNAMIC;
+		if (info.data != 0) {
 			D3D11_SUBRESOURCE_DATA subres;
-			subres.pSysMem = data;
-			subres.SysMemPitch = width * channels;
+			subres.pSysMem = info.data;
+			subres.SysMemPitch = info.width * info.channels;
 			subres.SysMemSlicePitch = 0;
 
-			ASSERT_RESULT(_ctx->d3dDevice->CreateTexture2D(&desc, &subres, &texture2D), "Failed to create Texture2D");
+			ASSERT_RESULT(_ctx->d3dDevice->CreateTexture2D(&desc, &subres, &tex->texture), "Failed to create Texture2D");
 		}
 		else {
-			ASSERT_RESULT(_ctx->d3dDevice->CreateTexture2D(&desc, NULL, &texture2D), "Failed to create Texture2D");
+			ASSERT_RESULT(_ctx->d3dDevice->CreateTexture2D(&desc, NULL, &tex->texture), "Failed to create Texture2D");
 		}
 
 		ID3D11ShaderResourceView* srv = 0;
@@ -4035,18 +4034,12 @@ namespace ds {
 			//srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
 		//}
 		//else {
-			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 		//}
 		srvDesc.Texture2D.MostDetailedMip = 0;
 		srvDesc.Texture2D.MipLevels = 1;
-		srvDesc.Format = TEXTURE_FOMATS[format];
-
-		ASSERT_RESULT(_ctx->d3dDevice->CreateShaderResourceView(texture2D, &srvDesc, &srv), "Failed to create resource view");
-
-		InternalTexture* tex = new InternalTexture;
-		tex->width = width;
-		tex->height = height;
-		tex->srv = srv;
+		srvDesc.Format = TEXTURE_FOMATS[info.format];
+		ASSERT_RESULT(_ctx->d3dDevice->CreateShaderResourceView(tex->texture, &srvDesc, &tex->srv), "Failed to create resource view");
 		ShaderResourceViewResource* res = new ShaderResourceViewResource(tex);
 		return addResource(res, RT_SRV, name);
 	}
@@ -4061,9 +4054,10 @@ namespace ds {
 	RID createShaderResourceView(RID bufferID, const char* name) {
 		uint16_t ridx = getResourceIndex(bufferID, RT_STRUCTURED_BUFFER);
 		BufferResource* bufferRes = (BufferResource*)_ctx->_resources[ridx];
+		StructuredBuffer* sb = bufferRes->get();
 		D3D11_BUFFER_DESC descBuf;
 		ZeroMemory(&descBuf, sizeof(descBuf));
-		bufferRes->get()->GetDesc(&descBuf);
+		sb->buffer->GetDesc(&descBuf);
 
 		D3D11_SHADER_RESOURCE_VIEW_DESC descView;
 		ZeroMemory(&descView, sizeof(descView));
@@ -4073,7 +4067,7 @@ namespace ds {
 		descView.Format = DXGI_FORMAT_UNKNOWN;
 		descView.BufferEx.NumElements = descBuf.ByteWidth / descBuf.StructureByteStride;
 		ID3D11ShaderResourceView* srv;
-		ASSERT_RESULT(_ctx->d3dDevice->CreateShaderResourceView(bufferRes->get(), &descView, &srv), "Failed to create resource view");
+		ASSERT_RESULT(_ctx->d3dDevice->CreateShaderResourceView(sb->buffer, &descView, &srv), "Failed to create resource view");
 		InternalTexture* tex = new InternalTexture;
 		// FIXME: get size!!
 		tex->width = 0;
@@ -4086,9 +4080,10 @@ namespace ds {
 	RID createUnorderedAccessView(RID bufferID, const char* name) {
 		uint16_t ridx = getResourceIndex(bufferID, RT_STRUCTURED_BUFFER);
 		BufferResource* bufferRes = (BufferResource*)_ctx->_resources[ridx];
+		StructuredBuffer* sb = bufferRes->get();
 		D3D11_BUFFER_DESC descBuf;
 		ZeroMemory(&descBuf, sizeof(descBuf));
-		bufferRes->get()->GetDesc(&descBuf);
+		sb->buffer->GetDesc(&descBuf);
 
 		D3D11_UNORDERED_ACCESS_VIEW_DESC descView;
 		ZeroMemory(&descView, sizeof(descView));
@@ -4098,7 +4093,27 @@ namespace ds {
 		descView.Format = DXGI_FORMAT_UNKNOWN;      // Format must be must be DXGI_FORMAT_UNKNOWN, when creating a View of a Structured Buffer
 		descView.Buffer.NumElements = descBuf.ByteWidth / descBuf.StructureByteStride;
 		ID3D11UnorderedAccessView* srv;
-		ASSERT_RESULT(_ctx->d3dDevice->CreateUnorderedAccessView(bufferRes->get(), &descView, &srv), "Failed to create uav resource view");
+		ASSERT_RESULT(_ctx->d3dDevice->CreateUnorderedAccessView(sb->buffer, &descView, &srv), "Failed to create uav resource view");
+		UAResourceViewResource* res = new UAResourceViewResource(srv);
+		return addResource(res, RT_UA_SRV, name);
+	}
+
+	RID createUnorderedAccessView(RID textureID, int numElements, const char* name) {
+		uint16_t ridx = getResourceIndex(textureID, RT_SRV);
+		ShaderResourceViewResource* bufferRes = (ShaderResourceViewResource*)_ctx->_resources[ridx];
+		InternalTexture* tex = bufferRes->get();
+		D3D11_SHADER_RESOURCE_VIEW_DESC descBuf;
+		ZeroMemory(&descBuf, sizeof(descBuf));
+		tex->srv->GetDesc(&descBuf);
+		D3D11_UNORDERED_ACCESS_VIEW_DESC descView;
+		ZeroMemory(&descView, sizeof(descView));
+		descView.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+		descView.Buffer.FirstElement = 0;
+
+		descView.Format = DXGI_FORMAT_UNKNOWN;      // Format must be must be DXGI_FORMAT_UNKNOWN, when creating a View of a Structured Buffer
+		descView.Buffer.NumElements = numElements;
+		ID3D11UnorderedAccessView* srv;
+		ASSERT_RESULT(_ctx->d3dDevice->CreateUnorderedAccessView(tex->texture, &descView, &srv), "Failed to create uav resource view");
 		UAResourceViewResource* res = new UAResourceViewResource(srv);
 		return addResource(res, RT_UA_SRV, name);
 	}
@@ -4512,35 +4527,23 @@ namespace ds {
 		return *this;
 	}
 
-	ComputeShaderBuilder& ComputeShaderBuilder::resourceView(RID srv, int slot) {
-		basicBinding(srv, RT_SRV, 0, slot);
+	ComputeShaderBuilder& ComputeShaderBuilder::input(RID srv, int slot) {
+		basicBinding(srv, RT_STRUCTURED_BUFFER, 0, slot);
 		return *this;
 	}
 
-	ComputeShaderBuilder& ComputeShaderBuilder::unorderedAccessView(RID srv, int slot) {
-		basicBinding(srv, RT_UA_SRV, 0, slot);
-		return *this;
-	}
-	ComputeShaderBuilder& ComputeShaderBuilder::x(int xv) {
-		_x = xv;
+	ComputeShaderBuilder& ComputeShaderBuilder::output(RID srv, int slot) {
+		basicBinding(srv, RT_STRUCTURED_BUFFER, 0, slot);
 		return *this;
 	}
 
-	ComputeShaderBuilder& ComputeShaderBuilder::y(int yv) {
-		_y = yv;
-		return *this;
-	}
-
-	ComputeShaderBuilder& ComputeShaderBuilder::z(int zv) {
-		_z = zv;
+	ComputeShaderBuilder& ComputeShaderBuilder::constantBuffer(RID buffer, int slot) {
+		basicBinding(buffer, RT_CONSTANT_BUFFER, 0, slot);
 		return *this;
 	}
 
 	RID ComputeShaderBuilder::build(const char* name) {
 		ComputeShaderGroup* csg = new ComputeShaderGroup();
-		csg->x = _x;
-		csg->y = _y;
-		csg->z = _z;
 		csg->num = _num;
 		csg->items = new RID[_num];
 		memcpy(csg->items, _items, _num * sizeof(RID));
@@ -4552,7 +4555,7 @@ namespace ds {
 	// ------------------------------------------------------
 	// dispatch compute shader
 	// ------------------------------------------------------
-	void dispatch(RID computeShaderID) {
+	void dispatch(RID computeShaderID, int x,int y, int z) {
 		uint16_t ridx = getResourceIndex(computeShaderID, RT_CS_GROUP);
 		ComputeShaderGroupResource* res = (ComputeShaderGroupResource*)_ctx->_resources[ridx];
 		ComputeShaderGroup* group = res->get();
@@ -4563,6 +4566,18 @@ namespace ds {
 				uint16_t sidx = getResourceIndex(current, RT_COMPUTE_SHADER);
 				ComputeShaderResource* sres = (ComputeShaderResource*)_ctx->_resources[sidx];
 				_ctx->d3dContext->CSSetShader(sres->get(), NULL, 0);
+			}
+			else if (type == RT_STRUCTURED_BUFFER) {
+				uint16_t sridx = getResourceIndex(current, RT_STRUCTURED_BUFFER);
+				BufferResource* bufferRes = (BufferResource*)_ctx->_resources[sridx];				
+				StructuredBuffer* sb = bufferRes->get();
+				int slot = slot_mask(current);
+				if (sb->srv != 0) {
+					_ctx->d3dContext->CSSetShaderResources(slot, 1, &sb->srv);
+				}
+				if (sb->uav != 0) {
+					_ctx->d3dContext->CSSetUnorderedAccessViews(slot, 1, &sb->uav, NULL);
+				}
 			}
 			else if (type == RT_SRV) {
 				uint16_t sridx = getResourceIndex(current, RT_SRV);
@@ -4578,25 +4593,32 @@ namespace ds {
 				ID3D11UnorderedAccessView* view = uar->get();
 				_ctx->d3dContext->CSSetUnorderedAccessViews(slot, 1, &view, NULL);
 			}
+			else if (type == RT_CONSTANT_BUFFER) {
+				uint16_t cbidx = getResourceIndex(current, RT_CONSTANT_BUFFER);
+				ConstantBufferResource* res = (ConstantBufferResource*)_ctx->_resources[cbidx];
+				int slot = slot_mask(current);
+				ID3D11Buffer* buffer = res->get();
+				_ctx->d3dContext->CSSetConstantBuffers(slot, 1, &buffer);
+			}
 		}
-		_ctx->d3dContext->Dispatch(group->x, group->y, group->z);
-		// FIXME: clean up
+		_ctx->d3dContext->Dispatch(x, y, z);
+		// FIXME: clean up - there might be more than 1 srv or uav
 		_ctx->d3dContext->CSSetShader(NULL, NULL, 0);
-		//_ctx->d3dContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, NULL);
-		//_ctx->d3dContext->CSSetShaderResources(0, 2, ppSRVNULL);
+		ID3D11ShaderResourceView* nullSRV[] = { NULL };
+		_ctx->d3dContext->CSSetShaderResources(0, 1, nullSRV);
+
+		// Unbind output from compute shader
+		ID3D11UnorderedAccessView* nullUAV[] = { NULL };
+		_ctx->d3dContext->CSSetUnorderedAccessViews(0, 1, nullUAV, 0);
 	}
 	// ------------------------------------------------------
 	// clear leaking states
 	// ------------------------------------------------------
 	static void clearStates(uint16_t* differences, int num) {
-		//FILE* f = fopen("debug.log", "a");		
 		for (int i = 0; i < num; ++i) {
 			uint32_t real = (differences[i] << 16);
 			applyResource(real + NO_RID, type_mask(real));
-			// FIXME: clear state
-			//fprintf(f, "%s / %s / %d\n", RESOURCE_NAMES[type_mask(real)], PIPELINE_STAGE_NAMES[stage_mask(real)], slot_mask(real));
 		}
-		//fclose(f);
 	}
 
 
@@ -4605,9 +4627,10 @@ namespace ds {
 
 		uint16_t ridx = getResourceIndex(bufferID, RT_STRUCTURED_BUFFER);
 		BufferResource* bufferRes = (BufferResource*)_ctx->_resources[ridx];
+		StructuredBuffer* sb = bufferRes->get();
 		D3D11_BUFFER_DESC desc;
 		ZeroMemory(&desc, sizeof(desc));
-		bufferRes->get()->GetDesc(&desc);
+		sb->buffer->GetDesc(&desc);
 
 		UINT byteSize = desc.ByteWidth;
 
@@ -4618,7 +4641,7 @@ namespace ds {
 
 		HRESULT r = _ctx->d3dDevice->CreateBuffer(&desc, NULL, &debugbuf);
 		if ( r == S_OK) {
-			_ctx->d3dContext->CopyResource(debugbuf, bufferRes->get());
+			_ctx->d3dContext->CopyResource(debugbuf, sb->buffer);
 
 			D3D11_MAPPED_SUBRESOURCE mappedResource;
 			if (_ctx->d3dContext->Map(debugbuf, 0, D3D11_MAP_READ, 0, &mappedResource) != S_OK)
@@ -4648,9 +4671,10 @@ namespace ds {
 				setRenderTarget(pass->rts[i]);
 			}
 		}
-		_ctx->basicConstantBuffer.viewMatrix = matTranspose(pass->viewMatrix);
-		_ctx->basicConstantBuffer.projectionMatrix = matTranspose(pass->projectionMatrix);
-		_ctx->basicConstantBuffer.viewProjectionMatrix = matTranspose(pass->viewProjectionMatrix);
+		Camera* camera = pass->camera;
+		_ctx->basicConstantBuffer.viewMatrix = matTranspose(camera->viewMatrix);
+		_ctx->basicConstantBuffer.projectionMatrix = matTranspose(camera->projectionMatrix);
+		_ctx->basicConstantBuffer.viewProjectionMatrix = matTranspose(camera->viewProjectionMatrix);
 		// FIXME: how to handle world matrix???
 		setDepthBufferState(pass->depthState);
 		uint16_t ridx = getResourceIndex(drawItemID, RT_DRAW_ITEM);
@@ -4667,9 +4691,6 @@ namespace ds {
 			int num = _ctx->pipelineStates[_ctx->currentDrawCall].diff(_ctx->pipelineStates[_ctx->lastDrawCall], differences, 64);
 			if (num > 0) {
 				int sidx = id_mask(drawItemID);
-				//FILE* f = fopen("debug.log", "a");
-				//fprintf(f, "call: %d - %s previous: %d\n", sidx, _ctx->charBuffer->get(item->nameIndex), id_mask(_ctx->drawCalls[_ctx->lastDrawCall]));
-				//fclose(f);
 				clearStates(differences, num);
 			}
 		}
@@ -4709,33 +4730,18 @@ namespace ds {
 	// ******************************************************
 	// Render pass
 	// ******************************************************
-	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state, const char* name) {
+	RID createRenderPass(const RenderPassInfo& info, const char* name) {
 		RenderPass* rp = new RenderPass();
-		rp->viewPosition = vec3(0, 0, -6);
-		rp->lookAt = vec3(0, 0, 0);
-		rp->up = vec3(0, 1, 0);
-		rp->viewMatrix = viewMatrix;
-		rp->projectionMatrix = projectionMatrix;
-		rp->viewProjectionMatrix = viewMatrix * projectionMatrix;
-		rp->numRenderTargets = 0;
-		rp->depthState = state;
-		RenderPassResource* res = new RenderPassResource(rp);
-		return addResource(res, RT_RENDER_PASS, name);
-	}
-
-	RID createRenderPass(const matrix& viewMatrix, const matrix& projectionMatrix, DepthBufferState state, RID* renderTargets, int numRenderTargets, const char* name) {
-		RenderPass* rp = new RenderPass();
-		rp->viewPosition = vec3(0, 0, -6);
-		rp->lookAt = vec3(0, 0, 0);
-		rp->up = vec3(0, 1, 0);
-		rp->viewMatrix = viewMatrix;
-		rp->projectionMatrix = projectionMatrix;
-		rp->viewProjectionMatrix = viewMatrix * projectionMatrix;
-		rp->numRenderTargets = numRenderTargets;
-		for (int i = 0; i < numRenderTargets; ++i) {
-			rp->rts[i] = renderTargets[i];
+		rp->camera = info.camera;
+		int nr = info.numRenderTargets;
+		if (nr > 4) {
+			nr = 4;
 		}
-		rp->depthState = state;
+		rp->numRenderTargets = nr;
+		for (int i = 0; i < nr; ++i) {
+			rp->rts[i] = info.renderTargets[i];
+		}
+		rp->depthState = info.depthBufferState;
 		RenderPassResource* res = new RenderPassResource(rp);
 		return addResource(res, RT_RENDER_PASS, name);
 	}
@@ -5899,7 +5905,8 @@ namespace ds {
 		//
 		// create resources
 		//
-		_ctx->debugTextureID = createTexture(128, 128, 4, data, TextureFormat::R8G8B8A8_UNORM, "DebugTextFont");
+		TextureInfo info = { 128,128,4,data,TextureFormat::R8G8B8A8_UNORM ,BindFlag::BF_SHADER_RESOURCE };
+		_ctx->debugTextureID = createTexture(info, "DebugTextFont");
 		delete[] data; // we do not need this anymore
 		RID vertexShader = createVertexShader(DebugText_VS_Main, sizeof(DebugText_VS_Main), "DebugVS");
 		RID pixelShader = createPixelShader(DebugText_PS_Main, sizeof(DebugText_PS_Main), "DebugPS");
@@ -5941,7 +5948,20 @@ namespace ds {
 		//
 		matrix orthoView = matIdentity();
 		matrix orthoProjection = matOrthoLH(getScreenWidth(), getScreenHeight(), 0.1f, 1.0f);
-		_ctx->debugOrthoPass = createRenderPass(orthoView, orthoProjection, DepthBufferState::DISABLED, "DebugTextOrthoPass");
+		_ctx->orthoCamera = {
+			orthoView,
+			orthoProjection,
+			orthoView * orthoProjection,
+			ds::vec3(0,0,0),
+			ds::vec3(0,0,0),
+			ds::vec3(0,1,0),
+			ds::vec3(1,0,0),
+			0.0f,
+			0.0f,
+			0.0f
+		};
+		RenderPassInfo orthoRP = { &_ctx->orthoCamera,DepthBufferState::DISABLED, 0, 0 };
+		_ctx->debugOrthoPass = createRenderPass(orthoRP, "DebugTextOrthoPass");
 		_ctx->debugConstantBuffer.wvp = matTranspose(orthoView * orthoProjection);
 	}
 

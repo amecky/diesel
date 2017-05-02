@@ -30,7 +30,8 @@ struct CubeConstantBuffer {
 RID loadImage(const char* name) {
 	int x, y, n;
 	unsigned char *data = stbi_load(name, &x, &y, &n, 4);
-	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
+	ds::TextureInfo info = { x,y,n,data,ds::TextureFormat::R8G8B8A8_UNORM , ds::BindFlag::BF_SHADER_RESOURCE };
+	RID textureID = ds::createTexture(info);
 	stbi_image_free(data);
 	return textureID;
 }
@@ -59,20 +60,36 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.title = "Camera Demo";
 	rs.clearColor = ds::Color(0.1f, 0.1f, 0.1f, 1.0f);
 	rs.multisampling = 1;
+	rs.supportDebug = true;
 	ds::init(rs);
 
-	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 2.0f, -6.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
+	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 0.0f, -6.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
 	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
-	RID basicPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED);
+	ds::Camera camera = {
+		viewMatrix,
+		projectionMatrix,
+		viewMatrix * projectionMatrix,
+		ds::vec3(0,0,-12),
+		ds::vec3(0,0,1),
+		ds::vec3(0,1,0),
+		ds::vec3(1,0,0),
+		0.0f,
+		0.0f,
+		0.0f
+	};
+	ds::RenderPassInfo rpInfo = { &camera, ds::DepthBufferState::ENABLED, 0, 0 };
+	RID basicPass = ds::createRenderPass(rpInfo);
 
 	RID textureID = loadImage("..\\common\\cube_map.png");
 	RID cubeTextureID = loadImage("..\\common\\grid.png");
-	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
+
+	ds::BlendStateInfo blendStateInfo {ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
+	RID bs_id = ds::createBlendState(blendStateInfo);
 
 	RID vertexShader = ds::loadVertexShader("..\\common\\Textured_vs.cso");
 	RID pixelShader = ds::loadPixelShader("..\\common\\Textured_ps.cso");
 
-	Grid grid;
+	Grid grid(&camera);
 	ds::vec3 gridPositions[] = {
 		ds::vec3(-4.0f, -1.0f, -3.5f),
 		ds::vec3(-4.0f, -1.0f,  4.5f),
@@ -95,8 +112,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::vec3 scale(1.0f, 1.0f, 1.0f);
 	ds::vec3 rotation(0.0f, 0.0f, 0.0f);
 	ds::vec3 pos(0.0f, 0.0f, 0.0f);
-	FPSCamera camera(basicPass);
-	camera.setPosition(ds::vec3(0, 1, -6));
+	FPSCamera fpsCamera(&camera);
+	fpsCamera.setPosition(ds::vec3(0, 1, -6));
+	fpsCamera.buildView();
 
 	RID stateGroup = ds::StateGroupBuilder()
 		.inputLayout(rid)
@@ -115,12 +133,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	while (ds::isRunning()) {
 		ds::begin();
 
-		camera.update(static_cast<float>(ds::getElapsedSeconds()));
+		fpsCamera.update(static_cast<float>(ds::getElapsedSeconds()));
 		grid.render();
 
 		unsigned int stride = sizeof(Vertex);
 		unsigned int offset = 0;
-		constantBuffer.viewprojectionMatrix = ds::matTranspose(camera.getViewprojectionMatrix());
+		constantBuffer.viewprojectionMatrix = ds::matTranspose(camera.viewProjectionMatrix);
 		// spinning cube
 		ds::matrix world = ds::matIdentity();
 		rotation.y += 2.0f  * static_cast<float>(ds::getElapsedSeconds());
@@ -132,6 +150,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::matrix w = rotZ * rotY * rotX * s * world;
 		constantBuffer.worldMatrix = ds::matTranspose(w);
 		ds::submit(basicPass, drawItem);
+
+		ds::dbgPrint(0, 0, "FPS: %d", ds::getFramesPerSecond());
+		ds::dbgPrint(0, 1, "Use W A S D to move camera and hold mouse button to rotate");
 
 		ds::end();
 	}
