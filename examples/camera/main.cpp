@@ -86,8 +86,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::BlendStateInfo blendStateInfo {ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
 	RID bs_id = ds::createBlendState(blendStateInfo);
 
-	RID vertexShader = ds::loadVertexShader("..\\common\\Textured_vs.cso");
-	RID pixelShader = ds::loadPixelShader("..\\common\\Textured_ps.cso");
+	ds::ShaderInfo vsInfo = { "..\\common\\Textured_vs.cso" , 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	RID vertexShader = ds::createShader(vsInfo);
+	ds::ShaderInfo psInfo = { "..\\common\\Textured_ps.cso" , 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	RID pixelShader = ds::createShader(psInfo);
 
 	Grid grid(&camera);
 	ds::vec3 gridPositions[] = {
@@ -106,8 +108,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID rid = ds::createVertexDeclaration(decl, 2, vertexShader);
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
 	RID indexBuffer = ds::createQuadIndexBuffer(256);
-	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v);
-	RID ssid = ds::createSamplerState(ds::TextureAddressModes::WRAP, ds::TextureFilters::LINEAR);
+	ds::VertexBufferInfo vbInfo = { ds::BufferType::STATIC, 24, sizeof(Vertex), v };
+	RID cubeBuffer = ds::createVertexBuffer(vbInfo);
+	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::WRAP, ds::TextureFilters::LINEAR };
+	RID ssid = ds::createSamplerState(samplerInfo);
 
 	ds::vec3 scale(1.0f, 1.0f, 1.0f);
 	ds::vec3 rotation(0.0f, 0.0f, 0.0f);

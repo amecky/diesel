@@ -1098,17 +1098,20 @@ namespace ds {
 	RID createQuadIndexBuffer(int numQuads, const char* name = "QuadIndexBuffer");
 
 	// vertex buffer
+	struct VertexBufferInfo {
+		BufferType type;
+		uint32_t numVertices;
+		uint32_t vertexSize;
+		void* data;
+	};
 	/**
 	* Creates a vertex buffer
 	*
-	* @param type the buffer type (STATIC or DYNAMIC)
-	* @param numVertices the maximum number of vertices
-	* @param vertexSize the size of every vertex
-	* @param data optional data that will be used to fill up the buffer
-	* @param name the name of the vertex buffer - default is UNKNOWN
+	* @param info the VertexBufferInfo
+	* @param name the name of the vertex buffer - default is VertexBuffer
 	* @return RID the unique resource identifier
 	*/
-	RID createVertexBuffer(BufferType type, int numVertices, uint32_t vertexSize, void* data = 0, const char* name = "UNKNOWN");
+	RID createVertexBuffer(const VertexBufferInfo& info, const char* name = "VertexBuffer");
 	/**
 	* Maps the data to a constant buffer or vertex buffer or index buffer
 	* 
@@ -1138,16 +1141,19 @@ namespace ds {
 
 	RID createStructuredBuffer(const StructuredBufferInfo& info, const char* name = "StructuredBuffer");
 
+	struct SamplerStateInfo {
+		TextureAddressModes addressMode;
+		TextureFilters filter;
+	};
 	// sampler state
 	/**
 	* Creates a sampler state
 	*
-	* @param addressMode the texture address mode
-	* @param filter the texture filter
-	* @param name the name of the pixel shader - default is UNKNOWN
+	* @param info the SamplerStateInfo
+	* @param name the name of the sampler state - default is SamplerState
 	* @return RID the unique resource identifier
 	*/
-	RID createSamplerState(TextureAddressModes addressMode, TextureFilters filter, const char* name = "UNKNOWN");
+	RID createSamplerState(const SamplerStateInfo& info, const char* name = "SamplerState");
 
 	// FIXME: add blendOperation!!! and blendMask!!!
 	struct BlendStateInfo {
@@ -1165,6 +1171,21 @@ namespace ds {
 	*/
 	RID createBlendState(const BlendStateInfo& info, const char* name = "BlendState");
 
+	enum ShaderType {
+		ST_VERTEX_SHADER,
+		ST_PIXEL_SHADER,
+		ST_GEOMETRY_SHADER,
+		ST_COMPUTE_SHADER
+	};
+
+	struct ShaderInfo {
+		const char* csoName;
+		const void* data;
+		int dataSize;
+		ShaderType type;
+	};
+
+	RID createShader(const ShaderInfo& info, const char* name = "Shader");
 	// shader
 	/**
 	* Creates a vertex shader from raw data.
@@ -1174,7 +1195,7 @@ namespace ds {
 	* @param name the name of the vertex shader - default is UNKNOWN
 	* @return RID the unique resource identifier
 	*/
-	RID createVertexShader(const void* data, int size, const char* name = "UNKNOWN");
+	RID createVertexShader(const void* data, int size, const char* name = "VertexShader");
 	/**
 	* Creates a geometry shader from raw data.
 	*
@@ -1183,7 +1204,7 @@ namespace ds {
 	* @param name the name of the geometry shader - default is UNKNOWN
 	* @return RID the unique resource identifier
 	*/
-	RID createGeometryShader(const void* data, int size, const char* name = "UNKNOWN");
+	RID createGeometryShader(const void* data, int size, const char* name = "GeometryShader");
 	/**
 	* Creates a pixel shader from raw data.
 	*
@@ -1192,29 +1213,29 @@ namespace ds {
 	* @param name the name of the pixel shader - default is UNKNOWN
 	* @return RID the unique resource identifier
 	*/
-	RID createPixelShader(const void* data, int size, const char* name = "UNKNOWN");
+	RID createPixelShader(const void* data, int size, const char* name = "PixelShader");
 
-	RID createComputeShader(const void* data, int size, const char* name = "UNKNOWN");
+	RID createComputeShader(const void* data, int size, const char* name = "ComputeShader");
 	/**
 	*
 	* @param name the name of the pixel shader - default is UNKNOWN
 	* @return RID the unique resource identifier
 	*/
-	RID loadVertexShader(const char* csoName, const char* name = "UNKNOWN");
+	RID loadVertexShader(const char* csoName, const char* name = "VertexShader");
 	/**
 	*
 	* @param name the name of the pixel shader - default is UNKNOWN
 	* @return RID the unique resource identifier
 	*/
-	RID loadGeometryShader(const char* csoName, const char* name = "UNKNOWN");
+	RID loadGeometryShader(const char* csoName, const char* name = "GeometryShader");
 	/**
 	*
 	* @param name the name of the pixel shader - default is UNKNOWN
 	* @return RID the unique resource identifier
 	*/
-	RID loadPixelShader(const char* csoName, const char* name = "UNKNOWN");
+	RID loadPixelShader(const char* csoName, const char* name = "PixelShader");
 
-	RID loadComputeShader(const char* csoName, const char* name = "UNKNOWN");
+	RID loadComputeShader(const char* csoName, const char* name = "ComputeShader");
 
 	// texture
 	struct TextureInfo {
@@ -1264,16 +1285,24 @@ namespace ds {
 	void restoreBackBuffer();
 
 	// rasterizer state
+	struct RasterizerStateInfo {
+		CullMode cullMode;
+		FillMode fillMode;
+		bool multiSample;
+		bool scissor;
+		float depthBias;
+		float slopeDepthBias;
+	};
 	/**
-	*
-	* @param name the name of the pixel shader - default is UNKNOWN
+	* @param info the RasterizerStateInfo
+	* @param name the name of the rasterizer state - default is RasterizerState
 	* @return RID the unique resource identifier
 	*/
-	RID createRasterizerState(CullMode cullMode, FillMode fillMode, bool multiSample, bool scissor, float depthBias, float slopeDepthBias, const char* name = "UNKNOWN");
-
-	//void setDepthBufferState(DepthBufferState state);
+	RID createRasterizerState(const RasterizerStateInfo& info, const char* name = "RasterizerState");
 
 	RID findResource(const StaticHash& hash, ResourceType type);
+
+	void rebuildCamera(Camera* camera);
 	// drawing
 	/**
 	* Starts the rendering. Must be called at the beginning of each frame
@@ -2841,8 +2870,10 @@ namespace ds {
 		// create default state group
 		BlendStateInfo defaultBlendState = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
 		RID bs_id = ds::createBlendState( defaultBlendState, "DefaultBlendState");
-		RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR, "DefaultSamplerState");
-		RID rasterizerStateID = ds::createRasterizerState(ds::CullMode::BACK, ds::FillMode::SOLID, true, false, 0.0f, 0.0f, "DefaultRasterizerState");
+		SamplerStateInfo defaultSamplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
+		RID ssid = ds::createSamplerState(defaultSamplerInfo, "DefaultSamplerState");
+		ds::RasterizerStateInfo rasterizerInfo = { ds::CullMode::BACK, ds::FillMode::SOLID, true, false, 0.0f, 0.0f };
+		RID rasterizerStateID = ds::createRasterizerState(rasterizerInfo, "DefaultRasterizerState");
 
 		_ctx->currentDrawCall = 0;
 		_ctx->lastDrawCall = -1;
@@ -3430,11 +3461,11 @@ namespace ds {
 	// ------------------------------------------------------
 	// vertex buffer with optional data
 	// ------------------------------------------------------
-	RID createVertexBuffer(BufferType type, int numVertices, uint32_t vertexSize, void* data, const char* name) {
-		UINT size = numVertices * vertexSize;
+	RID createVertexBuffer(const VertexBufferInfo& info, const char* name) {
+		UINT size = info.numVertices * info.vertexSize;
 		D3D11_BUFFER_DESC bufferDesciption;
 		ZeroMemory(&bufferDesciption, sizeof(bufferDesciption));
-		if (type == BufferType::DYNAMIC) {
+		if (info.type == BufferType::DYNAMIC) {
 			bufferDesciption.Usage = D3D11_USAGE_DYNAMIC;
 			bufferDesciption.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		}
@@ -3446,9 +3477,9 @@ namespace ds {
 		bufferDesciption.ByteWidth = size;
 
 		ID3D11Buffer* buffer = 0;
-		if (data != 0) {
+		if (info.data != 0) {
 			D3D11_SUBRESOURCE_DATA resource;
-			resource.pSysMem = data;
+			resource.pSysMem = info.data;
 			resource.SysMemPitch = 0;
 			resource.SysMemSlicePitch = 0;
 			ASSERT_RESULT(_ctx->d3dDevice->CreateBuffer(&bufferDesciption, &resource, &buffer), "Failed to create vertex buffer");
@@ -3456,7 +3487,7 @@ namespace ds {
 		else {
 			ASSERT_RESULT(_ctx->d3dDevice->CreateBuffer(&bufferDesciption, 0, &buffer), "Failed to create vertex buffer");
 		}
-		VertexBufferResource* res = new VertexBufferResource(buffer, size, type, vertexSize);
+		VertexBufferResource* res = new VertexBufferResource(buffer, size, info.type, info.vertexSize);
 		return addResource(res, RT_VERTEX_BUFFER, name);
 	}
 
@@ -3650,16 +3681,16 @@ namespace ds {
 	// ------------------------------------------------------
 	// create sampler state
 	// ------------------------------------------------------
-	RID createSamplerState(TextureAddressModes addressMode,TextureFilters filter, const char* name) {
+	RID createSamplerState(const SamplerStateInfo& info, const char* name) {
 		D3D11_SAMPLER_DESC colorMapDesc;
 		ZeroMemory(&colorMapDesc, sizeof(colorMapDesc));
 
-		colorMapDesc.AddressU = TEXTURE_ADDRESSMODES[addressMode];
-		colorMapDesc.AddressV = TEXTURE_ADDRESSMODES[addressMode];
-		colorMapDesc.AddressW = TEXTURE_ADDRESSMODES[addressMode];
+		colorMapDesc.AddressU = TEXTURE_ADDRESSMODES[info.addressMode];
+		colorMapDesc.AddressV = TEXTURE_ADDRESSMODES[info.addressMode];
+		colorMapDesc.AddressW = TEXTURE_ADDRESSMODES[info.addressMode];
 
 		colorMapDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-		colorMapDesc.Filter = TEXTURE_FILTERMODES[filter];
+		colorMapDesc.Filter = TEXTURE_FILTERMODES[info.filter];
 		colorMapDesc.MaxLOD = D3D11_FLOAT32_MAX;
 		
 		ID3D11SamplerState* sampler;
@@ -3916,6 +3947,37 @@ namespace ds {
 		return addResource(res, RT_GEOMETRY_SHADER, name);
 	}
 
+	RID createShader(const ShaderInfo& info, const char* name) {
+		if (info.csoName == 0) {
+			if (info.type == ST_VERTEX_SHADER) {
+				return createVertexShader(info.data,info.dataSize, name);
+			}
+			else if (info.type == ST_PIXEL_SHADER) {
+				return createPixelShader(info.data, info.dataSize, name);
+			}
+			else if (info.type == ST_GEOMETRY_SHADER) {
+				return createGeometryShader(info.data, info.dataSize, name);
+			}
+			else if (info.type == ST_COMPUTE_SHADER) {
+				return createComputeShader(info.data, info.dataSize, name);
+			}
+		}
+		else {
+			if (info.type == ST_VERTEX_SHADER) {
+				return loadVertexShader(info.csoName, name);
+			}
+			else if (info.type == ST_PIXEL_SHADER) {
+				return loadPixelShader(info.csoName, name);
+			}
+			else if (info.type == ST_GEOMETRY_SHADER) {
+				return loadGeometryShader(info.csoName, name);
+			}
+			else if (info.type == ST_COMPUTE_SHADER) {
+				return loadComputeShader(info.csoName, name);
+			}
+		}
+	}
+
 	// ------------------------------------------------------
 	// set shader
 	// ------------------------------------------------------
@@ -4015,7 +4077,8 @@ namespace ds {
 		else {
 		*/
 			//desc.Usage = D3D11_USAGE_IMMUTABLE;
-		desc.Usage = D3D11_USAGE_DEFAULT;// D3D11_USAGE_DYNAMIC;
+		//desc.Usage = D3D11_USAGE_DEFAULT;// D3D11_USAGE_DYNAMIC;
+		desc.Usage = D3D11_USAGE_DYNAMIC;
 		if (info.data != 0) {
 			D3D11_SUBRESOURCE_DATA subres;
 			subres.pSysMem = info.data;
@@ -4160,18 +4223,18 @@ namespace ds {
 	// ------------------------------------------------------
 	// create rasterizer state
 	// ------------------------------------------------------
-	RID createRasterizerState(CullMode cullMode,FillMode fillMode, bool multiSample, bool scissor, float depthBias, float slopeDepthBias, const char* name) {
+	RID createRasterizerState(const RasterizerStateInfo& info, const char* name) {
 		D3D11_RASTERIZER_DESC desc;
-		desc.CullMode = (D3D11_CULL_MODE)cullMode;
-		desc.FillMode = (D3D11_FILL_MODE)fillMode;
+		desc.CullMode = (D3D11_CULL_MODE)info.cullMode;
+		desc.FillMode = (D3D11_FILL_MODE)info.fillMode;
 		desc.FrontCounterClockwise = FALSE;
-		desc.DepthBias = (INT)depthBias;
+		desc.DepthBias = (INT)info.depthBias;
 		desc.DepthBiasClamp = 0.0f;
-		desc.SlopeScaledDepthBias = slopeDepthBias;
+		desc.SlopeScaledDepthBias = info.slopeDepthBias;
 		desc.AntialiasedLineEnable = FALSE;
 		desc.DepthClipEnable = TRUE;
-		desc.MultisampleEnable = (BOOL)multiSample;
-		desc.ScissorEnable = (BOOL)scissor;
+		desc.MultisampleEnable = (BOOL)info.multiSample;
+		desc.ScissorEnable = (BOOL)info.scissor;
 		ID3D11RasterizerState* state = 0;
 		assert_result(_ctx->d3dDevice->CreateRasterizerState(&desc, &state), "Failed to create rasterizer state");
 		RasterizerStateResource* res = new RasterizerStateResource(state);
@@ -4276,6 +4339,47 @@ namespace ds {
 
 	void restoreBackBuffer() {
 		_ctx->d3dContext->OMSetRenderTargets(1, &_ctx->backBufferTarget, _ctx->depthStencilView);
+	}
+
+	void rebuildCamera(Camera* camera) {
+		vec3 R = camera->right;
+		vec3 U = camera->up;
+		vec3 L = camera->target;
+		vec3 P = camera->position;
+
+		L = normalize(L);
+		U = normalize(cross(L, R));
+		R = cross(U, L);
+
+		float x = -dot(P, R);
+		float y = -dot(P, U);
+		float z = -dot(P, L);
+
+		camera->right = R;
+		camera->up = U;
+		camera->target = L;
+
+		camera->viewMatrix(0, 0) = camera->right.x;
+		camera->viewMatrix(1, 0) = camera->right.y;
+		camera->viewMatrix(2, 0) = camera->right.z;
+		camera->viewMatrix(3, 0) = x;
+
+		camera->viewMatrix(0, 1) = camera->up.x;
+		camera->viewMatrix(1, 1) = camera->up.y;
+		camera->viewMatrix(2, 1) = camera->up.z;
+		camera->viewMatrix(3, 1) = y;
+
+		camera->viewMatrix(0, 2) = camera->target.x;
+		camera->viewMatrix(1, 2) = camera->target.y;
+		camera->viewMatrix(2, 2) = camera->target.z;
+		camera->viewMatrix(3, 2) = z;
+
+		camera->viewMatrix(0, 3) = 0.0f;
+		camera->viewMatrix(1, 3) = 0.0f;
+		camera->viewMatrix(2, 3) = 0.0f;
+		camera->viewMatrix(3, 3) = 1.0f;
+
+		camera->viewProjectionMatrix = camera->viewMatrix * camera->projectionMatrix;
 	}
 
 	// -----------------------------------------------------------------
@@ -5918,8 +6022,10 @@ namespace ds {
 		};
 		RID vertexDeclId = createVertexDeclaration(decl, 3, vertexShader, "PCC_Layout");
 		RID cbid = createConstantBuffer(sizeof(DebugTextConstantBuffer), &_ctx->debugConstantBuffer, "DebugTextConstantBuffer");
-		_ctx->debugVertexBufferID = createVertexBuffer(BufferType::DYNAMIC, MAX_DBG_TXT_VERTICES, sizeof(DebugTextVertex), 0, "DebugTextVertexBuffer");
-		RID ssid = createSamplerState(TextureAddressModes::CLAMP, TextureFilters::POINT);
+		ds::VertexBufferInfo vbInfo = { BufferType::DYNAMIC, MAX_DBG_TXT_VERTICES, sizeof(DebugTextVertex), 0 };
+		_ctx->debugVertexBufferID = createVertexBuffer(vbInfo, "DebugTextVertexBuffer");
+		SamplerStateInfo samplerInfo = { TextureAddressModes::CLAMP, TextureFilters::POINT };
+		RID ssid = createSamplerState(samplerInfo);
 
 		//
 		// create state group

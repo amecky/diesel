@@ -1,18 +1,8 @@
 #include "Camera.h"
 
 FPSCamera::FPSCamera(ds::Camera* camera) : _camera(camera) {
-	//_projectionMatrix = ds::matPerspectiveFovLH(ds::PI * 0.25f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
-	//_position = ds::vec3(0, 2, -4);
 	_lastMousePos = ds::getMousePosition();
-	//_target = ds::vec3(0, 0, 1);
-	//_up = ds::vec3(0, 1, 0);
-	//_right = ds::vec3(1, 0, 0);
 	_speed = 10.0f;
-	//_yaw = 0.0f;
-	//_pitch = 0.0f;
-	//_viewMatrix = ds::matLookAtLH(_position, _target, _up);
-	//ds::setProjectionMatrix(_renderPass,_projectionMatrix);
-	//_viewprojectionMatrix = _viewMatrix * _projectionMatrix;
 	buildView();
 }
 
@@ -111,44 +101,5 @@ void FPSCamera::update(float elapsedTime) {
 }
 
 void FPSCamera::buildView() {
-	ds::vec3 R = _camera->right;
-	ds::vec3 U = _camera->up;
-	ds::vec3 L = _camera->target;
-	ds::vec3 P = _camera->position;
-		
-	L = normalize(L);
-	U = normalize(cross(L, R));
-	R = cross(U, L);
-
-	float x = -dot(P, R);
-	float y = -dot(P, U);
-	float z = -dot(P, L);
-
-	_camera->right = R;
-	_camera->up = U;
-	_camera->target = L;
-
-	_camera->viewMatrix(0, 0) = _camera->right.x;
-	_camera->viewMatrix(1, 0) = _camera->right.y;
-	_camera->viewMatrix(2, 0) = _camera->right.z;
-	_camera->viewMatrix(3, 0) = x;
-
-	_camera->viewMatrix(0, 1) = _camera->up.x;
-	_camera->viewMatrix(1, 1) = _camera->up.y;
-	_camera->viewMatrix(2, 1) = _camera->up.z;
-	_camera->viewMatrix(3, 1) = y;
-
-	_camera->viewMatrix(0, 2) = _camera->target.x;
-	_camera->viewMatrix(1, 2) = _camera->target.y;
-	_camera->viewMatrix(2, 2) = _camera->target.z;
-	_camera->viewMatrix(3, 2) = z;
-
-	_camera->viewMatrix(0, 3) = 0.0f;
-	_camera->viewMatrix(1, 3) = 0.0f;
-	_camera->viewMatrix(2, 3) = 0.0f;
-	_camera->viewMatrix(3, 3) = 1.0f;
-
-	_camera->viewProjectionMatrix = _camera->viewMatrix * _camera->projectionMatrix;
-
-	//ds::setViewMatrix(_renderPass, _viewMatrix);
+	ds::rebuildCamera(_camera);
 }

@@ -74,7 +74,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	
 	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
 
+	ds::ShaderInfo vsInfo = { 0, Fullscreen_VS_Main, sizeof(Fullscreen_VS_Main) , ds::ShaderType::ST_VERTEX_SHADER };
 	RID fsVertexShader = ds::createVertexShader(Fullscreen_VS_Main, sizeof(Fullscreen_VS_Main), "Fullscreen_VS");
+	ds::ShaderInfo psInfo = { 0, Fullscreen_PS_Main, sizeof(Fullscreen_PS_Main) , ds::ShaderType::ST_PIXEL_SHADER };
 	RID fsPixelShader = ds::createPixelShader(Fullscreen_PS_Main, sizeof(Fullscreen_PS_Main), "Fullscreen_PS");
 	
 

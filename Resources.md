@@ -1,5 +1,27 @@
 # Resources 
 
+- [ ] VERTEX_DECLARATION
+- [ ] CONSTANT_BUFFER
+- [x] INDEX_BUFFER
+- [x] VERTEX_BUFFER
+- [ ] SAMPLER_STATE
+- [ ] BLENDSTATE
+- [ ] SRV
+- [x] RASTERIZER_STATE		
+- [ ] INSTANCED_VERTEX_BUFFER
+- [ ] VERTEX_SHADER
+- [ ] GEOMETRY_SHADER
+- [ ] PIXEL_SHADER
+- [ ] RENDER_TARGET
+- [x] RENDER_PASS
+- [ ] DRAW_ITEM
+- [ ] STATE_GROUP
+- [ ] TEXTURE_FROM_RT
+- [ ] COMPUTE_SHADER
+- [ ] STRUCTURED_BUFFER
+- [ ] UA_SRV
+- [ ] CS_GROUP
+        
 ## Camera
 
 A camera is a logical unit containing the view and projection matrix. You need to create a camera to create a RenderPass.
@@ -20,6 +42,15 @@ struct Camera {
 	float yaw;		
 };
 ```
+
+If you change for example the position you should call:
+
+```c
+ds::rebuildCamera(ds::Camera* camera);
+```
+
+This method will rebuild the view and the view projection matrix.
+
 ### Example
 
 The following example creates a camera located at {0,1,-6} with target {0,0,1}.
@@ -62,6 +93,8 @@ ds::Camera orthoCamera = {
 
 ## RenderPass
 
+You can create create a RenderPass by building a RenderPassInfo:
+
 ```c
 struct RenderPassInfo {
     Camera* camera;
@@ -70,6 +103,19 @@ struct RenderPassInfo {
     int numRenderTargets;
 };
 ```
+
+| Attribute        | Description              | Optional  |
+| ---------------- |--------------------------|:---------:|
+| camera           | the camera to us         | no        |
+| depthBufferState | depth buffer state       | no        |
+| renderTargets    | array of render targets  | no        |
+| numRenderTargets | number of render targets | no        |
+
+The DepthBufferState:
+
+- ds::DepthBufferState::ENABLED
+- ds::DepthBufferState::DISABLED
+
 
 ```c
 RID createRenderPass(const RenderPassInfo& info, const char* name = "RenderPass");
@@ -123,6 +169,39 @@ ds::BlendStateInfo myBlendState = { ds::BlendStates::SRC_ALPHA, ds::BlendStates:
 RID bs_id = ds::createBlendState( myBlendState, "MyBlendState");
 ```
 
+## SamplerState
+
+```c
+struct SamplerStateInfo {
+	TextureAddressModes addressMode;
+	TextureFilters filter;
+};
+```
+
+| Attribute   | Description          | Optional  |
+| ------------|----------------------|:---------:|
+| addressMode | texture address mode | no        |
+| filter      | texture filter mode  | no        |
+
+TextureAddressModes:
+
+- ds::TextureAddressModes::WRAP
+- ds::TextureAddressModes::MIRROR
+- ds::TextureAddressModes::CLAMP
+- ds::TextureAddressModes::BORDER
+- ds::TextureAddressModes::MIRROR_ONCE
+
+TextureFilters:
+
+- ds::TextureFilters::POINT
+- ds::TextureFilters::LINEAR
+- ds::TextureFilters::ANISOTROPIC
+    
+```c    
+RID createSamplerState(const SamplerStateInfo& info, const char* name = "SamplerState");
+```
+    
+    
 ## Texture
 
 In order to create a Texture you need to fill out the TextureInfo
@@ -138,6 +217,16 @@ struct TextureInfo {
 };
 ```
 
+| Attribute | Description             | Optional  |
+| --------- |-------------------------|:---------:|
+| width     | STATIC or DYNAMIC       | no        |
+| height    | number of vertices      | no        |
+| channels  | byte size of one vertex | no        |
+| data      | initial data            | yes       |
+| format    | initial data            | yes       |
+| bindFlags | initial data            | yes       |
+
+
 ### Example
 
 ```c
@@ -152,6 +241,51 @@ stbi_image_free(data);
 return textureID;
 ```
 
+## VertexBuffer
+
+You can create a vertex buffer by using the VertexBufferInfo:
+
+```c
+struct VertexBufferInfo {
+    BufferType type;
+    uint32_t numVertices;
+    uint32_t vertexSize;
+    void* data;
+};
+```
+
+| Attribute   | Description             | Optional  |
+| ----------- |-------------------------|:---------:|
+| type        | STATIC or DYNAMIC       | no        |
+| numVertices | number of vertices      | no        |
+| vertexSize  | byte size of one vertex | no        |
+| data        | initial data            | yes       |
+
+You can use this one to provide initial data for the vertex buffer.
+
+The BufferType is defined as:
+
+- ds::BufferType::STATIC
+- ds::BufferType::DYNAMIC
+
+```c
+RID createVertexBuffer(const VertexBufferInfo& info, const char* name = "VertexBuffer");
+```
+
+### Example
+
+The following shows how to create a static vertex buffer using initial data:
+
+```
+Vertex v[] = {
+    { ds::vec3(-1,-1,1),ds::Color(255,0,0,255) },
+    { ds::vec3(0,1,1),ds::Color(255,0,0,255) },
+    { ds::vec3(1,-1,1),ds::Color(255,0,0,255) }
+};
+ds::VertexBufferInfo vbInfo = { ds::BufferType::STATIC, 3, sizeof(Vertex), v };
+RID vbid = ds::createVertexBuffer(vbInfo);
+```
+
 ## IndexBuffer
 
 You need to create an IndexBufferInfo to create an index buffer. Here is the IndexBufferInfo struct:
@@ -163,6 +297,14 @@ struct IndexBufferInfo {
 	void* data;
 };
 ```
+
+| Attribute   | Description                | Optional  |
+| ----------- |----------------------------|:---------:|
+| numIndices  | number of indices          | no        |
+| indexType   | the index buffer byte type | no        |
+| type        | STATIC or DYNAMIC          | no        |
+| data        | initial data               | yes       |
+
 The IndexType can be:
 - ds::IndexType::UINT_16
 - ds::IndexType::UINT_32
@@ -182,4 +324,82 @@ This example shows how to create a dynamic index buffer containing 32 elements a
 ```c
 ds::IndexBufferInfo info = {32, ds::IndexType::UINT_16,ds::BufferType::DYNAMIC,0};
 RID indexBuffer = ds::createIndexBuffer(info, "MyIndexBuffer");
+```
+
+## Rasterizer state
+
+In order to create a rasterizer state you need to fill out a RasterizerStateInfo:
+
+```c
+struct RasterizerStateInfo {
+    CullMode cullMode;
+    FillMode fillMode;
+    bool multiSample;
+    bool scissor;
+    float depthBias;
+    float slopeDepthBias;
+};
+```
+
+| Attribute      | Description   | Optional  |
+| -------------- |---------------|:---------:|
+| cullMode       | the cull mode | no        |
+| fillMode       | the fill mode | no        |
+| multiSample    |               | no        |
+| scissor        |               | no        |
+| depthBias      |               | no        |
+| slopeDepthBias |               | no        |
+
+The CullMode can be:
+ 
+- ds::CullMode::NONE
+- ds::CullMode::FRONT
+- ds::CullMode::BACK
+
+The FillMode can be:
+    
+- ds::FillMode::WIREFRAME
+- ds::FillMode::SOLID
+
+Then you can create a rasterizer state:
+
+```c    
+RID createRasterizerState(const RasterizerStateInfo& info, const char* name = "RasterizerState");
+```    
+
+## Shader
+
+```c    
+struct ShaderInfo {
+    const char* csoName;
+    const void* data;
+    int dataSize;
+    ShaderType type;
+};
+```
+
+| Attribute | Description                         | Optional  |
+| ----------|-------------------------------------|:---------:|
+| csoName   | the filename of the compiled shader | yes       |
+| data      | the shader data                     | yes       |
+| dataSize  | The size of the data                | yes       |
+| type      | The shader type                     | no        |
+
+
+- ds::ShaderType::ST_VERTEX_SHADER
+- ds::ShaderType::ST_PIXEL_SHADER
+- ds::ShaderType::ST_GEOMETRY_SHADER
+- ds::ShaderType::ST_COMPUTE_SHADER
+
+```c
+RID createShader(const ShaderInfo& info, const char* name = "Shader");
+```
+
+### Example
+
+```c    
+ds::ShaderInfo vsInfo = { "Textured_vs.cso" , 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+RID vertexShader = ds::createShader(vsInfo);
+ds::ShaderInfo psInfo = { "Textured_ps.cso" , 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+RID pixelShader = ds::createShader(psInfo);
 ```
