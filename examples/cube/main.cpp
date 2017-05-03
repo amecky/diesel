@@ -62,8 +62,7 @@ struct CubeConstantBuffer {
 // ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------
-//int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
-int main(int argc, char *argv[]) {
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
 	uint32_t p_indices[36];
 	Vertex v[24];
 	addPlane(0, ds::Color(1.0f, 0.0f, 0.0f, 1.0f), v, p_indices);
@@ -87,14 +86,27 @@ int main(int argc, char *argv[]) {
 	rs.supportDebug = true;
 	ds::init(rs);
 
-	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
+	ds::BlendStateInfo bsInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
+	RID bs_id = ds::createBlendState(bsInfo);
 
-	RID vertexShader = ds::loadVertexShader("Cube_vs.cso");
-	RID pixelShader = ds::loadPixelShader("Cube_ps.cso");
+	ds::ShaderInfo vsInfo = { "Cube_vs.cso" , 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	RID vertexShader = ds::createShader(vsInfo);
+	ds::ShaderInfo psInfo = { "Cube_ps.cso" , 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	RID pixelShader = ds::createShader(psInfo);
 
 	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 2.0f, -6.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
 	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
-	RID basicPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED);
+	ds::Camera camera = {
+		viewMatrix,
+		projectionMatrix,
+		viewMatrix * projectionMatrix,
+		ds::vec3(0,2,-6),
+		ds::vec3(0,0,1),
+		ds::vec3(0,1,0),
+		ds::vec3(1,0,0)
+	};
+	ds::RenderPassInfo rpInfo = { &camera,ds::DepthBufferState::ENABLED, 0, 0 };
+	RID basicPass = ds::createRenderPass(rpInfo);
 
 	// create buffer input layout
 	ds::VertexDeclaration decl[] = {
@@ -103,9 +115,12 @@ int main(int argc, char *argv[]) {
 	};
 	RID rid = ds::createVertexDeclaration(decl, 2, vertexShader);
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
-	RID iid = ds::createIndexBuffer(36, ds::IndexType::UINT_32, ds::BufferType::STATIC, p_indices);
-	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v);
-	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
+	ds::IndexBufferInfo ibInfo = { 36, ds::IndexType::UINT_32, ds::BufferType::STATIC, p_indices };
+	RID iid = ds::createIndexBuffer(ibInfo);
+	ds::VertexBufferInfo vbInfo = { ds::BufferType::STATIC, 24, sizeof(Vertex), v };
+	RID vbid = ds::createVertexBuffer(vbInfo);
+	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
+	RID ssid = ds::createSamplerState(samplerInfo);
 
 	RID stateGroup = ds::StateGroupBuilder()
 		.inputLayout(rid)
@@ -132,7 +147,7 @@ int main(int argc, char *argv[]) {
 		ds::matrix s = ds::matScale(ds::vec3(scale));
 		ds::matrix w = bY * s * ds::matTranslate(cp);
 		
-		constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix(basicPass));
+		constantBuffer.viewprojectionMatrix = ds::matTranspose(camera.viewProjectionMatrix);
 		constantBuffer.worldMatrix = ds::matTranspose(w);
 
 		ds::submit(basicPass, drawItem);

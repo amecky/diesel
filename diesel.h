@@ -706,7 +706,7 @@ namespace ds {
 		LINE_LIST
 	};
 
-	struct VertexDeclaration {
+	struct InputLayoutDefinition {
 		BufferAttribute attribute;
 		BufferAttributeType type;
 		uint8_t size;
@@ -1055,10 +1055,14 @@ namespace ds {
 	bool init(const RenderSettings& settings);
 
 	// vertex declaration / buffer input layout
+	struct InputLayoutInfo {
+		InputLayoutDefinition* declarations;
+		uint8_t numDeclarations;
+		RID vertexShaderId;
+	};
+	RID createInputLayout(const InputLayoutInfo& info, const char* name = "InputLayout");
 
-	RID createVertexDeclaration(VertexDeclaration* decl, uint8_t num, RID shaderId, const char* name = "UNKNOWN");
-
-	RID createInstanceDeclaration(VertexDeclaration* decl, uint8_t num, InstanceLayoutDeclaration* instDecl, uint8_t instNum, RID shaderId, const char* name = "UNKNOWN");
+	RID createInstanceDeclaration(InputLayoutDefinition* decl, uint8_t num, InstanceLayoutDeclaration* instDecl, uint8_t instNum, RID shaderId, const char* name = "UNKNOWN");
 
 	// constant buffer
 	/**
@@ -3215,42 +3219,42 @@ namespace ds {
 	// ------------------------------------------------------
 	// input layout / vertex declaration
 	// ------------------------------------------------------
-	RID createVertexDeclaration(VertexDeclaration* decl, uint8_t num, RID shaderId, const char* name) {
-		D3D11_INPUT_ELEMENT_DESC* descriptors = new D3D11_INPUT_ELEMENT_DESC[num];
+	RID createInputLayout(const InputLayoutInfo& info, const char* name) {
+		D3D11_INPUT_ELEMENT_DESC* descriptors = new D3D11_INPUT_ELEMENT_DESC[info.numDeclarations];
 		uint32_t index = 0;
 		uint32_t counter = 0;
 		//char nb[64];
 		int si[8] = { 0 };
-		for (int i = 0; i < num; ++i) {
+		for (int i = 0; i < info.numDeclarations; ++i) {
 			D3D11_INPUT_ELEMENT_DESC& desc = descriptors[i];
-			const VertexDeclaration& current = decl[i];
-			int fidx = find_format(decl[i].type, decl[i].size);
+			const InputLayoutDefinition& current = info.declarations[i];
+			int fidx = find_format(info.declarations[i].type, info.declarations[i].size);
 			if (fidx == -1) {
 				return INVALID_RID;
 			}
 			const DXBufferAttributeType& formatType = DXBufferAttributeTypes[fidx];
 			//sprintf(nb, "%s%d", DXBufferAttributeNames[decl[i].attribute], si[decl[i].attribute]);
 			//desc.SemanticName = nb;
-			desc.SemanticName = DXBufferAttributeNames[decl[i].attribute];
-			desc.SemanticIndex = si[decl[i].attribute];
+			desc.SemanticName = DXBufferAttributeNames[info.declarations[i].attribute];
+			desc.SemanticIndex = si[info.declarations[i].attribute];
 			desc.Format = formatType.format;
 			desc.InputSlot = 0;
 			desc.AlignedByteOffset = index;
 			desc.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 			desc.InstanceDataStepRate = 0;
 			index += formatType.bytes;
-			si[decl[i].attribute] += 1;
+			si[info.declarations[i].attribute] += 1;
 		}		
-		uint16_t sidx = getResourceIndex(shaderId, RT_VERTEX_SHADER);
+		uint16_t sidx = getResourceIndex(info.vertexShaderId, RT_VERTEX_SHADER);
 		VertexShaderResource* sres = (VertexShaderResource*)_ctx->_resources[sidx];
 		VertexShader* s = sres->get();
 		ID3D11InputLayout* layout = 0;
-		ASSERT_RESULT(_ctx->d3dDevice->CreateInputLayout(descriptors, num, s->vertexShaderBuffer, s->bufferSize, &layout), "Failed to create input layout");
+		ASSERT_RESULT(_ctx->d3dDevice->CreateInputLayout(descriptors, info.numDeclarations, s->vertexShaderBuffer, s->bufferSize, &layout), "Failed to create input layout");
 		InputLayoutResource* res = new InputLayoutResource(layout, index);
 		return addResource(res, RT_VERTEX_DECLARATION, name);
 	}
 
-	RID createInstanceDeclaration(VertexDeclaration* decl, uint8_t num, InstanceLayoutDeclaration* instDecl, uint8_t instNum, RID shaderId, const char* name) {
+	RID createInstanceDeclaration(InputLayoutDefinition* decl, uint8_t num, InstanceLayoutDeclaration* instDecl, uint8_t instNum, RID shaderId, const char* name) {
 		int total = num + instNum;
 		D3D11_INPUT_ELEMENT_DESC* descriptors = new D3D11_INPUT_ELEMENT_DESC[total];
 		uint32_t index = 0;
@@ -3258,7 +3262,7 @@ namespace ds {
 		int si[8] = { 0 };
 		for (int i = 0; i < num; ++i) {
 			D3D11_INPUT_ELEMENT_DESC& desc = descriptors[counter++];
-			const VertexDeclaration& current = decl[i];
+			const InputLayoutDefinition& current = decl[i];
 			int fidx = find_format(current.type, current.size);
 			if (fidx == -1) {
 				return INVALID_RID;

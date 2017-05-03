@@ -24,7 +24,8 @@
         
 ## Camera
 
-A camera is a logical unit containing the view and projection matrix. You need to create a camera to create a RenderPass.
+A camera is a logical unit containing the view and projection matrix. You need to create a camera to 
+create a RenderPass.
 The following structs shows all attributes of a camera.
 
 ```c
@@ -276,7 +277,7 @@ RID createVertexBuffer(const VertexBufferInfo& info, const char* name = "VertexB
 
 The following shows how to create a static vertex buffer using initial data:
 
-```
+```c
 Vertex v[] = {
     { ds::vec3(-1,-1,1),ds::Color(255,0,0,255) },
     { ds::vec3(0,1,1),ds::Color(255,0,0,255) },
@@ -284,6 +285,67 @@ Vertex v[] = {
 };
 ds::VertexBufferInfo vbInfo = { ds::BufferType::STATIC, 3, sizeof(Vertex), v };
 RID vbid = ds::createVertexBuffer(vbInfo);
+```
+
+## InputLayoutDefinition
+
+```c
+struct InputLayoutDefinition {
+    BufferAttribute attribute;
+    BufferAttributeType type;
+    uint8_t size;
+};
+```
+
+| Attribute | Description                     | Optional  |
+| --------- |---------------------------------|:---------:|
+| attribute | array of InputLayoutDefinitions | no        |
+| type      | number of entries in array      | no        |
+| size      | RID of the vertex shader        | no        |
+
+ds::BufferAttribute:
+
+- ds::BufferAttribute::POSITION
+- ds::BufferAttribute::COLOR
+- ds::BufferAttribute::TEXCOORD
+- ds::BufferAttribute::NORMAL
+- ds::BufferAttribute::TANGENT
+- ds::BufferAttribute::BINORMAL
+
+BufferAttributeType:
+
+- ds::BufferAttributeType::FLOAT
+- ds::BufferAttributeType::UINT_8
+
+## InputLayout
+
+```c
+struct InputLayoutInfo {
+    InputLayoutDefinition* declarations;
+    uint8_t numDeclarations;
+    RID vertexShaderId;
+};
+```
+
+| Attribute       | Description                     | Optional  |
+| --------------- |---------------------------------|:---------:|
+| declarations    | array of InputLayoutDefinitions | no        |
+| numDeclarations | number of entries in array      | no        |
+| vertexShaderId  | RID of the vertex shader        | no        |
+
+```c
+RID createInputLayout(const InputLayoutInfo& info, const char* name = "InputLayout");
+```
+
+### Example
+
+```c
+ds::InputLayoutDefinition decl[] = {
+    { ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
+    { ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }
+};
+ds::InputLayoutInfo layoutInfo = { decl, 2, vertexShader };
+RID rid = ds::createInputLayout(layoutInfo, "PosTex_Layout");
 ```
 
 ## IndexBuffer

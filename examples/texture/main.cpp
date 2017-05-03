@@ -32,7 +32,8 @@ struct CubeConstantBuffer {
 RID loadImage(const char* name) {
 	int x, y, n;
 	unsigned char *data = stbi_load(name, &x, &y, &n, 4);
-	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM, name);
+	ds::TextureInfo texInfo = { x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM, ds::BindFlag::BF_SHADER_RESOURCE };
+	RID textureID = ds::createTexture(texInfo);
 	stbi_image_free(data);
 	return textureID;
 }
@@ -40,8 +41,8 @@ RID loadImage(const char* name) {
 // ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------
-//int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
-int main(int argc, char *argv[]) {
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
+//int main(int argc, char *argv[]) {
 
 	ds::vec3 positions[24];
 	ds::vec2 uvs[24];
@@ -80,8 +81,18 @@ int main(int argc, char *argv[]) {
 	ds::init(rs);
 
 	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 2.0f, -8.0f), ds::vec3(0,0,0), ds::vec3(0,1,0));
-	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
-	RID basicPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED, "BasicPass");
+	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);	
+	ds::Camera camera = {
+		viewMatrix,
+		projectionMatrix,
+		viewMatrix * projectionMatrix,
+		ds::vec3(0,0,-1),
+		ds::vec3(0,0,1),
+		ds::vec3(0,1,0),
+		ds::vec3(1,0,0)
+	};
+	ds::RenderPassInfo rpInfo = { &camera,ds::DepthBufferState::ENABLED, 0, 0 };
+	RID basicPass = ds::createRenderPass(rpInfo, "BasicPass");
 
 	RID textureID = loadImage("..\\common\\cube_map.png");
 	RID cubeTextureID = loadImage("..\\common\\grid.png");
@@ -91,7 +102,7 @@ int main(int argc, char *argv[]) {
 
 	float gridWidth = 3.0f;
 	float gridHeight = 3.0f;
-	Grid grid;
+	Grid grid(&camera);
 	ds::vec3 gridPositions[] = {
 		ds::vec3(-gridWidth, -1.0f, -gridHeight),
 		ds::vec3(-gridWidth, -1.0f,  gridHeight),
@@ -100,18 +111,22 @@ int main(int argc, char *argv[]) {
 	};
 	grid.create(gridPositions, 6, vertexShader, pixelShader, cubeTextureID, basicPass);
 
-	ds::VertexDeclaration decl[] = {
+	ds::InputLayoutDefinition decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }
 	};
+	ds::InputLayoutInfo layoutInfo = { decl, 2, vertexShader };
+	RID rid = ds::createInputLayout(layoutInfo, "PosTex_Layout");
 
-	RID rid = ds::createVertexDeclaration(decl, 2, vertexShader, "PosTex_Layout");
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer, "CubeConstantBuffer");
 	RID indexBuffer = ds::createQuadIndexBuffer(256, "IndexBuffer");
-	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v, "CubeBuffer");
-	RID staticCubes = ds::createVertexBuffer(ds::BufferType::STATIC, totalCubeVertices, sizeof(Vertex), sv, "StaticCubes");
+	ds::VertexBufferInfo cbInfo = { ds::BufferType::STATIC, 24, sizeof(Vertex), v };
+	RID cubeBuffer = ds::createVertexBuffer(cbInfo, "CubeBuffer");
+	ds::VertexBufferInfo scInfo = { ds::BufferType::STATIC, totalCubeVertices, sizeof(Vertex), sv };
+	RID staticCubes = ds::createVertexBuffer(scInfo, "StaticCubes");
 
-	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR, "CLAMP_LINEAR_SAMPLER");
+	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
+	RID ssid = ds::createSamplerState(samplerInfo);
 	RID blendStateID = ds::findResource(SID("DefaultBlendState"), ds::ResourceType::RT_BLENDSTATE);
 
 	worldMatrix wm;
@@ -162,7 +177,7 @@ int main(int argc, char *argv[]) {
 		// grid
 		grid.render();
 		// static cubes
-		constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix(basicPass));
+		constantBuffer.viewprojectionMatrix = ds::matTranspose(camera.viewProjectionMatrix);
 		ds::matrix world = ds::matIdentity();
 		constantBuffer.worldMatrix = ds::matTranspose(world);
 		ds::submit(basicPass, staticItem);

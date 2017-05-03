@@ -6,10 +6,12 @@
 SpriteBuffer::SpriteBuffer(int maxSprites, RID textureID) : _max(maxSprites) {
 
 	_vertices = new SpriteBufferVertex[maxSprites];
-
-	RID vertexShader = ds::createVertexShader(Sprite_VS_Main, sizeof(Sprite_VS_Main), "SpriteVS");
-	_pixelShader = ds::createPixelShader(Sprite_PS_Main, sizeof(Sprite_PS_Main), "SpritePS");
-	RID geoShader = ds::createGeometryShader(Sprite_GS_Main, sizeof(Sprite_GS_Main), "SpriteGS");
+	ds::ShaderInfo vsInfo = { 0,Sprite_VS_Main, sizeof(Sprite_VS_Main) ,ds::ShaderType::ST_VERTEX_SHADER };
+	RID vertexShader = ds::createShader(vsInfo, "SpriteVS");
+	ds::ShaderInfo psInfo = { 0,Sprite_PS_Main, sizeof(Sprite_PS_Main) ,ds::ShaderType::ST_PIXEL_SHADER };
+	_pixelShader = ds::createShader(psInfo, "SpritePS");
+	ds::ShaderInfo gsInfo = { 0,Sprite_GS_Main, sizeof(Sprite_GS_Main) ,ds::ShaderType::ST_GEOMETRY_SHADER};
+	RID geoShader = ds::createShader(gsInfo, "SpriteGS");
 
 	// very special buffer layout 
 	ds::VertexDeclaration decl[] = {
@@ -22,9 +24,11 @@ SpriteBuffer::SpriteBuffer(int maxSprites, RID textureID) : _max(maxSprites) {
 	RID vertexDeclId = ds::createVertexDeclaration(decl, 4, vertexShader, "PCNC_Layout");
 
 	RID cbid = ds::createConstantBuffer(sizeof(SpriteBufferConstantBuffer), &_constantBuffer,"SpriteBufferConstantBuffer");
-	_vertexBufferID = ds::createVertexBuffer(ds::BufferType::DYNAMIC, maxSprites, sizeof(SpriteBufferVertex), 0, "SpriteBufferVertex");
+	ds::VertexBufferInfo vbInfo = { ds::BufferType::DYNAMIC, maxSprites, sizeof(SpriteBufferVertex), 0 };
+	_vertexBufferID = ds::createVertexBuffer(vbInfo, "SpriteBufferVertex");
 
-	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
+	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
+	RID ssid = ds::createSamplerState(samplerInfo);
 
 	RID spriteStateGroup = ds::StateGroupBuilder()
 		.inputLayout(vertexDeclId)
@@ -46,7 +50,17 @@ SpriteBuffer::SpriteBuffer(int maxSprites, RID textureID) : _max(maxSprites) {
 
 	ds::matrix orthoView = ds::matIdentity();
 	ds::matrix orthoProjection = ds::matOrthoLH(ds::getScreenWidth(), ds::getScreenHeight(), 0.1f, 1.0f);
-	_orthoPass = ds::createRenderPass(orthoView, orthoProjection, ds::DepthBufferState::DISABLED, "SpriteOrthoPass");
+	ds::Camera camera = {
+		orthoView,
+		orthoProjection,
+		orthoView * orthoProjection,
+		ds::vec3(0,0,-1),
+		ds::vec3(0,0,1),
+		ds::vec3(0,1,0),
+		ds::vec3(1,0,0)
+	};
+	ds::RenderPassInfo rpInfo = { &camera,ds::DepthBufferState::DISABLED, 0, 0 };
+	_orthoPass = ds::createRenderPass(rpInfo, "SpriteOrthoPass");
 	_constantBuffer.wvp = ds::matTranspose(orthoView * orthoProjection);
 
 	_current = 0;
