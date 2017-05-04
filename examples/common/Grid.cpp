@@ -11,12 +11,12 @@ void Grid::create(ds::vec3* positions, int numCells, RID vertexShader, RID pixel
 		_vertices[i].uv = uvs[i];
 	}
 
-	ds::VertexDeclaration decl[] = {
+	ds::InputLayoutDefinition decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }
 	};
-
-	RID vertexDeclaration = ds::createVertexDeclaration(decl, 2, vertexShader, "PT_Layout");
+	ds::InputLayoutInfo layoutInfo = { decl, 2, vertexShader };
+	RID vertexDeclaration = ds::createInputLayout(layoutInfo, "PT_Layout");
 	RID bufferID = ds::createConstantBuffer(sizeof(GridConstantBuffer), &_constantBuffer, "GridConstantBuffer");
 	RID indexBuffer = ds::createQuadIndexBuffer(1, "GridIndexBuffer");
 	ds::VertexBufferInfo vbInfo = { ds::BufferType::STATIC, 4, sizeof(GridVertex), _vertices };

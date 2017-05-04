@@ -875,19 +875,6 @@ namespace ds {
 		uint32_t instances;
 	};
 
-	// ---------------------------------------------------
-	// StructuredBufferInfo
-	// ---------------------------------------------------
-	struct StructuredBufferInfo {
-		unsigned int numElements;
-		int elementSize;
-		bool cpuWritable;
-		bool gpuWritable;
-		void* data;
-		RID textureID;
-		RID renderTarget;
-	};
-
 	class PipelineState;
 	enum ResourceType;
 	enum PipelineStage;
@@ -1143,6 +1130,18 @@ namespace ds {
 	*/
 	RID createBuffer(int numElements, int byteStride, void* data = 0, const char* name = "UNKNOWN");
 
+	// ---------------------------------------------------
+	// StructuredBufferInfo
+	// ---------------------------------------------------
+	struct StructuredBufferInfo {
+		unsigned int numElements;
+		int elementSize;
+		bool cpuWritable;
+		bool gpuWritable;
+		void* data;
+		RID textureID;
+		RID renderTarget;
+	};
 	RID createStructuredBuffer(const StructuredBufferInfo& info, const char* name = "StructuredBuffer");
 
 	struct SamplerStateInfo {
@@ -6019,12 +6018,13 @@ namespace ds {
 		RID vertexShader = createVertexShader(DebugText_VS_Main, sizeof(DebugText_VS_Main), "DebugVS");
 		RID pixelShader = createPixelShader(DebugText_PS_Main, sizeof(DebugText_PS_Main), "DebugPS");
 		RID geoShader = createGeometryShader(DebugText_GS_Main, sizeof(DebugText_GS_Main), "DebugGS");
-		ds::VertexDeclaration decl[] = {
+		ds::InputLayoutDefinition decl[] = {
 			{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 			{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 },
 			{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
 		};
-		RID vertexDeclId = createVertexDeclaration(decl, 3, vertexShader, "PCC_Layout");
+		InputLayoutInfo layoutInfo = { decl, 3, vertexShader };
+		RID vertexDeclId = createInputLayout( layoutInfo, "PCC_Layout");
 		RID cbid = createConstantBuffer(sizeof(DebugTextConstantBuffer), &_ctx->debugConstantBuffer, "DebugTextConstantBuffer");
 		ds::VertexBufferInfo vbInfo = { BufferType::DYNAMIC, MAX_DBG_TXT_VERTICES, sizeof(DebugTextVertex), 0 };
 		_ctx->debugVertexBufferID = createVertexBuffer(vbInfo, "DebugTextVertexBuffer");

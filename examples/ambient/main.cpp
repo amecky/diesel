@@ -64,12 +64,13 @@ struct LightBuffer {
 RID loadImage(const char* name) {
 	int x, y, n;
 	unsigned char *data = stbi_load(name, &x, &y, &n, 4);
-	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
+	ds::TextureInfo texInfo = { x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM, ds::BindFlag::BF_SHADER_RESOURCE };
+	RID textureID = ds::createTexture(texInfo);
 	stbi_image_free(data);
 	return textureID;
 }
 
-int main(const char** args) {
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
 	ds::matrix w = ds::matIdentity();
 	Vertex v[24];
 	addPlane(0, 0, v, w);
@@ -115,30 +116,46 @@ int main(const char** args) {
 	RID textureID = loadImage("directx-11-logo.png");
 	RID floorTexture = loadImage("..\\common\\cube_map.png");
 
+	ds::BlendStateInfo bsInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
+	RID bs_id = ds::createBlendState(bsInfo);
 
-	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
-
-	RID vertexShader = ds::loadVertexShader("AmbientLightning_vs.cso");
-	RID pixelShader = ds::loadPixelShader("AmbientLightning_ps.cso");
+	ds::ShaderInfo vsInfo = { "AmbientLightning_vs.cso" ,0,0,ds::ShaderType::ST_VERTEX_SHADER };
+	RID vertexShader = ds::createShader(vsInfo);
+	ds::ShaderInfo psInfo = { "AmbientLightning_ps.cso" ,0,0,ds::ShaderType::ST_PIXEL_SHADER };
+	RID pixelShader = ds::createShader(psInfo);
 
 	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 2.0f, -6.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
 	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
-	RID basicPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED);
+	ds::Camera camera = {
+		viewMatrix,
+		projectionMatrix,
+		viewMatrix * projectionMatrix,
+		ds::vec3(0,2,-6),
+		ds::vec3(0,0,1),
+		ds::vec3(0,1,0),
+		ds::vec3(1,0,0)
+	};
+	ds::RenderPassInfo rpInfo = { &camera,ds::DepthBufferState::ENABLED, 0, 0 };
+	RID basicPass = ds::createRenderPass(rpInfo, "BasicPass");
 
-	ds::VertexDeclaration decl[] = {
+	ds::InputLayoutDefinition decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 },
 		{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,3 }			
 	};
-
-	RID rid = ds::createVertexDeclaration(decl, 3, vertexShader);
+	ds::InputLayoutInfo layoutInfo = { decl, 3, vertexShader };
+	RID rid = ds::createInputLayout(layoutInfo);
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
 	RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer), &lightBuffer);
 	RID indexBuffer = ds::createQuadIndexBuffer(36);
-	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v);
-	RID floorBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 4, sizeof(Vertex), floorVertices);
-	RID bulbID = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), lv);
-	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
+	ds::VertexBufferInfo cbInfo = { ds::BufferType::STATIC, 24, sizeof(Vertex), v };
+	RID cubeBuffer = ds::createVertexBuffer(cbInfo);
+	ds::VertexBufferInfo fvbInfo = { ds::BufferType::STATIC, 4, sizeof(Vertex), floorVertices };
+	RID floorBuffer = ds::createVertexBuffer(fvbInfo);
+	ds::VertexBufferInfo buInfo = { ds::BufferType::STATIC, 24, sizeof(Vertex), lv };
+	RID bulbID = ds::createVertexBuffer(buInfo);
+	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
+	RID ssid = ds::createSamplerState(samplerInfo);
 
 	ds::vec3 scale(1.0f, 1.0f, 1.0f);
 	ds::vec3 rotation(0.0f, 0.0f, 0.0f);
@@ -151,6 +168,7 @@ int main(const char** args) {
 		.vertexShader(vertexShader)
 		.pixelShader(pixelShader)
 		.indexBuffer(indexBuffer)
+		.samplerState(ssid,pixelShader)
 		.build();
 
 	RID floorGroup = ds::StateGroupBuilder()
@@ -185,7 +203,7 @@ int main(const char** args) {
 
 		t += static_cast<float>(ds::getElapsedSeconds());
 
-		constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix(basicPass));
+		constantBuffer.viewprojectionMatrix = ds::matTranspose(camera.viewProjectionMatrix);
 			
 		// floor
 		ds::matrix world = ds::matIdentity();

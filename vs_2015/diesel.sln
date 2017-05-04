@@ -57,6 +57,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MonochromeFont", "..\exampl
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ComputeShader", "..\examples\compute_shader\ComputeShader.vcxproj", "{E7EB3F62-0864-48A4-9665-B28F6C8E13CA}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tigre", "..\examples\tigre\tigre.vcxproj", "{C114C566-F2EB-4CFC-AEC9-5AD8E0E9096E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -281,6 +283,14 @@ Global
 		{E7EB3F62-0864-48A4-9665-B28F6C8E13CA}.Release|x64.Build.0 = Release|x64
 		{E7EB3F62-0864-48A4-9665-B28F6C8E13CA}.Release|x86.ActiveCfg = Release|Win32
 		{E7EB3F62-0864-48A4-9665-B28F6C8E13CA}.Release|x86.Build.0 = Release|Win32
+		{C114C566-F2EB-4CFC-AEC9-5AD8E0E9096E}.Debug|x64.ActiveCfg = Debug|x64
+		{C114C566-F2EB-4CFC-AEC9-5AD8E0E9096E}.Debug|x64.Build.0 = Debug|x64
+		{C114C566-F2EB-4CFC-AEC9-5AD8E0E9096E}.Debug|x86.ActiveCfg = Debug|Win32
+		{C114C566-F2EB-4CFC-AEC9-5AD8E0E9096E}.Debug|x86.Build.0 = Debug|Win32
+		{C114C566-F2EB-4CFC-AEC9-5AD8E0E9096E}.Release|x64.ActiveCfg = Release|x64
+		{C114C566-F2EB-4CFC-AEC9-5AD8E0E9096E}.Release|x64.Build.0 = Release|x64
+		{C114C566-F2EB-4CFC-AEC9-5AD8E0E9096E}.Release|x86.ActiveCfg = Release|Win32
+		{C114C566-F2EB-4CFC-AEC9-5AD8E0E9096E}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -100,12 +100,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	};
 	grid.create(gridPositions, 4, vertexShader, pixelShader, textureID, basicPass);
 
-	ds::VertexDeclaration decl[] = {
+	ds::InputLayoutDefinition decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }
 	};
-
-	RID rid = ds::createVertexDeclaration(decl, 2, vertexShader);
+	ds::InputLayoutInfo layoutInfo = { decl,2,vertexShader };
+	RID rid = ds::createInputLayout(layoutInfo);
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
 	RID indexBuffer = ds::createQuadIndexBuffer(256);
 	ds::VertexBufferInfo vbInfo = { ds::BufferType::STATIC, 24, sizeof(Vertex), v };
