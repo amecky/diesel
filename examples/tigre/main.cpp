@@ -6,6 +6,7 @@
 #include "AmbientLightning_VS_Main.h"
 #include "WaveFrontReader.h"
 
+// The tigre https://sketchfab.com/models/95c4008c4c764c078f679d4c320e7b18# is taken from https://sketchfab.com/jeremielouvetz
 struct PNCVertex {
 	ds::vec3 p;
 	ds::vec3 n;
