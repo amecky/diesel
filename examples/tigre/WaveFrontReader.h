@@ -1,5 +1,6 @@
 #pragma once
 #include "..\..\diesel.h"
+#include <map>
 
 enum WaveFrontTopology {
 	WFT_QUAD,
@@ -26,5 +27,8 @@ struct ObjVertex {
 class WaveFrontReader {
 
 public:
-	int load(const char* fileName, const WaveFrontFormat& format, ds::vec3* positions, ds::vec2* uvs,ds::vec3* normals, int max);
+	int load(const char* fileName, const WaveFrontFormat& format, ds::vec3* positions, ds::vec2* uvs,ds::vec3* normals, ds::Color* colors,int max);
+private:
+	void readMaterials(const char* fileName);
+	std::map<ds::StaticHash, ds::Color> _colors;
 };

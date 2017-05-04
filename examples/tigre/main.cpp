@@ -29,11 +29,12 @@ RID buildTigreDrawItem(RID lightBufferID) {
 	WaveFrontReader objReader;
 	ds::vec3 positions[10000];
 	ds::vec3 normals[10000];
-	int num = objReader.load("tigre_sumatra.obj", format, positions, 0, normals, 10000);
+	ds::Color colors[10000];
+	int num = objReader.load("tigre_sumatra.obj", format, positions, 0, normals, colors, 10000);
 
 	PNCVertex* v = new PNCVertex[num];
 	for (int i = 0; i < num; ++i) {
-		v[i] = PNCVertex{ positions[i],normals[i], ds::Color(192,64,0,255) };
+		v[i] = PNCVertex{ positions[i],normals[i], colors[i] };
 	}
 
 	ds::ShaderInfo vsInfo = { 0, AmbientLightning_VS_Main, sizeof(AmbientLightning_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
