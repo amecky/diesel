@@ -12,7 +12,8 @@
 RID loadImage(const char* name) {
 	int x, y, n;
 	unsigned char *data = stbi_load(name, &x, &y, &n, 4);
-	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
+	ds::TextureInfo texInfo = { x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM , ds::BindFlag::BF_SHADER_RESOURCE };
+	RID textureID = ds::createTexture(texInfo);
 	stbi_image_free(data);
 	return textureID;
 }
@@ -40,14 +41,28 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 0.0f, -4.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
 	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
-	RID basicPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED);
-	RID particlePass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::DISABLED);
+	ds::Camera camera = {
+		viewMatrix,
+		projectionMatrix,
+		viewMatrix * projectionMatrix,
+		ds::vec3(0,0,-4),
+		ds::vec3(0,0,1),
+		ds::vec3(0,1,0),
+		ds::vec3(1,0,0),
+		0.0f,
+		0.0f,
+		0.0f
+	};
+	ds::RenderPassInfo basicInfo = { &camera, ds::DepthBufferState::ENABLED, 0, 0 };
+	RID basicPass = ds::createRenderPass(basicInfo);
+	ds::RenderPassInfo particlePassInfo = { &camera, ds::DepthBufferState::DISABLED, 0, 0 };
+	RID particlePass = ds::createRenderPass(particlePassInfo);
 	
 	
 	descriptor.startColor = ds::Color(192, 192, 0, 255);
 	descriptor.endColor = ds::Color(192, 16, 0, 255);
 
-	Particlesystem system(descriptor, particlePass);
+	Particlesystem system(&camera, descriptor, particlePass);
 
 	ParticleDescriptor particleDescriptor;
 	particleDescriptor.ttl = 0.4f;
@@ -65,7 +80,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID vertexShader = ds::loadVertexShader("..\\common\\Textured_vs.cso");
 	RID pixelShader = ds::loadPixelShader("..\\common\\Textured_ps.cso");
 
-	Grid grid;
+	Grid grid(&camera);
 	ds::vec3 gridPositions[] = {
 		ds::vec3(-4.0f, -1.0f, -3.5f),
 		ds::vec3(-4.0f, -1.0f,  4.5f),

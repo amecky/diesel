@@ -48,10 +48,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	//
 	// create resources
 	//
-	RID vertexShader = ds::loadVertexShader("Triangle_vs.cso");
-	RID pixelShader = ds::loadPixelShader("Triangle_ps.cso");
+	ds::ShaderInfo vsInfo = { "Trianle_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	RID vertexShader = ds::createShader(vsInfo);
+	ds::ShaderInfo psInfo = { "Trianle_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	RID pixelShader = ds::createShader(psInfo);
 	// create buffer input layout
-	ds::VertexDeclaration decl[] = {
+	ds::InputLayoutDefinition decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
 	};
@@ -60,7 +62,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		{ ds::vec3(0,1,1),ds::Color(255,0,0,255) },
 		{ ds::vec3(1,-1,1),ds::Color(255,0,0,255) }
 	};
-	RID rid = ds::createVertexDeclaration(decl, 2, vertexShader);
+	ds::InputLayoutInfo layoutInfo = { decl, 2, vertexShader };
+	RID rid = ds::createInputLayout(layoutInfo);
 	ds::VertexBufferInfo vbInfo = { ds::BufferType::STATIC, 3, sizeof(Vertex), v };
 	RID vbid = ds::createVertexBuffer(vbInfo);
 	//

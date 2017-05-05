@@ -127,32 +127,6 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="..\common\Geometry.cpp" />
-    <ClCompile Include="..\common\Grid.cpp" />
-    <ClCompile Include="..\common\WorldMatrix.cpp" />
-    <ClCompile Include="main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\common\Geometry.h" />
-    <ClInclude Include="..\common\Grid.h" />
-    <ClInclude Include="..\common\WorldMatrix.h" />
-    <ClInclude Include="stb_image.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="FillBuffer_ps.hlsl">
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">PS_Main</EntryPointName>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.0</ShaderModel>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\examples\deferred\%(Filename).cso</ObjectFileOutput>
-    </FxCompile>
-    <FxCompile Include="FillBuffer_vs.hlsl">
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">VS_Main</EntryPointName>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.0</ShaderModel>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\examples\deferred\%(Filename).cso</ObjectFileOutput>
-    </FxCompile>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

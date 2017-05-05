@@ -805,7 +805,7 @@ namespace ds {
 
 	enum ResourceType {
 		RT_NONE,
-		RT_VERTEX_DECLARATION,
+		RT_INPUT_LAYOUT,
 		RT_CONSTANT_BUFFER,
 		RT_INDEX_BUFFER,
 		RT_VERTEX_BUFFER,
@@ -1559,7 +1559,7 @@ namespace ds {
 
 	const char* RESOURCE_NAMES[] {
 		"NONE",
-		"VERTEX_DECLARATION",
+		"INPUT_LAYOUT",
 		"CONSTANT_BUFFER",
 		"INDEX_BUFFER",
 		"VERTEX_BUFFER",
@@ -1934,7 +1934,7 @@ namespace ds {
 			return _size;
 		}
 		const ResourceType getType() const {
-			return RT_VERTEX_DECLARATION;
+			return RT_INPUT_LAYOUT;
 		}
 	private:
 		int _size;
@@ -3250,7 +3250,7 @@ namespace ds {
 		ID3D11InputLayout* layout = 0;
 		ASSERT_RESULT(_ctx->d3dDevice->CreateInputLayout(descriptors, info.numDeclarations, s->vertexShaderBuffer, s->bufferSize, &layout), "Failed to create input layout");
 		InputLayoutResource* res = new InputLayoutResource(layout, index);
-		return addResource(res, RT_VERTEX_DECLARATION, name);
+		return addResource(res, RT_INPUT_LAYOUT, name);
 	}
 
 	RID createInstanceDeclaration(InputLayoutDefinition* decl, uint8_t num, InstanceLayoutDeclaration* instDecl, uint8_t instNum, RID shaderId, const char* name) {
@@ -3301,14 +3301,14 @@ namespace ds {
 		ID3D11InputLayout* layout = 0;
 		ASSERT_RESULT(_ctx->d3dDevice->CreateInputLayout(descriptors, total, s->vertexShaderBuffer, s->bufferSize, &layout), "Failed to create input layout");
 		InputLayoutResource* res = new InputLayoutResource(layout, index);
-		return addResource(res, RT_VERTEX_DECLARATION, name);
+		return addResource(res, RT_INPUT_LAYOUT, name);
 	}
 
 	// ------------------------------------------------------
 	// set vertex declaration
 	// ------------------------------------------------------
 	static void setVertexDeclaration(RID rid) {
-		uint16_t ridx = getResourceIndex(rid, RT_VERTEX_DECLARATION);		
+		uint16_t ridx = getResourceIndex(rid, RT_INPUT_LAYOUT);		
 		if (ridx == NO_RID) {
 			_ctx->d3dContext->IASetInputLayout(NULL);
 		}
@@ -3979,6 +3979,7 @@ namespace ds {
 				return loadComputeShader(info.csoName, name);
 			}
 		}
+		return NO_RID;
 	}
 
 	// ------------------------------------------------------
@@ -4468,7 +4469,7 @@ namespace ds {
 	}
 
 	StateGroupBuilder& StateGroupBuilder::inputLayout(RID rid) {
-		basicBinding(rid, ResourceType::RT_VERTEX_DECLARATION, PLS_IA);
+		basicBinding(rid, ResourceType::RT_INPUT_LAYOUT, PLS_IA);
 		return *this;
 	}
 
@@ -4585,7 +4586,7 @@ namespace ds {
 	}
 
 	static void applyResource(RID current, int type) {
-		if (type == ResourceType::RT_VERTEX_DECLARATION) {
+		if (type == ResourceType::RT_INPUT_LAYOUT) {
 			setVertexDeclaration(current);
 		}
 		else if (type == ResourceType::RT_SAMPLER_STATE) {
@@ -4777,6 +4778,9 @@ namespace ds {
 			for (int i = 0; i < pass->numRenderTargets; ++i) {
 				setRenderTarget(pass->rts[i]);
 			}
+		}
+		else {
+			//_ctx->d3dContext->OMSetRenderTargets(1, &rt->view, rt->depthStencilView);
 		}
 		Camera* camera = pass->camera;
 		_ctx->basicConstantBuffer.viewMatrix = matTranspose(camera->viewMatrix);

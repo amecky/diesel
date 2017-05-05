@@ -25,7 +25,7 @@ struct BlurBuffer {
 class BloomComponent {
 
 public:
-	BloomComponent(RID renderTarget, RID finalRenderPass, BloomSettings* bloomSettings, BloomExtractSettings* extractSettings);
+	BloomComponent(ds::Camera* camera,RID renderTarget, RID finalRenderPass, BloomSettings* bloomSettings, BloomExtractSettings* extractSettings);
 	~BloomComponent();
 	void render();
 private:
@@ -42,5 +42,6 @@ private:
 	RID _blurrHItem;
 	RID _blurrVItem;
 	RID _bloomCombineItem;
+	ds::Camera* _camera;
 };
 

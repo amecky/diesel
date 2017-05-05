@@ -76,35 +76,55 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	// load image using stb_image
 	int x, y, n;
 	unsigned char *data = stbi_load("nk_57_monospace.png", &x, &y, &n, 4);
-	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
+	ds::TextureInfo texInfo = { x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM , ds::BindFlag::BF_SHADER_RESOURCE };
+	RID textureID = ds::createTexture(texInfo);
 	stbi_image_free(data);
 
 
-	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
+	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
+	RID bs_id = ds::createBlendState(blendInfo);
 
-	RID vertexShader = ds::loadVertexShader("Font_vs.cso");
-	RID pixelShader = ds::loadPixelShader("Font_ps.cso");
-	RID geoShader = ds::loadGeometryShader("Font_gs.cso");
+	ds::ShaderInfo vsInfo = { "Font_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	RID vertexShader = ds::createShader(vsInfo);
+	ds::ShaderInfo psInfo = { "Font_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	RID pixelShader = ds::createShader(psInfo);
+	ds::ShaderInfo gsInfo = { "Font_gs.cso", 0, 0, ds::ShaderType::ST_GEOMETRY_SHADER};
+	RID geoShader = ds::createShader(gsInfo);
 
 	// very special buffer layout 
-	ds::VertexDeclaration decl[] = {
+	ds::InputLayoutDefinition decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 },
 		{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
 	};
 
-	RID vertexDeclId = ds::createVertexDeclaration(decl, 4, vertexShader);
+	ds::InputLayoutInfo layoutInfo = {decl, 4, vertexShader};
+	RID vertexDeclId = ds::createInputLayout(layoutInfo);
 		
 	RID cbid = ds::createConstantBuffer(sizeof(SpriteConstantBuffer), &constantBuffer);
-	RID vertexBufferID = ds::createVertexBuffer(ds::BufferType::DYNAMIC, 1024, sizeof(SpriteVertex));
-	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::POINT);
+	ds::VertexBufferInfo vbInfo = { ds::BufferType::DYNAMIC, 1024, sizeof(SpriteVertex) };
+	RID vertexBufferID = ds::createVertexBuffer(vbInfo);
+	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
+	RID ssid = ds::createSamplerState(samplerInfo);
 
 	// create orthographic view
 	ds::matrix orthoView = ds::matIdentity();
 	ds::matrix orthoProjection = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
-	ds::matrix viewprojectionMatrix = orthoView * orthoProjection;
-	RID orthoPass = ds::createRenderPass(orthoView, orthoProjection, ds::DepthBufferState::DISABLED);
+	ds::Camera camera = {
+		orthoView,
+		orthoProjection,
+		orthoView * orthoProjection,
+		ds::vec3(0,3,-6),
+		ds::vec3(0,0,1),
+		ds::vec3(0,1,0),
+		ds::vec3(1,0,0),
+		0.0f,
+		0.0f,
+		0.0f
+	};
+	ds::RenderPassInfo rpInfo = { &camera, ds::DepthBufferState::DISABLED, 0, 0 };
+	RID orthoPass = ds::createRenderPass(rpInfo);
 
 	RID stateGroup = ds::StateGroupBuilder()
 		.inputLayout(vertexDeclId)
@@ -125,7 +145,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	while (ds::isRunning()) {
 		ds::begin();
 		ds::matrix w = ds::matIdentity();
-		constantBuffer.wvp = ds::matTranspose(viewprojectionMatrix);
+		constantBuffer.wvp = ds::matTranspose(camera.viewProjectionMatrix);
 		ds::mapBufferData(vertexBufferID, vertices, numVertices * sizeof(SpriteVertex));
 		ds::submit(orthoPass, drawItem, numVertices);
 		ds::end();

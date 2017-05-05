@@ -8,7 +8,20 @@ ScreenShakeComponent::ScreenShakeComponent(ScreenShakeSettings* settings) : _set
 	//
 	ds::matrix orthoView = ds::matIdentity();
 	ds::matrix orthoProjection = ds::matOrthoLH(ds::getScreenWidth(), ds::getScreenHeight(), 0.1f, 1.0f);
-	_orthoPass = ds::createRenderPass(orthoView, orthoProjection, ds::DepthBufferState::DISABLED);
+	ds::Camera camera = {
+		orthoView,
+		orthoProjection,
+		orthoView * orthoProjection,
+		ds::vec3(0,3,-6),
+		ds::vec3(0,0,1),
+		ds::vec3(0,1,0),
+		ds::vec3(1,0,0),
+		0.0f,
+		0.0f,
+		0.0f
+	};
+	ds::RenderPassInfo rpInfo = { &camera, ds::DepthBufferState::DISABLED, 0, 0 };
+	_orthoPass = ds::createRenderPass(rpInfo);
 	//
 	// load shader
 	//

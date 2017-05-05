@@ -1,6 +1,6 @@
 # Resources 
 
-- [ ] VERTEX_DECLARATION
+- [x] INPUT_LAYOUT
 - [ ] CONSTANT_BUFFER
 - [x] INDEX_BUFFER
 - [x] VERTEX_BUFFER
@@ -289,6 +289,7 @@ RID vbid = ds::createVertexBuffer(vbInfo);
 
 ## InputLayoutDefinition
 
+In order to create an InputLayout you need to provide an array of InputLayoutDefinitions:
 ```c
 struct InputLayoutDefinition {
     BufferAttribute attribute;
@@ -297,13 +298,13 @@ struct InputLayoutDefinition {
 };
 ```
 
-| Attribute | Description                     | Optional  |
-| --------- |---------------------------------|:---------:|
-| attribute | array of InputLayoutDefinitions | no        |
-| type      | number of entries in array      | no        |
-| size      | RID of the vertex shader        | no        |
+| Attribute | Description               | Optional  |
+| --------- |---------------------------|:---------:|
+| attribute | the buffer attribute      | no        |
+| type      | the buffer attribute type | no        |
+| size      | the size of the entry     | no        |
 
-ds::BufferAttribute:
+The following list shows all available ds::BufferAttribute:
 
 - ds::BufferAttribute::POSITION
 - ds::BufferAttribute::COLOR
@@ -312,12 +313,14 @@ ds::BufferAttribute:
 - ds::BufferAttribute::TANGENT
 - ds::BufferAttribute::BINORMAL
 
-BufferAttributeType:
+Currently only the following BufferAttributeTypes are supported:
 
 - ds::BufferAttributeType::FLOAT
 - ds::BufferAttributeType::UINT_8
 
 ## InputLayout
+
+Once you have defined an array of InputLayoutDefitions you can create an InputLayout using the InputLayoutInfo:
 
 ```c
 struct InputLayoutInfo {

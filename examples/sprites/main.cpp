@@ -121,7 +121,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.width = 1024;
 	rs.height = 768;
 	rs.title = "Hello world";
-	rs.clearColor = ds::Color(0.2f, 0.2f, 0.2f, 1.0f);
+	rs.clearColor = ds::Color(0.1f, 0.1f, 0.1f, 1.0f);
 	rs.multisampling = 4;
 	rs.useGPUProfiling = false;
 	ds::init(rs);
@@ -129,31 +129,52 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	// load image using stb_image
 	int x, y, n;
 	unsigned char *data = stbi_load("cubes.png", &x, &y, &n, 4);
-	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
+	ds::TextureInfo texInfo = { x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM , ds::BindFlag::BF_SHADER_RESOURCE };
+	RID textureID = ds::createTexture(texInfo);
 	stbi_image_free(data);
 
 
-	RID vertexShader = ds::loadVertexShader("Sprites_vs.cso");
-	RID pixelShader = ds::loadPixelShader("Sprites_ps.cso");
-	RID geoShader = ds::loadGeometryShader("Sprites_gs.cso");
+	ds::ShaderInfo vsInfo = { "Sprites_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	RID vertexShader = ds::createShader(vsInfo);
+	ds::ShaderInfo psInfo = { "Sprites_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	RID pixelShader = ds::createShader(psInfo);
+	ds::ShaderInfo gsInfo = { "Sprites_gs.cso", 0, 0, ds::ShaderType::ST_GEOMETRY_SHADER};
+	RID geoShader = ds::createShader(gsInfo);
 
 	// very special buffer layout 
-	ds::VertexDeclaration decl[] = {
+	ds::InputLayoutDefinition decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 },
 		{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
 	};
-
-	RID vertexDeclId = ds::createVertexDeclaration(decl, 4, vertexShader);
+	ds::InputLayoutInfo layoutInfo = { decl, 4, vertexShader };
+	RID vertexDeclId = ds::createInputLayout(layoutInfo);
 		
 	RID cbid = ds::createConstantBuffer(sizeof(SpriteConstantBuffer), &constantBuffer);
-	RID vertexBufferID = ds::createVertexBuffer(ds::BufferType::DYNAMIC, 64, sizeof(SpriteVertex));
+	ds::VertexBufferInfo vbInfo = { ds::BufferType::DYNAMIC, 64, sizeof(SpriteVertex) };
+	RID vertexBufferID = ds::createVertexBuffer(vbInfo);
+
+	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
+	RID ssid = ds::createSamplerState(samplerInfo);
 
 	// create orthographic view
 	ds::matrix orthoView = ds::matIdentity();
 	ds::matrix orthoProjection = ds::matOrthoLH(ds::getScreenWidth(), ds::getScreenHeight(), 0.1f, 1.0f);
-	RID orthoPass = ds::createRenderPass(orthoView, orthoProjection, ds::DepthBufferState::DISABLED);
+	ds::Camera camera = {
+		orthoView,
+		orthoProjection,
+		orthoView * orthoProjection,
+		ds::vec3(0,3,-6),
+		ds::vec3(0,0,1),
+		ds::vec3(0,1,0),
+		ds::vec3(1,0,0),
+		0.0f,
+		0.0f,
+		0.0f
+	};
+	ds::RenderPassInfo rpInfo = { &camera, ds::DepthBufferState::DISABLED, 0, 0 };
+	RID orthoPass = ds::createRenderPass(rpInfo);
 	constantBuffer.wvp = ds::matTranspose(orthoView * orthoProjection);
 
 	RID stateGroup = ds::StateGroupBuilder()
@@ -164,6 +185,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		.vertexShader(vertexShader)
 		.geometryShader(geoShader)
 		.pixelShader(pixelShader)
+		.samplerState(ssid, pixelShader)
 		.texture(textureID, pixelShader, 0)
 		.build();
 

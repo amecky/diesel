@@ -14,14 +14,15 @@ SpriteBuffer::SpriteBuffer(int maxSprites, RID textureID) : _max(maxSprites) {
 	RID geoShader = ds::createShader(gsInfo, "SpriteGS");
 
 	// very special buffer layout 
-	ds::VertexDeclaration decl[] = {
+	ds::InputLayoutDefinition decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 },
 		{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
 	};
 
-	RID vertexDeclId = ds::createVertexDeclaration(decl, 4, vertexShader, "PCNC_Layout");
+	ds::InputLayoutInfo layoutInfo = { decl, 4, vertexShader };
+	RID vertexDeclId = ds::createInputLayout(layoutInfo, "PCNC_Layout");
 
 	RID cbid = ds::createConstantBuffer(sizeof(SpriteBufferConstantBuffer), &_constantBuffer,"SpriteBufferConstantBuffer");
 	ds::VertexBufferInfo vbInfo = { ds::BufferType::DYNAMIC, maxSprites, sizeof(SpriteBufferVertex), 0 };

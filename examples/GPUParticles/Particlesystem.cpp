@@ -3,29 +3,33 @@
 // -------------------------------------------------------
 // create new particlesystem
 // -------------------------------------------------------
-Particlesystem::Particlesystem(ParticlesystemDescriptor descriptor, RID renderPass) : _descriptor(descriptor) , _renderPass(renderPass) {
+Particlesystem::Particlesystem(ds::Camera* camera, ParticlesystemDescriptor descriptor, RID renderPass) : _camera(camera), _descriptor(descriptor) , _renderPass(renderPass) {
 	_array.initialize(descriptor.maxParticles);
 	_vertices = new ParticleVertex[descriptor.maxParticles];
 
-	RID blendState = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::ONE, ds::BlendStates::ONE, true);
+	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
+	RID blendState = ds::createBlendState(blendInfo);
+
 
 	RID vertexShader = ds::loadVertexShader("GPUParticles_vs.cso");
 	RID pixelShader = ds::loadPixelShader("GPUParticles_ps.cso");
 	RID geoShader = ds::loadGeometryShader("GPUParticles_gs.cso");
 
 	// very special buffer layout 
-	ds::VertexDeclaration decl[] = {
+	ds::InputLayoutDefinition decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 },
 		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
 	};
-
-	RID vertexDeclaration = ds::createVertexDeclaration(decl, 4, vertexShader);
+	ds::InputLayoutInfo layoutInfo = { decl, 4, vertexShader };
+	RID vertexDeclaration = ds::createInputLayout(layoutInfo);
 
 	RID constantBuffer = ds::createConstantBuffer(sizeof(ParticleConstantBuffer), &_constantBuffer);
-	_vertexBuffer = ds::createVertexBuffer(ds::BufferType::DYNAMIC, descriptor.maxParticles, sizeof(ParticleVertex));
-	RID samplerState = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
+	ds::VertexBufferInfo vbInfo = { ds::BufferType::DYNAMIC, descriptor.maxParticles, sizeof(ParticleVertex) };
+	_vertexBuffer = ds::createVertexBuffer(vbInfo);
+	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
+	RID samplerState = ds::createSamplerState(samplerInfo);
 
 	RID basicGroup = ds::StateGroupBuilder()
 		.inputLayout(vertexDeclaration)
@@ -79,10 +83,10 @@ void Particlesystem::render() {
 
 	// prepare constant buffers
 	ds::matrix w = ds::matIdentity();
-	_constantBuffer.wvp = ds::matTranspose(ds::getViewProjectionMatrix(_renderPass));
+	_constantBuffer.wvp = ds::matTranspose(_camera->viewProjectionMatrix);
 	_constantBuffer.startColor = _descriptor.startColor;
 	_constantBuffer.endColor = _descriptor.endColor;
-	_constantBuffer.eyePos = ds::getViewPosition(_renderPass);
+	_constantBuffer.eyePos = _camera->position;
 	_constantBuffer.padding = 0.0f;
 	_constantBuffer.world = ds::matTranspose(w);
 	for (int i = 0; i < _array.countAlive; ++i) {

@@ -113,7 +113,7 @@ struct ParticleDescriptor {
 class Particlesystem {
 
 public:
-	Particlesystem(ParticlesystemDescriptor descriptor, RID renderPass);
+	Particlesystem(ds::Camera* camera, ParticlesystemDescriptor descriptor, RID renderPass);
 	void add(const ds::vec3& pos, ParticleDescriptor descriptor);
 	void tick(float dt);
 	void render();
@@ -123,7 +123,7 @@ private:
 	ParticleConstantBuffer _constantBuffer;
 	ParticleArray _array;
 	ParticleVertex* _vertices;
-	//ds::matrix _viewprojectionMatrix;
 	RID _drawItem;
 	RID _vertexBuffer;
+	ds::Camera* _camera;
 };

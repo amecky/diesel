@@ -46,37 +46,58 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 0.0f, -1.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
 	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
-	RID rtPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED, rts, 1);
+	ds::Camera camera = {
+		viewMatrix,
+		projectionMatrix,
+		viewMatrix * projectionMatrix,
+		ds::vec3(0,0,-1),
+		ds::vec3(0,0,1),
+		ds::vec3(0,1,0),
+		ds::vec3(1,0,0),
+		0.0f,
+		0.0f,
+		0.0f
+	};
+	ds::RenderPassInfo rpInfo = { &camera, ds::DepthBufferState::ENABLED, rts, 1 };
+	RID rtPass = ds::createRenderPass(rpInfo);
 
-	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
+	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
+	RID bs_id = ds::createBlendState(blendInfo);
 
-	RID ppPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::DISABLED);
+	ds::RenderPassInfo ppPassInfo = { &camera, ds::DepthBufferState::DISABLED, 0, 0 };
+	RID ppPass = ds::createRenderPass(ppPassInfo);
 
 	int x, y, n;
 	unsigned char *data = stbi_load("..\\common\\cube_map.png", &x, &y, &n, 4);
-	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
+	ds::TextureInfo texInfo = { x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM , ds::BindFlag::BF_SHADER_RESOURCE };
+	RID textureID = ds::createTexture(texInfo);
 	stbi_image_free(data);
 
-	RID objVertexShader = ds::loadVertexShader("..\\..\\examples\\obj\\Obj_vs.cso");
-	RID objPixelShader = ds::loadPixelShader("..\\..\\examples\\obj\\Obj_ps.cso");
+	ds::ShaderInfo vsInfo = { "..\\..\\examples\\obj\\Obj_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	RID objVertexShader = ds::createShader(vsInfo);
+	ds::ShaderInfo psInfo = { "..\\..\\examples\\obj\\Obj_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	RID objPixelShader = ds::createShader(psInfo);
 
-
-	ds::VertexDeclaration decl[] = {
+	ds::InputLayoutDefinition decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }
 	};
 
 	CubeConstantBuffer constantBuffer;
 	
-	constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix(rtPass));
+	constantBuffer.viewprojectionMatrix = ds::matTranspose(camera.viewProjectionMatrix);
 	constantBuffer.worldMatrix = ds::matTranspose(ds::matIdentity());
 
-	RID rid = ds::createVertexDeclaration(decl, 2, objVertexShader);
+	ds::InputLayoutInfo layoutInfo = { decl, 2, objVertexShader };
+	RID rid = ds::createInputLayout(layoutInfo);
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
 	RID indexBufferID = ds::createQuadIndexBuffer(6);
-	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, 4, sizeof(Vertex), vertices);
-	RID floorBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 4, sizeof(Vertex), vertices);
-	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
+	ds::VertexBufferInfo vbInfo = { ds::BufferType::STATIC, 4, sizeof(Vertex), vertices };
+	RID vbid = ds::createVertexBuffer(vbInfo);
+	ds::VertexBufferInfo fbInfo = { ds::BufferType::STATIC, 4, sizeof(Vertex), vertices };
+	RID floorBuffer = ds::createVertexBuffer(fbInfo);
+	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
+	RID ssid = ds::createSamplerState(samplerInfo);
 
 	RID fsVertexShader = ds::loadVertexShader("Fullscreen_vs.cso");
 	RID fsPixelShader = ds::loadPixelShader("Fullscreen_ps.cso");
@@ -87,8 +108,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	float t = 0.0f;
 
 	
-		
-	RID rasterizerStateID = ds::createRasterizerState(ds::CullMode::BACK, ds::FillMode::SOLID, true, false, 0.0f, 0.0f);
+	ds::RasterizerStateInfo rsInfo = { ds::CullMode::BACK, ds::FillMode::SOLID, true, false, 0.0f, 0.0f };
+	RID rasterizerStateID = ds::createRasterizerState(rsInfo);
 
 	
 

@@ -34,29 +34,47 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 3.0f, -6.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
 	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
-	RID basicPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED);
+	ds::Camera camera = {
+		viewMatrix,
+		projectionMatrix,
+		viewMatrix * projectionMatrix,
+		ds::vec3(0,3,-6),
+		ds::vec3(0,0,1),
+		ds::vec3(0,1,0),
+		ds::vec3(1,0,0),
+		0.0f,
+		0.0f,
+		0.0f
+	};
+	ds::RenderPassInfo rpInfo = { &camera, ds::DepthBufferState::ENABLED, 0, 0 };
+	RID basicPass = ds::createRenderPass(rpInfo);
 
 	int x, y, n;
 	unsigned char *data = stbi_load("..\\common\\cube_map.png", &x, &y, &n, 4);
-	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
+	ds::TextureInfo texInfo = { x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM , ds::BindFlag::BF_SHADER_RESOURCE };
+	RID textureID = ds::createTexture(texInfo);
 	stbi_image_free(data);
 
 
-	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
+	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
+	RID bs_id = ds::createBlendState(blendInfo);
 
 	RID vertexShader = ds::loadVertexShader("Obj_vs.cso");
 	RID pixelShader = ds::loadPixelShader("Obj_ps.cso");
 
-	ds::VertexDeclaration decl[] = {
+	ds::InputLayoutDefinition decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }
 	};
 
-	RID rid = ds::createVertexDeclaration(decl, 2, vertexShader);
+	ds::InputLayoutInfo layoutInfo = { decl, 2, vertexShader };
+	RID rid = ds::createInputLayout(layoutInfo);
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
 	RID indexBufferID = ds::createQuadIndexBuffer(num / 4);
-	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, num, sizeof(ObjVertex), vertices);
-	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
+	ds::VertexBufferInfo vbInfo = { ds::BufferType::STATIC, num, sizeof(ObjVertex), vertices };
+	RID vbid = ds::createVertexBuffer(vbInfo);
+	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
+	RID ssid = ds::createSamplerState(samplerInfo);
 
 	ds::vec3 scale(1.0f, 1.0f, 1.0f);
 	ds::vec3 rotation(0.0f, 0.0f, 0.0f);
@@ -96,7 +114,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::matrix s = ds::matScale(scale);
 		ds::matrix w = rotZ * rotY * rotX * s * world;
 		
-		constantBuffer.viewprojectionMatrix = ds::matTranspose(ds::getViewProjectionMatrix(basicPass));
+		constantBuffer.viewprojectionMatrix = ds::matTranspose(camera.viewProjectionMatrix);
 		constantBuffer.worldMatrix = ds::matTranspose(w);
 		ds::submit(basicPass, drawItem);
 

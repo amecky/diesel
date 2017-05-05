@@ -11,8 +11,8 @@
 const static float KERNELS[16] = { -6.0f, -5.0f, -4.0f,	-3.0f, -2.0f, -1.0f, 0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 0.0f, 0.0f, 0.0f };
 const static float WEIGHTS[16] = { 0.002216f, 0.008764f, 0.026995f, 0.064759f, 0.120985f, 0.176033f, 0.199471f, 0.176033f, 0.120985f, 0.064759f, 0.026995f, 0.008764f, 0.002216f, 0.0f, 0.0f, 0.0f };
 
-BloomComponent::BloomComponent(RID renderTarget, RID finalRenderPass, BloomSettings* bloomSettings, BloomExtractSettings* extractSettings)
-	: _renderTarget(renderTarget) , _finalRenderPass(finalRenderPass), _bloomBuffer(bloomSettings) , _bloomExtractBuffer(extractSettings) {
+BloomComponent::BloomComponent(ds::Camera* camera,RID renderTarget, RID finalRenderPass, BloomSettings* bloomSettings, BloomExtractSettings* extractSettings)
+	: _camera(camera), _renderTarget(renderTarget) , _finalRenderPass(finalRenderPass), _bloomBuffer(bloomSettings) , _bloomExtractBuffer(extractSettings) {
 	initialize();
 }
 
@@ -36,11 +36,13 @@ void BloomComponent::initialize() {
 
 	// render pass using RT1
 	RID rt1s[] = { bloomRT1 };
-	_bloomRT1Pass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::DISABLED, rt1s, 1);
+	ds::RenderPassInfo bloomRT1Info = { _camera, ds::DepthBufferState::DISABLED, rt1s, 1 };
+	_bloomRT1Pass = ds::createRenderPass(bloomRT1Info);
 
 	// render pass using RT2
 	RID rt2s[] = { bloomRT2 };
-	_bloomRT2Pass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::DISABLED, rt2s, 1);
+	ds::RenderPassInfo bloomRT2Info = { _camera, ds::DepthBufferState::DISABLED, rt2s, 1 };
+	_bloomRT2Pass = ds::createRenderPass(bloomRT2Info);
 
 	RID fsVertexShader = ds::loadVertexShader("Fullscreen_vs.cso");
 	RID fsPixelShader = ds::loadPixelShader("Fullscreen_ps.cso");
@@ -61,7 +63,8 @@ void BloomComponent::initialize() {
 	RID bloomExtractBufferID = ds::createConstantBuffer(sizeof(BloomExtractSettings), _bloomExtractBuffer);
 	RID bloomBufferID = ds::createConstantBuffer(sizeof(BloomSettings), _bloomBuffer);
 	//
-	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
+	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
+	RID ssid = ds::createSamplerState(samplerInfo);
 	//
 	// the full screen draw command
 	//
@@ -141,6 +144,7 @@ void BloomComponent::render() {
 	ds::submit(_bloomRT2Pass, _blurrHItem);
 	_blurBuffer.direction = ds::vec2(0, 1);
 	// rt2
+	// FIXME: 
 	ds::submit(_bloomRT1Pass, _blurrVItem);
 	// render full screen quad using RT as texture
 	ds::submit(_finalRenderPass, _bloomCombineItem);

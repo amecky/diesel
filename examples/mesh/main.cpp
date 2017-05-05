@@ -33,8 +33,7 @@ struct InstanceData {
 // ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------
-//int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
-int main(int argc, char *argv[]) {
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
 	ds::vec3 rotation(ds::PI * 0.5f, 0.0f, 0.0f);
 	ds::matrix rotX = ds::matRotationX(rotation.x);
 	ObjVertex vertices[512];
@@ -59,12 +58,26 @@ int main(int argc, char *argv[]) {
 
 	InstanceData instances[512];
 
-	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 3.0f, -6.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
+	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 3.0f, -8.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
 	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
-	RID basicPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED);
+	ds::Camera camera = {
+		viewMatrix,
+		projectionMatrix,
+		viewMatrix * projectionMatrix,
+		ds::vec3(0,3,-8),
+		ds::vec3(0,0,1),
+		ds::vec3(0,1,0),
+		ds::vec3(1,0,0),
+		0.0f,
+		0.0f,
+		0.0f
+	};
+	ds::RenderPassInfo rpInfo = { &camera, ds::DepthBufferState::ENABLED, 0, 0 };
+	RID basicPass = ds::createRenderPass(rpInfo);
 
 
-	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
+	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
+	RID bs_id = ds::createBlendState(blendInfo);
 
 	RID vertexShader = ds::loadVertexShader("Mesh_vs.cso");
 	RID pixelShader = ds::loadPixelShader("Mesh_ps.cso");
@@ -74,7 +87,7 @@ int main(int argc, char *argv[]) {
 		{ "COLOR", 1, ds::BufferAttributeType::FLOAT, 4 }
 	};
 
-	ds::VertexDeclaration decl[] = {
+	ds::InputLayoutDefinition decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 },
 		{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,3 },
@@ -91,17 +104,20 @@ int main(int argc, char *argv[]) {
 	RID rid = ds::createInstanceDeclaration(decl, 4, instDecl, 2, vertexShader);
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
 	RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer), &lightBuffer);
-	RID vbid = ds::createVertexBuffer(ds::BufferType::STATIC, num, sizeof(ObjVertex), vertices);
-	RID idid = ds::createVertexBuffer(ds::BufferType::DYNAMIC, 512, sizeof(InstanceData));
+	ds::VertexBufferInfo vbInfo = { ds::BufferType::STATIC, num, sizeof(ObjVertex), vertices };
+	RID vbid = ds::createVertexBuffer(vbInfo);
+	ds::VertexBufferInfo ibInfo = { ds::BufferType::DYNAMIC, 512, sizeof(InstanceData) };
+	RID idid = ds::createVertexBuffer(ibInfo);
 	RID instanceBuffer = ds::createInstancedBuffer(vbid, idid);
-	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
+	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
+	RID ssid = ds::createSamplerState(samplerInfo);
 
 	ds::vec3 scale(1.0f, 1.0f, 1.0f);
 	
 	ds::vec3 pos(0.0f, 0.0f, 0.0f);
 
-	FPSCamera camera(basicPass);
-	camera.setPosition(ds::vec3(0, 2, -12));
+	FPSCamera fpsCamera(&camera);
+	fpsCamera.setPosition(ds::vec3(1, 3, -14));
 
 	ds::HexGrid<int> grid;
 	grid.resize(20, 20);
@@ -120,7 +136,6 @@ int main(int argc, char *argv[]) {
 			GridItem& item = items[w + r * WIDTH];
 			item.pos = p;
 			item.timer = ds::random(0.0f, ds::PI);
-			//item.color = ds::Color(ds::random(0.6f, 1.0f), ds::random(0.6f, 1.0f), ds::random(0.6f, 1.0f), 1.0f);
 			item.color = ds::Color(255, 255, 255, 255);
 			++w;
 		}
@@ -147,8 +162,8 @@ int main(int argc, char *argv[]) {
 			instances[y] = { ds::vec3(item.pos.x, item.pos.y, sin(item.timer) * 0.4f), item.color };
 		}
 		ds::mapBufferData(idid, instances, sizeof(InstanceData) * TOTAL);
-		camera.update(static_cast<float>(ds::getElapsedSeconds()));
-		ds::matrix vpm = camera.getViewprojectionMatrix();
+		fpsCamera.update(static_cast<float>(ds::getElapsedSeconds()));
+		ds::matrix vpm = camera.viewProjectionMatrix;
 		constantBuffer.viewprojectionMatrix = ds::matTranspose(vpm);
 		ds::matrix world = ds::matIdentity();
 		constantBuffer.worldMatrix = ds::matTranspose(world);

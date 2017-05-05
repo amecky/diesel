@@ -109,11 +109,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID basicPass = ds::createRenderPass(rpInfo);
 
 	// create buffer input layout
-	ds::VertexDeclaration decl[] = {
+	ds::InputLayoutDefinition decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
 	};
-	RID rid = ds::createVertexDeclaration(decl, 2, vertexShader);
+
+	ds::InputLayoutInfo layoutInfo = { decl, 2, vertexShader };
+	RID rid = ds::createInputLayout(layoutInfo);
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
 	ds::IndexBufferInfo ibInfo = { 36, ds::IndexType::UINT_32, ds::BufferType::STATIC, p_indices };
 	RID iid = ds::createIndexBuffer(ibInfo);

@@ -10,7 +10,8 @@
 RID loadImage(const char* name) {
 	int x, y, n;
 	unsigned char *data = stbi_load(name, &x, &y, &n, 4);
-	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
+	ds::TextureInfo texInfo = { x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM , ds::BindFlag::BF_SHADER_RESOURCE };
+	RID textureID = ds::createTexture(texInfo);
 	stbi_image_free(data);
 	return textureID;
 }
@@ -35,8 +36,22 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID targets[] = { rt1 };
 	ds::matrix orthoView = ds::matIdentity();
 	ds::matrix orthoProjection = ds::matOrthoLH(ds::getScreenWidth(), ds::getScreenHeight(), 0.1f, 1.0f);
-	RID orthoPass = ds::createRenderPass(orthoView, orthoProjection, ds::DepthBufferState::DISABLED, targets, 1);
-	RID ppPass = ds::createRenderPass(orthoView, orthoProjection, ds::DepthBufferState::DISABLED);
+	ds::Camera camera = {
+		orthoView,
+		orthoProjection,
+		orthoView * orthoProjection,
+		ds::vec3(0,3,-6),
+		ds::vec3(0,0,1),
+		ds::vec3(0,1,0),
+		ds::vec3(1,0,0),
+		0.0f,
+		0.0f,
+		0.0f
+	};
+	ds::RenderPassInfo orthoPassInfo = { &camera, ds::DepthBufferState::DISABLED, targets, 1 };
+	RID orthoPass = ds::createRenderPass(orthoPassInfo);
+	ds::RenderPassInfo ppPassInfo = { &camera, ds::DepthBufferState::DISABLED, 0, 0 };
+	RID ppPass = ds::createRenderPass(ppPassInfo);
 
 	// render pass using RT1
 	//RID rt1s[] = { rt1 };
@@ -44,11 +59,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID bgTextureID = loadImage("martian_oasis_by_smnbrnr.png");
 
-	RID fsVertexShader = ds::loadVertexShader("Fullscreen_vs.cso");
-	RID fsPixelShader = ds::loadPixelShader("Fullscreen_ps.cso");
+	ds::ShaderInfo vsInfo = { "Fullscreen_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	RID fsVertexShader = ds::createShader(vsInfo);
+	ds::ShaderInfo psInfo = { "Fullscreen_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	RID fsPixelShader = ds::createShader(psInfo);
 
 	//
-	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
+	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
+	RID ssid = ds::createSamplerState(samplerInfo);
 	//
 	// the full screen draw command
 	//

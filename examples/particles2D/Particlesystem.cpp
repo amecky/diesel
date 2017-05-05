@@ -16,17 +16,20 @@ ParticleManager::ParticleManager(int maxParticles, RID textureID) {
 	RID geoShader = ds::loadGeometryShader("Particles_2D_gs.cso", "ParticlesGS");
 
 	// very special buffer layout 
-	ds::VertexDeclaration decl[] = {
+	ds::InputLayoutDefinition decl[] = {
 		{ ds::BufferAttribute::POSITION, ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::NORMAL, ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::TANGENT ,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::COLOR, ds::BufferAttributeType::FLOAT,4 }
 	};
-	RID vertexDeclaration = ds::createVertexDeclaration(decl, 4, vertexShader, "ParticleLayout");
+	ds::InputLayoutInfo layoutInfo = { decl, 4, vertexShader };
+	RID vertexDeclaration = ds::createInputLayout(layoutInfo, "ParticleLayout");
 
-	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::ONE, ds::BlendStates::ONE, ds::BlendStates::ONE, true);
+	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
+	RID bs_id = ds::createBlendState(blendInfo);
 	RID constantBuffer = ds::createConstantBuffer(sizeof(ParticleConstantBuffer), &_constantBuffer);
-	_vertexBuffer = ds::createVertexBuffer(ds::BufferType::DYNAMIC, maxParticles, sizeof(ParticleVertex));
+	ds::VertexBufferInfo vbInfo = { ds::BufferType::DYNAMIC, maxParticles, sizeof(ParticleVertex) };
+	_vertexBuffer = ds::createVertexBuffer(vbInfo);
 
 	RID basicGroup = ds::StateGroupBuilder()
 		.inputLayout(vertexDeclaration)
@@ -46,7 +49,20 @@ ParticleManager::ParticleManager(int maxParticles, RID textureID) {
 	// create orthographic view
 	ds::matrix orthoView = ds::matIdentity();
 	ds::matrix orthoProjection = ds::matOrthoLH(ds::getScreenWidth(), ds::getScreenHeight(), 0.1f, 1.0f);
-	_orthoPass = ds::createRenderPass(orthoView, orthoProjection, ds::DepthBufferState::DISABLED, "ParticleOrthoPass");
+	ds::Camera camera = {
+		orthoView,
+		orthoProjection,
+		orthoView * orthoProjection,
+		ds::vec3(0,3,-6),
+		ds::vec3(0,0,1),
+		ds::vec3(0,1,0),
+		ds::vec3(1,0,0),
+		0.0f,
+		0.0f,
+		0.0f
+	};
+	ds::RenderPassInfo rpInfo = { &camera, ds::DepthBufferState::DISABLED, 0, 0 };
+	_orthoPass = ds::createRenderPass(rpInfo, "ParticleOrthoPass");
 	//constantBuffer.wvp = ds::matTranspose(orthoView * orthoProjection);
 
 }

@@ -19,7 +19,8 @@
 RID loadImage(const char* name) {
 	int x, y, n;
 	unsigned char *data = stbi_load(name, &x, &y, &n, 4);
-	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
+	ds::TextureInfo texInfo = { x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM , ds::BindFlag::BF_SHADER_RESOURCE };
+	RID textureID = ds::createTexture(texInfo);
 	stbi_image_free(data);
 	return textureID;
 }
@@ -63,22 +64,48 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID targets[] = { rt1 };
 	ds::matrix orthoView = ds::matIdentity();
 	ds::matrix orthoProjection = ds::matOrthoLH(ds::getScreenWidth(), ds::getScreenHeight(), 0.1f, 1.0f);
-	RID orthoPass = ds::createRenderPass(orthoView, orthoProjection, ds::DepthBufferState::DISABLED, targets, 1);
+	ds::Camera orthoCamera = {
+		orthoView,
+		orthoProjection,
+		orthoView * orthoProjection,
+		ds::vec3(0,3,-6),
+		ds::vec3(0,0,1),
+		ds::vec3(0,1,0),
+		ds::vec3(1,0,0),
+		0.0f,
+		0.0f,
+		0.0f
+	};
+	ds::RenderPassInfo rpInfo = { &orthoCamera, ds::DepthBufferState::DISABLED, targets, 1 };
+	RID orthoPass = ds::createRenderPass(rpInfo);
 
 	//
 	// basic pass 
 	//
 	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 0.0f, -1.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
 	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
-
+	ds::Camera camera = {
+		viewMatrix,
+		projectionMatrix,
+		viewMatrix * projectionMatrix,
+		ds::vec3(0,0,-1),
+		ds::vec3(0,0,1),
+		ds::vec3(0,1,0),
+		ds::vec3(1,0,0),
+		0.0f,
+		0.0f,
+		0.0f
+	};
 	// render pass using back buffer
-	RID ppPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::DISABLED);
+	ds::RenderPassInfo ppInfo = { &camera, ds::DepthBufferState::DISABLED, 0, 0 };
+	RID ppPass = ds::createRenderPass(ppInfo);
 
 	// render pass using RT1
 	RID rt1s[] = { rt1 };
-	RID rt1Pass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::DISABLED, rt1s, 1);
+	ds::RenderPassInfo rt1Info = { &camera, ds::DepthBufferState::DISABLED, rt1s, 1 };
+	RID rt1Pass = ds::createRenderPass(rt1Info);
 
-	BloomComponent bloom(rt1, ppPass, &bloomSettings, &bloomExtractSettings);
+	BloomComponent bloom(&camera, rt1, ppPass, &bloomSettings, &bloomExtractSettings);
 
 	RID bgTextureID = loadImage("martian_oasis_by_smnbrnr.png");
 
@@ -86,7 +113,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID fsPixelShader = ds::loadPixelShader("Fullscreen_ps.cso");
 	
 	//
-	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
+	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
+	RID ssid = ds::createSamplerState(samplerInfo);
 	//
 	// the full screen draw command
 	//

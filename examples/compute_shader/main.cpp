@@ -72,7 +72,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::RenderPassInfo rpInfo = {&camera, ds::DepthBufferState::DISABLED, 0, 0 };
 	RID ppPass = ds::createRenderPass(rpInfo);
 	
-	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
+	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
+	RID ssid = ds::createSamplerState(samplerInfo);
 
 	ds::ShaderInfo vsInfo = { 0, Fullscreen_VS_Main, sizeof(Fullscreen_VS_Main) , ds::ShaderType::ST_VERTEX_SHADER };
 	RID fsVertexShader = ds::createVertexShader(Fullscreen_VS_Main, sizeof(Fullscreen_VS_Main), "Fullscreen_VS");

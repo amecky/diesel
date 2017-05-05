@@ -37,7 +37,8 @@ struct CubeConstantBuffer {
 RID loadImage(const char* name,ds::TextureFormat format) {
 	int x, y, n;
 	unsigned char *data = stbi_load(name, &x, &y, &n, 4);
-	RID textureID = ds::createTexture(x, y, n, data, format);
+	ds::TextureInfo texInfo = { x, y, n, data, format , ds::BindFlag::BF_SHADER_RESOURCE};
+	RID textureID = ds::createTexture(texInfo);
 	stbi_image_free(data);
 	return textureID;
 }
@@ -161,13 +162,27 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 2.0f, -3.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
 	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
-	RID basicPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::ENABLED);
+	ds::Camera camera = {
+		viewMatrix,
+		projectionMatrix,
+		viewMatrix * projectionMatrix,
+		ds::vec3(0,2,-3),
+		ds::vec3(0,0,1),
+		ds::vec3(0,1,0),
+		ds::vec3(1,0,0),
+		0.0f,
+		0.0f,
+		0.0f
+	};
+	ds::RenderPassInfo rpInfo = { &camera, ds::DepthBufferState::ENABLED, 0, 0 };
+	RID basicPass = ds::createRenderPass(rpInfo);
 
 	RID textureID = loadImage("..\\common\\cube_map.png", ds::TextureFormat::R8G8B8A8_UNORM);
 	RID cubeTextureID = loadImage("Hex.png", ds::TextureFormat::R8G8B8A8_UNORM_SRGB);
 	RID cubeNormalID = loadImage("Hex_Normal.png", ds::TextureFormat::R8G8B8A8_UNORM_SRGB);
 
-	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
+	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
+	RID bs_id = ds::createBlendState(blendInfo);
 
 	RID texturedVS = ds::loadVertexShader("..\\common\\Textured_vs.cso");
 	RID texturedPS = ds::loadPixelShader("..\\common\\Textured_ps.cso");
@@ -175,7 +190,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID bumpVS = ds::loadVertexShader("Bump_vs.cso");
 	RID bumpPS = ds::loadPixelShader("Bump_ps.cso");
 
-	Grid grid;
+	Grid grid(&camera);
 	ds::vec3 gridPositions[] = {
 		ds::vec3(-4.0f, -1.0f, -3.5f),
 		ds::vec3(-4.0f, -1.0f,  4.5f),
@@ -184,26 +199,32 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	};
 	grid.create(gridPositions, 2, texturedVS, texturedPS, textureID, basicPass);
 
-	ds::VertexDeclaration decl[] = {
+	ds::InputLayoutDefinition decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 },
 		{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::TANGENT,ds::BufferAttributeType::FLOAT,3 }
 	};
 
-	RID rid = ds::createVertexDeclaration(decl, 4, bumpVS);
+	ds::InputLayoutInfo layoutInfo = { decl, 4, bumpVS };
+	RID rid = ds::createInputLayout(layoutInfo);
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
 	RID indexBuffer = ds::createQuadIndexBuffer(256);
-	RID cubeBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 24, sizeof(Vertex), v);
-	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
+	ds::VertexBufferInfo vbInfo = { ds::BufferType::STATIC, 24, sizeof(Vertex), v };
+	RID cubeBuffer = ds::createVertexBuffer(vbInfo);
 
-	RID sphereBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 401, sizeof(Vertex), sv, "sphere_vertex_buffer");
-	RID sphereIndexBuffer = ds::createIndexBuffer(2280, ds::IndexType::UINT_32, ds::BufferType::STATIC, indices, "sphere_index_buffer");
+	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
+	RID ssid = ds::createSamplerState(samplerInfo);
+
+	ds::VertexBufferInfo sphereInfo = { ds::BufferType::STATIC, 401, sizeof(Vertex), sv };
+	RID sphereBuffer = ds::createVertexBuffer(sphereInfo, "sphere_vertex_buffer");
+	ds::IndexBufferInfo idxInfo = { 2280, ds::IndexType::UINT_32, ds::BufferType::STATIC, indices };
+	RID sphereIndexBuffer = ds::createIndexBuffer(idxInfo, "sphere_index_buffer");
 
 	worldMatrix wm;
 
-	FPSCamera camera(basicPass);
-	camera.setPosition(ds::vec3(0, 2, -8));
+	FPSCamera fpsCamera(&camera);
+	fpsCamera.setPosition(ds::vec3(0, 2, -8));
 
 	RID stateGroup = ds::StateGroupBuilder()
 		.inputLayout(rid)
@@ -245,8 +266,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	while (ds::isRunning()) {
 		ds::begin();
 
-		camera.update(static_cast<float>(ds::getElapsedSeconds()));
-		ds::matrix vpm = camera.getViewprojectionMatrix();
+		fpsCamera.update(static_cast<float>(ds::getElapsedSeconds()));
+		ds::matrix vpm = camera.viewProjectionMatrix;
 
 		grid.render();
 			
@@ -254,7 +275,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		wm.setPosition(ds::vec3(-2, 0, 0));
 		wm.rotateBy(ds::vec3(0.0f, 1.0f  * static_cast<float>(ds::getElapsedSeconds()), 0.0f));
 		constantBuffer.worldMatrix = wm.getTransposedMatrix();
-		constantBuffer.eyePos = camera.getPosition();
+		constantBuffer.eyePos = camera.position;
 		constantBuffer.padding = 0.0f;
 		
 		ds::submit(basicPass, drawItem);
@@ -262,7 +283,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		wm.setPosition(ds::vec3(2, 0, 0));
 		wm.rotateBy(ds::vec3(0.0f, 1.0f  * static_cast<float>(ds::getElapsedSeconds()), 0.0f));
 		constantBuffer.worldMatrix = wm.getTransposedMatrix();
-		constantBuffer.eyePos = camera.getPosition();
+		constantBuffer.eyePos = camera.position;
 		constantBuffer.padding = 0.0f;
 
 		ds::submit(basicPass, sphereDrawItem);

@@ -163,7 +163,8 @@ void convertImage() {
 	// load image using stb_image
 	int sx, sy, n;
 	unsigned char *data = stbi_load("fixedsys.png", &sx, &sy, &n, 4);
-	RID textureID = ds::createTexture(sx, sy, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
+	ds::TextureInfo texInfo = { sx, sy, n, data, ds::TextureFormat::R8G8B8A8_UNORM, ds::BindFlag::BF_SHADER_RESOURCE };
+	RID textureID = ds::createTexture(texInfo);
 	int dx = sx / 8;
 	FILE* fp = fopen("fixedsys.h","w");
 	fprintf(fp, "const unsigned char font[%d][%d] = {\n",sy,dx);
@@ -223,7 +224,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		}
 	}
 	
-	RID textureID = ds::createTexture(128, 128, 4, data, ds::TextureFormat::R8G8B8A8_UNORM);
+	ds::TextureInfo texInfo = { 128, 128, 4, data, ds::TextureFormat::R8G8B8A8_UNORM, ds::BindFlag::BF_SHADER_RESOURCE };
+	RID textureID = ds::createTexture(texInfo);
 	SpriteBuffer buffer(1024, textureID);
 
 	const char* message = "-9E Hello World! This is 123.45 Test. Just get me going.";

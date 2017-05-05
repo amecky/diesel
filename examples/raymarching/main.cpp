@@ -34,18 +34,23 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.multisampling = 4;
 	ds::init(rs);
 
-	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
-	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
+	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
+	RID bs_id = ds::createBlendState(blendInfo);
+	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
+	RID ssid = ds::createSamplerState(samplerInfo);
 
-	RID rayVS = ds::loadVertexShader("raymarching_vs.cso");
-	RID rayPS = ds::loadPixelShader("raymarching_ps.cso");
+	ds::ShaderInfo vsInfo = { "raymarching_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	RID rayVS = ds::createShader(vsInfo);
+	ds::ShaderInfo psInfo = { "raymarching_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	RID rayPS = ds::createShader(psInfo);
 
-	ds::VertexDeclaration decl[] = {
+	ds::InputLayoutDefinition decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }
 	};
 
-	RID rid = ds::createVertexDeclaration(decl, 2, rayVS);
+	ds::InputLayoutInfo layoutInfo = { decl, 2, rayVS };
+	RID rid = ds::createInputLayout(layoutInfo);
 	RID indexBuffer = ds::createQuadIndexBuffer(1);
 
 	PostProcessBuffer ppBuffer;
@@ -61,8 +66,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::matrix viewMatrix = ds::matIdentity();
 	ds::matrix projectionMatrix = ds::matOrthoLH(800.0f, 600.0f, 0.1f, 1.0f);
 	ds::matrix viewProjectionMatrix = viewMatrix * projectionMatrix;
-
-	RID basicPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::DISABLED);
+	ds::Camera camera = {
+		viewMatrix,
+		projectionMatrix,
+		viewMatrix * projectionMatrix,
+		ds::vec3(0,3,-6),
+		ds::vec3(0,0,1),
+		ds::vec3(0,1,0),
+		ds::vec3(1,0,0),
+		0.0f,
+		0.0f,
+		0.0f
+	};
+	ds::RenderPassInfo rpInfo = { &camera, ds::DepthBufferState::DISABLED, 0, 0 };
+	RID basicPass = ds::createRenderPass(rpInfo);
 
 	constantBuffer.viewprojectionMatrix = ds::matTranspose(viewProjectionMatrix);
 	ds::matrix world = ds::matIdentity();
@@ -76,7 +93,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		{ ds::vec3( 400, 300,1),ds::vec2(1,0) },
 		{ ds::vec3( 400,-300,1),ds::vec2(1,1) },
 	};
-	RID gridBuffer = ds::createVertexBuffer(ds::BufferType::STATIC, 4, sizeof(Vertex), vertices);
+	ds::VertexBufferInfo vbInfo = { ds::BufferType::STATIC, 4, sizeof(Vertex), vertices };
+	RID gridBuffer = ds::createVertexBuffer(vbInfo);
 	RID ppGroup = ds::StateGroupBuilder()
 		.inputLayout(rid)
 		.indexBuffer(indexBuffer)
