@@ -11,9 +11,12 @@ ParticleManager::ParticleManager(int maxParticles, RID textureID) {
 	ds::matrix projectionMatrix = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
 	_viewprojectionMatrix = viewMatrix * projectionMatrix;
 
-	RID vertexShader = ds::loadVertexShader("Particles_2D_vs.cso", "ParticlesVS");
-	RID pixelShader = ds::loadPixelShader("Particles_2D_Tex_ps.cso", "ParticlesPS");
-	RID geoShader = ds::loadGeometryShader("Particles_2D_gs.cso", "ParticlesGS");
+	ds::ShaderInfo vsInfo = { "Particles_2D_vs.cso" , 0, 0, ds::ShaderType::ST_VERTEX_SHADER};
+	RID vertexShader = ds::createShader(vsInfo, "ParticlesVS");
+	ds::ShaderInfo psInfo = { "Particles_2D_ps.cso" , 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	RID pixelShader = ds::createShader(psInfo, "ParticlesPS");
+	ds::ShaderInfo gsInfo = { "Particles_2D_gs.cso" , 0, 0, ds::ShaderType::ST_GEOMETRY_SHADER };
+	RID geoShader = ds::createShader(gsInfo, "ParticlesGS");
 
 	// very special buffer layout 
 	ds::InputLayoutDefinition decl[] = {

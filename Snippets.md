@@ -20,9 +20,11 @@ RID vbid = ds::createVertexBuffer(vbInfo);
 
 ```c
 ds::ShaderInfo vsInfo = { "Grid_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
-RID vertexShader = ds::createShader(vsInfo);
+RID vertexShader = ds::createShader(vsInfo, "ParticlesVS");
 ds::ShaderInfo psInfo = { "Grid_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
-RID pixelShader = ds::createShader(psInfo);
+RID pixelShader = ds::createShader(psInfo, "ParticlesPS");
+ds::ShaderInfo gsInfo = { "Particles_2D_gs.cso" , 0, 0, ds::ShaderType::ST_GEOMETRY_SHADER };
+RID geoShader = ds::createShader(gsInfo, "ParticlesGS");
 ```
 
 ## InputLayout

@@ -44,11 +44,16 @@ void BloomComponent::initialize() {
 	ds::RenderPassInfo bloomRT2Info = { _camera, ds::DepthBufferState::DISABLED, rt2s, 1 };
 	_bloomRT2Pass = ds::createRenderPass(bloomRT2Info);
 
-	RID fsVertexShader = ds::loadVertexShader("Fullscreen_vs.cso");
-	RID fsPixelShader = ds::loadPixelShader("Fullscreen_ps.cso");
-	RID blurPSShader = ds::loadPixelShader("BlurH_ps.cso");
-	RID bloomPSShader = ds::loadPixelShader("Bloom_Combine_ps.cso");
-	RID bloomExtractPS = ds::loadPixelShader("Bloom_ps.cso");
+	ds::ShaderInfo fsvsInfo = { "Fullscreen_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	RID fsVertexShader = ds::createShader(fsvsInfo);
+	ds::ShaderInfo psvsInfo = { "Fullscreen_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	RID fsPixelShader = ds::createShader(psvsInfo);
+	ds::ShaderInfo blurPSInfo = { "BlurH_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	RID blurPSShader = ds::createShader(blurPSInfo);
+	ds::ShaderInfo bloomPSInfo = { "Bloom_Combine_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	RID bloomPSShader = ds::createShader(bloomPSInfo);
+	ds::ShaderInfo bloomExtractPSInfo = { "Bloom_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	RID bloomExtractPS = ds::createShader(bloomExtractPSInfo);
 	//
 	// the blur buffer 
 	//

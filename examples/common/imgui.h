@@ -61,6 +61,8 @@ namespace gui {
 
 	void Slider(const char* label, int* v, int minValue, int maxValue, float width = 200.0f);
 
+	void Slider(const char* label, float* v, float minValue, float maxValue, int precision = 0, float width = 200.0f);
+
 	void SliderAngle(const char* label, float* v, float width = 200.0f);
 
 	void Separator();

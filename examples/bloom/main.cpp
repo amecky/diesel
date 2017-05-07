@@ -109,9 +109,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID bgTextureID = loadImage("martian_oasis_by_smnbrnr.png");
 
-	RID fsVertexShader = ds::loadVertexShader("Fullscreen_vs.cso");
-	RID fsPixelShader = ds::loadPixelShader("Fullscreen_ps.cso");
-	
+	ds::ShaderInfo vsInfo = { "Fullscreen_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	RID fsVertexShader = ds::createShader(vsInfo, "ParticlesVS");
+	ds::ShaderInfo psInfo = { "Fullscreen_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	RID fsPixelShader = ds::createShader(psInfo, "ParticlesPS");
+
 	//
 	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
 	RID ssid = ds::createSamplerState(samplerInfo);
@@ -179,11 +181,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		gui::start(ds::vec2(0, 750));
 		gui::begin("Bloom Settings", &state);
 		if (state == 1) {
-			gui::Input("Threshold", &bloomExtractSettings.BloomThreshold);
+			gui::Value("FPS", ds::getFramesPerSecond());
+			gui::Slider("Threshold", &bloomExtractSettings.BloomThreshold,0.0f,1.0f,2);
 			gui::Input("Bloom Intensity", &bloomSettings.BloomIntensity);
 			gui::Input("Bloom Saturation", &bloomSettings.BloomSaturation);
 			gui::Input("Original Intensity", &bloomSettings.OriginalIntensity);
-			gui::Input("Original Saturation", &bloomSettings.OriginalSaturation);
+			gui::Slider("Original Saturation", &bloomSettings.OriginalSaturation,0.0f,2.0f,1);
 			gui::Checkbox("Bloom", &useBloom);
 		}
 		gui::end();

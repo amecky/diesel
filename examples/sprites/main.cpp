@@ -2,24 +2,12 @@
 #include "..\..\diesel.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "..\common\stb_image.h"
+#include "Sprites_VS_Main.h"
+#include "Sprites_PS_Main.h"
 
-/*
-	Simple sprite demo.
+const int MAX_SPRITES = 1024;
 
-	The actual sprites are drawn as points and the geometry shader
-	will build the quads. Therefore a special layout is used:
-
-	POSITION : the sprite position
-	COLOR : the for u/v coordinates
-	NORMAL : the scale.x and scale.y along with rotation
-	COLOR : the actual color
-
-	The constant buffer contains:
-	screenDimension : this is split into the screen dimension and the texture width and height
-	screenCenter : the actual center of the screen and the last two components are for padding
-
-	The demo also uses the Batch class which can be used to batch draw calls.
-*/
+// based on the presentation: https://de.slideshare.net/DevCentralAMD/vertex-shader-tricks-bill-bilodeau by Bill Bilodeau
 // ---------------------------------------------------------------
 // The sprite
 // ---------------------------------------------------------------
@@ -36,20 +24,11 @@ struct Sprite {
 
 };
 
-// ---------------------------------------------------------------
-// The sprite vertex
-// ---------------------------------------------------------------
-struct SpriteVertex {
-
-	ds::vec3 position;
+struct GPUSprite {
+	ds::vec2 position; // x, y world position
+	float rotation;
+	float scaling;
 	ds::vec4 texture;
-	ds::vec3 size;
-	ds::Color color;
-
-	SpriteVertex() : position(0, 0, 0) {}
-	SpriteVertex(const ds::vec3& p, const ds::vec4& t, const ds::Color& c) : position(p), texture(t), color(c) {}
-	SpriteVertex(const ds::vec2& p, const ds::vec4& t, const ds::Color& c) : position(p, 1.0f), texture(t), color(c) {}
-	SpriteVertex(const ds::vec2& p, const ds::vec4& t, const ds::vec3& s, const ds::Color& c) : position(p, 1.0f), texture(t), size(s), color(c) {}
 };
 
 // ---------------------------------------------------------------
@@ -75,7 +54,7 @@ float getAngle(const ds::vec2& u, const ds::vec2& v) {
 // create sprite
 // ---------------------------------------------------------------
 int add(const ds::vec2& p, const ds::vec4& r, Sprite* sprites, int index) {
-	if ((index + 1) < 64) {
+	if ((index + 1) < MAX_SPRITES) {
 		float angle = ds::random(0.0f, ds::PI * 2.0f);
 		Sprite& s = sprites[index];
 		s.position = p;
@@ -97,15 +76,12 @@ int add(const ds::vec2& p, const ds::vec4& r, Sprite* sprites, int index) {
 // ---------------------------------------------------------------
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
 	
-	Sprite sprites[64];
+	Sprite sprites[MAX_SPRITES];
 	int numSprites = 0;
-
-	SpriteVertex vertices[64];
-
 	// create some sprites
-	for (int i = 0; i < 48; ++i) {
-		float x = ds::random(200.0f, 800.0f);
-		float y = ds::random(200.0f, 500.0f);
+	for (int i = 0; i < MAX_SPRITES; ++i) {
+		float x = ds::random(100.0f, 900.0f);
+		float y = ds::random(100.0f, 700.0f);
 		int r = ds::random(0.0, 1.9f);
 		int c = ds::random(0.0, 1.9f);
 		numSprites = add(ds::vec2(x, y), ds::vec4(r * 40, c * 40, 40, 40), sprites, numSprites);
@@ -120,7 +96,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::RenderSettings rs;
 	rs.width = 1024;
 	rs.height = 768;
-	rs.title = "Hello world";
+	rs.title = "Sprites demo";
 	rs.clearColor = ds::Color(0.1f, 0.1f, 0.1f, 1.0f);
 	rs.multisampling = 4;
 	rs.useGPUProfiling = false;
@@ -134,38 +110,37 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	stbi_image_free(data);
 
 
-	ds::ShaderInfo vsInfo = { "Sprites_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	ds::ShaderInfo vsInfo = { 0, Sprites_VS_Main, sizeof(Sprites_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
 	RID vertexShader = ds::createShader(vsInfo);
-	ds::ShaderInfo psInfo = { "Sprites_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	ds::ShaderInfo psInfo = { 0, Sprites_PS_Main, sizeof(Sprites_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
 	RID pixelShader = ds::createShader(psInfo);
-	ds::ShaderInfo gsInfo = { "Sprites_gs.cso", 0, 0, ds::ShaderType::ST_GEOMETRY_SHADER};
-	RID geoShader = ds::createShader(gsInfo);
-
-	// very special buffer layout 
-	ds::InputLayoutDefinition decl[] = {
-		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
-		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 },
-		{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,3 },
-		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
-	};
-	ds::InputLayoutInfo layoutInfo = { decl, 4, vertexShader };
-	RID vertexDeclId = ds::createInputLayout(layoutInfo);
 		
 	RID cbid = ds::createConstantBuffer(sizeof(SpriteConstantBuffer), &constantBuffer);
-	ds::VertexBufferInfo vbInfo = { ds::BufferType::DYNAMIC, 64, sizeof(SpriteVertex) };
-	RID vertexBufferID = ds::createVertexBuffer(vbInfo);
-
+	int indices[] = { 0,1,2,1,3,2 };
+	RID idxBuffer = ds::createQuadIndexBuffer(MAX_SPRITES,indices);
 	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
 	RID ssid = ds::createSamplerState(samplerInfo);
 
+	ds::StructuredBufferInfo sbInfo;
+	sbInfo.cpuWritable = true;
+	sbInfo.data = 0;
+	sbInfo.elementSize = sizeof(GPUSprite);
+	sbInfo.numElements = 4096;
+	sbInfo.gpuWritable = false;
+	sbInfo.renderTarget = NO_RID;
+	sbInfo.textureID = NO_RID;
+	RID sbID = ds::createStructuredBuffer(sbInfo);
+
+	GPUSprite gpuSprites[4096];
+
 	// create orthographic view
 	ds::matrix orthoView = ds::matIdentity();
-	ds::matrix orthoProjection = ds::matOrthoLH(ds::getScreenWidth(), ds::getScreenHeight(), 0.1f, 1.0f);
+	ds::matrix orthoProjection = ds::matOrthoLH(ds::getScreenWidth(), ds::getScreenHeight(), 0.0f, 1.0f);
 	ds::Camera camera = {
 		orthoView,
 		orthoProjection,
 		orthoView * orthoProjection,
-		ds::vec3(0,3,-6),
+		ds::vec3(0,0,0),
 		ds::vec3(0,0,1),
 		ds::vec3(0,1,0),
 		ds::vec3(1,0,0),
@@ -175,21 +150,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	};
 	ds::RenderPassInfo rpInfo = { &camera, ds::DepthBufferState::DISABLED, 0, 0 };
 	RID orthoPass = ds::createRenderPass(rpInfo);
-	constantBuffer.wvp = ds::matTranspose(orthoView * orthoProjection);
+	constantBuffer.wvp = ds::matTranspose(camera.viewProjectionMatrix);
 
 	RID stateGroup = ds::StateGroupBuilder()
-		.inputLayout(vertexDeclId)
 		.constantBuffer(cbid, vertexShader)
-		.constantBuffer(cbid, geoShader, 0)
-		.vertexBuffer(vertexBufferID)
+		.structuredBuffer(sbID,vertexShader,1)
+		.vertexBuffer(NO_RID)
 		.vertexShader(vertexShader)
-		.geometryShader(geoShader)
+		.indexBuffer(idxBuffer)
 		.pixelShader(pixelShader)
 		.samplerState(ssid, pixelShader)
 		.texture(textureID, pixelShader, 0)
 		.build();
 
-	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::POINT_LIST, 0 };
+	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST, 0 };
 
 	RID drawItem = ds::compile(drawCmd, stateGroup);
 
@@ -207,22 +181,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				s.velocity.y *= -1.0f;
 				s.position += s.velocity * static_cast<float>(ds::getElapsedSeconds());
 				s.rotation = getAngle(s.velocity, ds::vec2(1, 0));
-			}
+			}			
 		}
 			
 		ds::begin();
-		// disbale depth buffer
-		//ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
-		ds::matrix w = ds::matIdentity();
-		//constantBuffer.wvp = ds::matTranspose(viewProjectionMatrix);
 		for (int i = 0; i < numSprites; ++i) {
 			const Sprite& sprite = sprites[i];
-			vertices[i] = SpriteVertex(sprite.position, sprite.texture, ds::vec3(sprite.scale.x, sprite.scale.y, sprite.rotation), sprite.color);
+			gpuSprites[i] = GPUSprite{ sprite.position,sprite.rotation,sprite.scale.x, sprite.texture };
 		}
-		ds::mapBufferData(vertexBufferID, vertices, numSprites * sizeof(SpriteVertex));
+		ds::mapBufferData(sbID, gpuSprites, numSprites * sizeof(GPUSprite));
 		drawCmd.size = numSprites;
-		ds::submit(orthoPass, drawItem, numSprites);
-		//ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
+		ds::submit(orthoPass, drawItem, numSprites * 6);
 		ds::end();
 	}
 	ds::shutdown();

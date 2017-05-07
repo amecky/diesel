@@ -4,8 +4,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Sprites_vs.hlsl" />
-    <FxCompile Include="Sprites_ps.hlsl" />
-    <FxCompile Include="Sprites_gs.hlsl" />
+    <ClInclude Include="Sprites_PS_Main.h" />
+    <ClInclude Include="Sprites_VS_Main.h" />
   </ItemGroup>
 </Project>

@@ -77,8 +77,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID textureID = loadImage("..\\common\\cube_map.png");
 
-	RID vertexShader = ds::loadVertexShader("..\\common\\Textured_vs.cso");
-	RID pixelShader = ds::loadPixelShader("..\\common\\Textured_ps.cso");
+	ds::ShaderInfo vsInfo = { "..\\common\\Textured_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	RID vertexShader = ds::createShader(vsInfo, "TexturedVS");
+	ds::ShaderInfo psInfo = { "..\\common\\Textured_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	RID pixelShader = ds::createShader(psInfo, "TexturedPS");
 
 	Grid grid(&camera);
 	ds::vec3 gridPositions[] = {

@@ -29,8 +29,8 @@
   26  | VERTEX_BUFFER        | VertexBuffer
   27  | VERTEX_BUFFER        | VertexBuffer
   28  | SAMPLER_STATE        | SamplerState
-  29  | VERTEX_SHADER        | VertexShader
-  30  | PIXEL_SHADER         | PixelShader
+  29  | VERTEX_SHADER        | Shader
+  30  | PIXEL_SHADER         | Shader
   31  | CONSTANT_BUFFER      | UNKNOWN
   32  | RASTERIZER_STATE     | RasterizerState
   33  | STATE_GROUP          | StateGroup
@@ -99,8 +99,8 @@ resource type        | id    | stage    | slot | Name
 INPUT_LAYOUT         | 65534 | IA       |  0   | NO_RID
 INDEX_BUFFER         | 65534 | IA       |  0   | NO_RID
 VERTEX_BUFFER        | 65534 | IA       |  0   | NO_RID
-VERTEX_SHADER        |    29 | PS       |  0   | VertexShader
-PIXEL_SHADER         |    30 | PS       |  0   | PixelShader
+VERTEX_SHADER        |    29 | PS       |  0   | Shader
+PIXEL_SHADER         |    30 | PS       |  0   | Shader
 CONSTANT_BUFFER      |    31 | PS_RES   |  0   | UNKNOWN
 SAMPLER_STATE        |    28 | PS_RES   |  0   | SamplerState
 TEXTURE_FROM_RT      |    16 | PS_RES   |  0   | UNKNOWN

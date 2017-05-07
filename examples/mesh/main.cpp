@@ -79,10 +79,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
 	RID bs_id = ds::createBlendState(blendInfo);
 
-	RID vertexShader = ds::loadVertexShader("Mesh_vs.cso");
-	RID pixelShader = ds::loadPixelShader("Mesh_ps.cso");
+	ds::ShaderInfo vsInfo = { "Mesh_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	RID vertexShader = ds::createShader(vsInfo);
+	ds::ShaderInfo psInfo = { "Mesh_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	RID pixelShader = ds::createShader(psInfo);
 
-	ds::InstanceLayoutDeclaration instDecl[] = {
+	ds::InstancedInputLayoutDefinition instDecl[] = {
 		{ "NORMAL", 1, ds::BufferAttributeType::FLOAT, 3 },
 		{ "COLOR", 1, ds::BufferAttributeType::FLOAT, 4 }
 	};
@@ -100,8 +102,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	lightBuffer.padding = 0.0f;
 	ds::vec3 lightPos = ds::vec3(0.0f, 0.5f, 1.0f);
 	lightBuffer.lightDirection = normalize(lightPos);
-	
-	RID rid = ds::createInstanceDeclaration(decl, 4, instDecl, 2, vertexShader);
+	ds::InstancedInputLayoutInfo iilInfo = { decl, 4, instDecl, 2, vertexShader };
+	RID rid = ds::createInstancedInputLayout(iilInfo);
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
 	RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer), &lightBuffer);
 	ds::VertexBufferInfo vbInfo = { ds::BufferType::STATIC, num, sizeof(ObjVertex), vertices };

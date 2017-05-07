@@ -10,10 +10,12 @@ Particlesystem::Particlesystem(ds::Camera* camera, ParticlesystemDescriptor desc
 	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
 	RID blendState = ds::createBlendState(blendInfo);
 
-
-	RID vertexShader = ds::loadVertexShader("GPUParticles_vs.cso");
-	RID pixelShader = ds::loadPixelShader("GPUParticles_ps.cso");
-	RID geoShader = ds::loadGeometryShader("GPUParticles_gs.cso");
+	ds::ShaderInfo vsInfo = { "GPUParticles_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	RID vertexShader = ds::createShader(vsInfo, "ParticlesVS");
+	ds::ShaderInfo psInfo = { "GPUParticles_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	RID pixelShader = ds::createShader(psInfo, "ParticlesPS");
+	ds::ShaderInfo gsInfo = { "GPUParticles_gs.cso" , 0, 0, ds::ShaderType::ST_GEOMETRY_SHADER };
+	RID geoShader = ds::createShader(gsInfo, "ParticlesGS");
 
 	// very special buffer layout 
 	ds::InputLayoutDefinition decl[] = {

@@ -99,8 +99,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
 	RID ssid = ds::createSamplerState(samplerInfo);
 
-	RID fsVertexShader = ds::loadVertexShader("Fullscreen_vs.cso");
-	RID fsPixelShader = ds::loadPixelShader("Fullscreen_ps.cso");
+	ds::ShaderInfo fvsInfo = { "Fullscreen_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	RID fsVertexShader = ds::createShader(fvsInfo);
+	ds::ShaderInfo fpsInfo = { "Fullscreen_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	RID fsPixelShader = ds::createShader(fpsInfo);
 
 	PostProcessBuffer ppBuffer;
 	RID ppCBID = ds::createConstantBuffer(sizeof(PostProcessBuffer), &ppBuffer);
@@ -145,18 +147,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::DrawCommand ppCmd = { 3, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::TRIANGLE_LIST };
 	RID ppItem = ds::compile(ppCmd, ppGroup);
 	
-	ds::saveResourcesToFile("log.txt");
-
 	while (ds::isRunning()) {
 		ds::begin();
+		
 		t += static_cast<float>(ds::getElapsedSeconds());
-		//ds::setRenderTarget(rtID);		
 		ds::submit(rtPass, staticItem);
-		//ds::restoreBackBuffer();
-		//ds::setDepthBufferState(ds::DepthBufferState::DISABLED);
+
 		ppBuffer.data = ds::vec4(abs(sin(t*0.5f)), 0.0f, 0.0f, 0.0f);
 		ds::submit(ppPass, ppItem);		
-		//ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
+		
 		ds::end();
 	}
 	ds::shutdown();

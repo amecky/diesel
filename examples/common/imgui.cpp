@@ -875,6 +875,49 @@ namespace gui {
 		moveForward(ds::vec2(width + ts.x + 20.0f, 30.0f));
 	}
 
+	// -------------------------------------------------------
+	// Slider
+	// -------------------------------------------------------	
+	void Slider(const char* label, float* v, float minValue, float maxValue, int precision, float width) {
+		HashedId id = HashPointer(v);
+		ds::vec2 p = _guiCtx->currentPos;
+		addBox(_guiCtx->currentPos, ds::vec2(width, 20.0f), _guiCtx->settings.boxColor);
+		// calculate offset
+		float d = maxValue - minValue;
+		if (isClicked(p, ds::vec2(width, 20.0f))) {
+			ds::vec2 mp = ds::getMousePosition();
+			float dx = mp.x - p.x - _guiCtx->itemOffset;
+			*v = dx * d / width;
+		}
+		if (_guiCtx->buttonPressed && isHovered(p, ds::vec2(width, 20.0f))) {
+			ds::vec2 mp = ds::getMousePosition();
+			float dx = mp.x - p.x - _guiCtx->itemOffset;
+			*v = dx * d / width;
+		}
+		if (*v < minValue) {
+			*v = minValue;
+		}
+		if (*v > maxValue) {
+			*v = maxValue;
+		}
+		if (precision > 0) {
+			float prec = 10.0f * static_cast<float>(precision);
+			*v = roundf(*v * prec) / prec;
+		}
+		p.x += *v / d * width;
+		addBox(p, ds::vec2(8.0f, 28.0f), ds::Color(31, 31, 31, 255));
+		p = _guiCtx->currentPos;
+		sprintf_s(_guiCtx->tmpBuffer, 256, "%g", *v);
+		ds::vec2 textDim = textSize(_guiCtx->tmpBuffer);
+		p.x += (width - textDim.x) * 0.5f;
+		addText(p, _guiCtx->tmpBuffer);
+		p = _guiCtx->currentPos;
+		p.x += width + 10.0f;
+		addText(p, label);
+		ds::vec2 ts = textSize(label);
+		moveForward(ds::vec2(width + ts.x + 20.0f, 30.0f));
+	}
+
 	void SliderAngle(const char* label, float* v, float width) {
 		int d = static_cast<int>(*v / ds::TWO_PI * 360.0f);
 		Slider(label, &d, 0, 360, width);

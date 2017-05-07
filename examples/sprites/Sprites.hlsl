@@ -1,98 +1,81 @@
-cbuffer cbChangesPerObject : register( b0 )
-{
-    matrix mvp_;
-    matrix world;
-    float3 camera;
-    float tmp;
-    float3 light;    
-    float more;
-    float4 diffuseColor;
+cbuffer cbChangesPerFrame : register(b0) {
+	float4 screenDimension;
+	float4 screenCenter;
+	matrix wvp;
 };
 
-
-Texture2D colorMap_ : register( t0 );
-SamplerState colorSampler_ : register( s0 );
-
-
-struct VS_Input
-{
-    float4 pos  : POSITION;
-    float3 normal : NORMAL;
-    float2 tex0 : TEXCOORD0;
-    float4 color : COLOR0;
+struct Sprite {
+	float2 position; // x, y world position
+	float rotation;
+	float scaling;
+	float4 tex;
 };
 
-struct PS_Input
-{
-    float4 pos  : SV_POSITION;
-    float2 tex0 : TEXCOORD0;
-    float4 color : COLOR0;
-    float3 normal : NORMAL;
-    float3 lightVec : TEXCOORD1;
-    float3 viewVec : TEXCOORD2;
-    float4 diffuseColor : COLOR1;
+StructuredBuffer<Sprite> SpritesRO : register(t1);
+
+struct GSPS_INPUT {
+	float4 Pos : SV_POSITION;
+	float4 Tex : COLOR0;
+	float3 Size : NORMAL0;
+	float4 Color : COLOR1;
 };
 
+struct PS_Input {
+	float4 pos  : SV_POSITION;
+	float2 tex0 : TEXCOORD0;
+	float4 color : COLOR0;
+};
 
-PS_Input VS_Main( VS_Input vertex )
-{
-    PS_Input vsOut = ( PS_Input )0;
-    vsOut.pos = mul( vertex.pos, mvp_ );
-    vsOut.tex0 = vertex.tex0;
-    vsOut.color = vertex.color * diffuseColor;
-    vsOut.normal = mul(vertex.normal,(float3x3)world);
-    vsOut.normal = normalize(vsOut.normal);
-    vsOut.lightVec = normalize(light);
-    vsOut.viewVec = normalize(camera);
-    vsOut.diffuseColor = diffuseColor;
-    return vsOut;
+PS_Input VS_Main(uint id:SV_VERTEXID) {
+	PS_Input vsOut = (PS_Input)0;
+	uint spriteIndex = id / 4;
+	uint vertexIndex = id % 4;	
+	float2 t[4];
+	float4 ret = SpritesRO[spriteIndex].tex;
+	float u1 = ret.x / screenDimension.z;
+	float v1 = ret.y / screenDimension.w;
+	float width = ret.z / screenDimension.z;
+	float height = ret.w / screenDimension.w;
+	float u2 = u1 + width;
+	float v2 = v1 + height;
+	t[0] = float2(u1, v1);
+	t[1] = float2(u2, v1);
+	t[2] = float2(u1, v2);
+	t[3] = float2(u2, v2);
+
+	float3 position;
+	position.x = (vertexIndex % 2) ? 0.5 : -0.5;
+	position.y = (vertexIndex & 2) ? -0.5 : 0.5;
+	position.z = 0.0;
+
+	position.x *= ret.z;
+	position.y *= ret.w;
+
+	float rot = SpritesRO[spriteIndex].rotation;
+	float s = sin(rot);
+	float c = cos(rot);
+
+	float sx = position.x * SpritesRO[spriteIndex].scaling;
+	float sy = position.y * SpritesRO[spriteIndex].scaling;
+
+	float xt = c * sx - s * sy;
+	float yt = s * sx + c * sy;
+
+	float3 sp = float3(SpritesRO[spriteIndex].position, 0.0);
+
+	sp.x -= screenCenter.x;
+	sp.y -= screenCenter.y;
+
+	vsOut.pos = mul(float4(xt + sp.x, yt + sp.y, 0.0, 1.0f), wvp);
+	vsOut.pos.z = 1.0;
+	vsOut.tex0 = t[vertexIndex];
+	vsOut.color = float4(1.0,1.0,1.0,1.0);
+	return vsOut;
 }
 
-float4 PS_Main_Plain( PS_Input frag ) : SV_TARGET
-{
-    return frag.color;
-}
+Texture2D colorMap : register(t0);
+SamplerState colorSampler : register(s0);
 
-float4 PS_Main( PS_Input frag ) : SV_TARGET
-{
-    float4 ambientColor = float4(0.2,0.2,0.2,1.0);
-    float4 textureColor = frag.color;
-    float4 dc = float4(1,1,1,1);    
-    float4 color = float4(0,0,0,0);    
-    float3 n = normalize(frag.normal);
-    float3 ln = normalize(frag.lightVec);
-    float lightIntensity = saturate(dot(n,ln));    
-    if ( lightIntensity > 0.0f ) {
-         color += (dc * lightIntensity);   
-         color.a = frag.color.a;        
-    }
-    else {
-        color = ambientColor;  
-    }     
-    color = color * textureColor;
-    color = saturate(color);    
-    return color;
-}
-
-
-float4 PS_Main_Specular( PS_Input frag ) : SV_TARGET
-{
-    float3 ambientColor = float3(0.3f,0.3f,0.3f);
-    float4 lightColor = frag.color;
-    ambientColor *= lightColor.rgb;
-    float3 lightVec = normalize(frag.pos - frag.lightVec);
-    //float3 lightVec = normalize(frag.lightVec);
-    float3 normal = normalize(frag.normal);
-    float diffuseTerm = clamp(dot(normal,lightVec),0.0f,1.0f);
-    float specularTerm = 0.0f;
-    if ( diffuseTerm > 0.0f ) {
-        float3 viewVec = normalize(frag.viewVec);
-        //float3 halfVec = normalize(lightVec + viewVec);
-        //float3 halfVec = normalize(lightVec + viewVec);
-        float3 halfVec = normalize(normalize(viewVec - frag.pos) - lightVec);
-        specularTerm = pow(saturate(dot(normal,halfVec)),25);        
-    }
-    float3 finalColor = ambientColor +  lightColor.rgb * diffuseTerm + lightColor * specularTerm;
-   	return float4(finalColor,lightColor.a);
-
+float4 PS_Main(PS_Input frag) : SV_TARGET{
+	return colorMap.Sample(colorSampler, frag.tex0) * frag.color;
 }

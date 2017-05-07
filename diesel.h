@@ -293,6 +293,8 @@ namespace ds {
 
 	matrix matRotation(const vec3& v, float angle);
 
+	matrix matInverse(const matrix& m);
+
 	matrix operator * (const matrix& m1, const matrix& m2);
 
 	vec3 operator * (const matrix& m, const vec3& v);
@@ -712,7 +714,7 @@ namespace ds {
 		uint8_t size;
 	};
 
-	struct InstanceLayoutDeclaration {
+	struct InstancedInputLayoutDefinition {
 		const char* name;
 		uint8_t nameIndex;
 		BufferAttributeType type;
@@ -919,6 +921,7 @@ namespace ds {
 		virtual ~StateGroupBuilder() {}
 		StateGroupBuilder& inputLayout(RID rid);
 		StateGroupBuilder& constantBuffer(RID rid, RID shader, int slot = 0);
+		StateGroupBuilder& structuredBuffer(RID rid, RID shader, int slot = 0);
 		StateGroupBuilder& basicConstantBuffer(RID shader, int slot = 0);
 		StateGroupBuilder& blendState(RID rid);
 		StateGroupBuilder& samplerState(RID rid, RID shader);
@@ -1049,7 +1052,14 @@ namespace ds {
 	};
 	RID createInputLayout(const InputLayoutInfo& info, const char* name = "InputLayout");
 
-	RID createInstanceDeclaration(InputLayoutDefinition* decl, uint8_t num, InstanceLayoutDeclaration* instDecl, uint8_t instNum, RID shaderId, const char* name = "UNKNOWN");
+	struct InstancedInputLayoutInfo {
+		InputLayoutDefinition* decl;
+		uint8_t num;
+		InstancedInputLayoutDefinition* instDecl;
+		uint8_t instNum;
+		RID shaderId;
+	};
+	RID createInstancedInputLayout(const InstancedInputLayoutInfo& info, const char* name = "InstancedInputLayout");
 
 	// constant buffer
 	/**
@@ -1087,6 +1097,8 @@ namespace ds {
 	*/
 	// FIXME: replace with buildQuadsIndices(int numQuads,int* order,const char* name);
 	RID createQuadIndexBuffer(int numQuads, const char* name = "QuadIndexBuffer");
+
+	RID createQuadIndexBuffer(int numQuads, int* order, const char* name = "QuadIndexBuffer");
 
 	// vertex buffer
 	struct VertexBufferInfo {
@@ -1189,57 +1201,7 @@ namespace ds {
 	};
 
 	RID createShader(const ShaderInfo& info, const char* name = "Shader");
-	// shader
-	/**
-	* Creates a vertex shader from raw data.
-	*
-	* @param data the data containing the vertex shader
-	* @param size the size of the data
-	* @param name the name of the vertex shader - default is UNKNOWN
-	* @return RID the unique resource identifier
-	*/
-	RID createVertexShader(const void* data, int size, const char* name = "VertexShader");
-	/**
-	* Creates a geometry shader from raw data.
-	*
-	* @param data the data containing the geometry shader
-	* @param size the size of the data
-	* @param name the name of the geometry shader - default is UNKNOWN
-	* @return RID the unique resource identifier
-	*/
-	RID createGeometryShader(const void* data, int size, const char* name = "GeometryShader");
-	/**
-	* Creates a pixel shader from raw data.
-	*
-	* @param data the data containing the pixel shader
-	* @param size the size of the data
-	* @param name the name of the pixel shader - default is UNKNOWN
-	* @return RID the unique resource identifier
-	*/
-	RID createPixelShader(const void* data, int size, const char* name = "PixelShader");
-
-	RID createComputeShader(const void* data, int size, const char* name = "ComputeShader");
-	/**
-	*
-	* @param name the name of the pixel shader - default is UNKNOWN
-	* @return RID the unique resource identifier
-	*/
-	RID loadVertexShader(const char* csoName, const char* name = "VertexShader");
-	/**
-	*
-	* @param name the name of the pixel shader - default is UNKNOWN
-	* @return RID the unique resource identifier
-	*/
-	RID loadGeometryShader(const char* csoName, const char* name = "GeometryShader");
-	/**
-	*
-	* @param name the name of the pixel shader - default is UNKNOWN
-	* @return RID the unique resource identifier
-	*/
-	RID loadPixelShader(const char* csoName, const char* name = "PixelShader");
-
-	RID loadComputeShader(const char* csoName, const char* name = "ComputeShader");
-
+	
 	// texture
 	struct TextureInfo {
 		uint16_t width;
@@ -3253,34 +3215,34 @@ namespace ds {
 		return addResource(res, RT_INPUT_LAYOUT, name);
 	}
 
-	RID createInstanceDeclaration(InputLayoutDefinition* decl, uint8_t num, InstanceLayoutDeclaration* instDecl, uint8_t instNum, RID shaderId, const char* name) {
-		int total = num + instNum;
+	RID createInstancedInputLayout(const InstancedInputLayoutInfo& info, const char* name) {
+		int total = info.num + info.instNum;
 		D3D11_INPUT_ELEMENT_DESC* descriptors = new D3D11_INPUT_ELEMENT_DESC[total];
 		uint32_t index = 0;
 		uint32_t counter = 0;
 		int si[8] = { 0 };
-		for (int i = 0; i < num; ++i) {
+		for (int i = 0; i < info.num; ++i) {
 			D3D11_INPUT_ELEMENT_DESC& desc = descriptors[counter++];
-			const InputLayoutDefinition& current = decl[i];
+			const InputLayoutDefinition& current = info.decl[i];
 			int fidx = find_format(current.type, current.size);
 			if (fidx == -1) {
 				return INVALID_RID;
 			}
 			const DXBufferAttributeType& formatType = DXBufferAttributeTypes[fidx];
-			desc.SemanticName = DXBufferAttributeNames[decl[i].attribute];
-			desc.SemanticIndex = si[decl[i].attribute];
+			desc.SemanticName = DXBufferAttributeNames[info.decl[i].attribute];
+			desc.SemanticIndex = si[info.decl[i].attribute];
 			desc.Format = formatType.format;
 			desc.InputSlot = 0;
 			desc.AlignedByteOffset = index;
 			desc.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 			desc.InstanceDataStepRate = 0;
 			index += formatType.bytes;
-			si[decl[i].attribute] += 1;
+			si[info.decl[i].attribute] += 1;
 		}
 		index = 0;
-		for (int i = 0; i < instNum; ++i) {
+		for (int i = 0; i < info.instNum; ++i) {
 			D3D11_INPUT_ELEMENT_DESC& desc = descriptors[counter++];
-			const InstanceLayoutDeclaration& current = instDecl[i];
+			const InstancedInputLayoutDefinition& current = info.instDecl[i];
 			int fidx = find_format(current.type, current.size);
 			if (fidx == -1) {
 				return INVALID_RID;
@@ -3295,7 +3257,7 @@ namespace ds {
 			desc.InstanceDataStepRate = 1;
 			index += formatType.bytes;
 		}
-		uint16_t sidx = getResourceIndex(shaderId, RT_VERTEX_SHADER);
+		uint16_t sidx = getResourceIndex(info.shaderId, RT_VERTEX_SHADER);
 		VertexShaderResource* sres = (VertexShaderResource*)_ctx->_resources[sidx];
 		VertexShader* s = sres->get();
 		ID3D11InputLayout* layout = 0;
@@ -3322,6 +3284,7 @@ namespace ds {
 	// constant buffer
 	// ------------------------------------------------------
 	RID createConstantBuffer(int byteWidth, void* data, const char* name) {
+		// FIXME: check that byteWidth % 16 == 0
 		D3D11_BUFFER_DESC constDesc;
 		ZeroMemory(&constDesc, sizeof(constDesc));
 		constDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -3385,6 +3348,36 @@ namespace ds {
 				//case PLS_PS_RES: _ctx->d3dContext->PSSetConstantBuffers(slot, 1, NULL); break;
 				//case PLS_GS_RES: _ctx->d3dContext->GSSetConstantBuffers(slot, 1, NULL); break;
 			//}
+		//}
+	}
+
+	// ------------------------------------------------------
+	// set vertex shader constant buffer
+	// ------------------------------------------------------
+	static void setStructuredBuffer(RID rid) {
+		int stage = stage_mask(rid);
+		int slot = slot_mask(rid);
+		uint16_t ridx = getResourceIndex(rid, RT_STRUCTURED_BUFFER);
+		if (ridx != NO_RID) {
+			BufferResource* cbr = (BufferResource*)_ctx->_resources[ridx];
+			StructuredBuffer* sb = cbr->get();
+			//if (buffer->buffer != 0) {
+				//updateConstantBuffer(rid);
+			//}
+			//ID3D11Buffer* buffer = sb->buffer;
+			switch (stage) {
+				case PLS_VS_RES: _ctx->d3dContext->VSSetShaderResources(slot, 1, &sb->srv); break;
+				//case PLS_PS_RES: _ctx->d3dContext->PSSetConstantBuffers(slot, 1, &buffer); break;
+				//case PLS_GS_RES: _ctx->d3dContext->GSSetConstantBuffers(slot, 1, &buffer); break;
+			}
+		}
+		// FIXME: check if there is a way to unbind a CB or if it is ok to just leave it as it is
+		//else {
+		//switch (stage) {
+		//case PLS_VS_RES: _ctx->d3dContext->VSSetConstantBuffers(slot, 1, NULL); break;
+		//case PLS_PS_RES: _ctx->d3dContext->PSSetConstantBuffers(slot, 1, NULL); break;
+		//case PLS_GS_RES: _ctx->d3dContext->GSSetConstantBuffers(slot, 1, NULL); break;
+		//}
 		//}
 	}
 
@@ -3452,6 +3445,27 @@ namespace ds {
 			data[base + 3] = cnt + 2;
 			data[base + 4] = cnt + 3;
 			data[base + 5] = cnt + 0;
+			base += 6;
+			cnt += 4;
+		}
+		IndexBufferInfo info = { size, ds::IndexType::UINT_32, ds::BufferType::STATIC, data };
+		RID rid = createIndexBuffer(info, name);
+		delete[] data;
+		return rid;
+	}
+
+	// ------------------------------------------------------
+	// create a quad index buffer 0, 1, 2, 2, 3, 0
+	// ------------------------------------------------------
+	RID createQuadIndexBuffer(int numQuads, int* order, const char* name) {
+		int size = numQuads * 6;
+		uint32_t* data = new uint32_t[size];
+		int base = 0;
+		int cnt = 0;
+		for (int i = 0; i < numQuads; ++i) {
+			for (int j = 0; j < 6; ++j) {
+				data[base + j] = cnt + order[j];
+			}
 			base += 6;
 			cnt += 4;
 		}
@@ -3542,7 +3556,7 @@ namespace ds {
 		sb->srv = 0;
 		D3D11_BUFFER_DESC bufferDesc;
 		ZeroMemory(&bufferDesc, sizeof(bufferDesc));
-		bufferDesc.ByteWidth = info.numElements;
+		bufferDesc.ByteWidth = info.numElements * info.elementSize;
 		bufferDesc.StructureByteStride = info.elementSize;
 		if ((!info.cpuWritable) && (!info.gpuWritable)) {
 			bufferDesc.CPUAccessFlags = 0;
@@ -3577,7 +3591,7 @@ namespace ds {
 			srvDesc.Format = DXGI_FORMAT_UNKNOWN;
 			srvDesc.BufferEx.FirstElement = 0;
 			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
-			srvDesc.BufferEx.NumElements = info.numElements / info.elementSize;
+			srvDesc.BufferEx.NumElements = info.numElements;
 			ASSERT_RESULT(_ctx->d3dDevice->CreateShaderResourceView(sb->buffer, &srvDesc, &sb->srv), "Cannot create shader resource view");
 		}
 		if (info.gpuWritable) {
@@ -3653,14 +3667,29 @@ namespace ds {
 	// map data to vertex buffer
 	// ------------------------------------------------------
 	void mapBufferData(RID rid, void* data, uint32_t size) {
-		uint16_t ridx = getResourceIndex(rid, RT_VERTEX_BUFFER);
-		if (ridx != NO_RID) {
-			ConstantBufferResource* cbr = (ConstantBufferResource*)_ctx->_resources[ridx];
-			D3D11_MAPPED_SUBRESOURCE resource;
-			assert_result(_ctx->d3dContext->Map(cbr->get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &resource), "Failed to map data");
-			void* ptr = resource.pData;
-			memcpy(ptr, data, size);
-			_ctx->d3dContext->Unmap(cbr->get(), 0);
+		uint16_t type = type_mask(rid);
+		if (type == RT_VERTEX_BUFFER) {
+			uint16_t ridx = getResourceIndex(rid, RT_VERTEX_BUFFER);
+			if (ridx != NO_RID) {
+				ConstantBufferResource* cbr = (ConstantBufferResource*)_ctx->_resources[ridx];
+				D3D11_MAPPED_SUBRESOURCE resource;
+				assert_result(_ctx->d3dContext->Map(cbr->get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &resource), "Failed to map data");
+				void* ptr = resource.pData;
+				memcpy(ptr, data, size);
+				_ctx->d3dContext->Unmap(cbr->get(), 0);
+			}
+		}
+		else if (type == RT_STRUCTURED_BUFFER) {
+			uint16_t ridx = getResourceIndex(rid, RT_STRUCTURED_BUFFER);
+			if (ridx != NO_RID) {
+				BufferResource* cbr = (BufferResource*)_ctx->_resources[ridx];
+				D3D11_MAPPED_SUBRESOURCE resource;
+				StructuredBuffer* buffer = cbr->get();
+				assert_result(_ctx->d3dContext->Map(buffer->buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource), "Failed to map data");
+				void* ptr = resource.pData;
+				memcpy(ptr, data, size);
+				_ctx->d3dContext->Unmap(buffer->buffer, 0);
+			}
 		}
 	}
 
@@ -4479,6 +4508,12 @@ namespace ds {
 		return *this;
 	}
 
+	StateGroupBuilder& StateGroupBuilder::structuredBuffer(RID rid, RID shader, int slot) {
+		int stage = extractFromShader(shader);
+		basicBinding(rid, ResourceType::RT_STRUCTURED_BUFFER, stage, slot);
+		return *this;
+	}
+
 	StateGroupBuilder& StateGroupBuilder::basicConstantBuffer(RID shader, int slot) {
 		int stage = extractFromShader(shader);
 		basicBinding(_ctx->basicConstantBufferID, ResourceType::RT_CONSTANT_BUFFER, stage, slot);
@@ -4624,6 +4659,9 @@ namespace ds {
 		}
 		else if (type == ResourceType::RT_CONSTANT_BUFFER) {
 			setConstantBuffer(current);
+		}
+		else if (type == ResourceType::RT_STRUCTURED_BUFFER) {
+			setStructuredBuffer(current);
 		}
 	}
 
@@ -4815,12 +4853,15 @@ namespace ds {
 		}
 		_ctx->d3dContext->IASetPrimitiveTopology(PRIMITIVE_TOPOLOGIES[cmd.topology]);
 		switch (cmd.drawType) {
-		case DT_VERTICES: _ctx->d3dContext->Draw(num, 0); break;
-		case DT_INDEXED: _ctx->d3dContext->DrawIndexed(num, 0, 0); break;
-		case DT_INSTANCED: _ctx->d3dContext->DrawInstanced(num, cmd.instances, 0, 0); break;
+			case DT_VERTICES: _ctx->d3dContext->Draw(num, 0); break;
+			case DT_INDEXED: _ctx->d3dContext->DrawIndexed(num, 0, 0); break;
+			case DT_INSTANCED: _ctx->d3dContext->DrawInstanced(num, cmd.instances, 0, 0); break;
 		}
+		// FIXME: is this correct? At least it removes the warnings when using render targets as textures
+		ID3D11ShaderResourceView *const pSRV[2] = { NULL, NULL };
+		_ctx->d3dContext->PSSetShaderResources(0, 2, pSRV);
 		// FIXME: this is wrong since there might be several submit which would like to use the same rt
-		if (pass->numRenderTargets > 0) {
+		if (pass->numRenderTargets > 0) {			
 			restoreBackBuffer();
 		}
 	}
@@ -5045,6 +5086,101 @@ namespace ds {
 		tmp._34 = 0.0f;
 
 		return tmp;
+	}
+
+	matrix matInverse(const matrix& m) {
+		matrix ret;
+		float tmp[12]; /* temp array for pairs */
+		float src[16]; /* array of transpose source matrix */
+		float det; /* determinant */
+		float* dst = ret;
+		float* mat = m;
+
+		for (int i = 0; i < 4; ++i) {
+			for (int j = 0; j < 4; ++j) {
+				src[i * 4 + j] = m.m[i][j];
+			}
+		}
+		/* transpose matrix */
+		for (int i = 0; i < 4; i++) {
+			src[i] = mat[i * 4];
+			src[i + 4] = mat[i * 4 + 1];
+			src[i + 8] = mat[i * 4 + 2];
+			src[i + 12] = mat[i * 4 + 3];
+		}
+		/* calculate pairs for first 8 elements (cofactors) */
+		tmp[0] = src[10] * src[15];
+		tmp[1] = src[11] * src[14];
+		tmp[2] = src[9] * src[15];
+		tmp[3] = src[11] * src[13];
+		tmp[4] = src[9] * src[14];
+		tmp[5] = src[10] * src[13];
+		tmp[6] = src[8] * src[15];
+		tmp[7] = src[11] * src[12];
+		tmp[8] = src[8] * src[14];
+		tmp[9] = src[10] * src[12];
+		tmp[10] = src[8] * src[13];
+		tmp[11] = src[9] * src[12];
+		/* calculate first 8 elements (cofactors) */
+		dst[0] = tmp[0] * src[5] + tmp[3] * src[6] + tmp[4] * src[7];
+		dst[0] -= tmp[1] * src[5] + tmp[2] * src[6] + tmp[5] * src[7];
+		dst[1] = tmp[1] * src[4] + tmp[6] * src[6] + tmp[9] * src[7];
+		dst[1] -= tmp[0] * src[4] + tmp[7] * src[6] + tmp[8] * src[7];
+		dst[2] = tmp[2] * src[4] + tmp[7] * src[5] + tmp[10] * src[7];
+		dst[2] -= tmp[3] * src[4] + tmp[6] * src[5] + tmp[11] * src[7];
+		dst[3] = tmp[5] * src[4] + tmp[8] * src[5] + tmp[11] * src[6];
+		dst[3] -= tmp[4] * src[4] + tmp[9] * src[5] + tmp[10] * src[6];
+		dst[4] = tmp[1] * src[1] + tmp[2] * src[2] + tmp[5] * src[3];
+		dst[4] -= tmp[0] * src[1] + tmp[3] * src[2] + tmp[4] * src[3];
+		dst[5] = tmp[0] * src[0] + tmp[7] * src[2] + tmp[8] * src[3];
+		dst[5] -= tmp[1] * src[0] + tmp[6] * src[2] + tmp[9] * src[3];
+		dst[6] = tmp[3] * src[0] + tmp[6] * src[1] + tmp[11] * src[3];
+		dst[6] -= tmp[2] * src[0] + tmp[7] * src[1] + tmp[10] * src[3];
+		dst[7] = tmp[4] * src[0] + tmp[9] * src[1] + tmp[10] * src[2];
+		dst[7] -= tmp[5] * src[0] + tmp[8] * src[1] + tmp[11] * src[2];
+		/* calculate pairs for second 8 elements (cofactors) */
+		tmp[0] = src[2] * src[7];
+		tmp[1] = src[3] * src[6];
+		tmp[2] = src[1] * src[7];
+		tmp[3] = src[3] * src[5];
+		tmp[4] = src[1] * src[6];
+		tmp[5] = src[2] * src[5];
+		tmp[6] = src[0] * src[7];
+		tmp[7] = src[3] * src[4];
+		tmp[8] = src[0] * src[6];
+		tmp[9] = src[2] * src[4];
+		tmp[10] = src[0] * src[5];
+		tmp[11] = src[1] * src[4];
+		/* calculate second 8 elements (cofactors) */
+		dst[8] = tmp[0] * src[13] + tmp[3] * src[14] + tmp[4] * src[15];
+		dst[8] -= tmp[1] * src[13] + tmp[2] * src[14] + tmp[5] * src[15];
+		dst[9] = tmp[1] * src[12] + tmp[6] * src[14] + tmp[9] * src[15];
+		dst[9] -= tmp[0] * src[12] + tmp[7] * src[14] + tmp[8] * src[15];
+		dst[10] = tmp[2] * src[12] + tmp[7] * src[13] + tmp[10] * src[15];
+		dst[10] -= tmp[3] * src[12] + tmp[6] * src[13] + tmp[11] * src[15];
+		dst[11] = tmp[5] * src[12] + tmp[8] * src[13] + tmp[11] * src[14];
+		dst[11] -= tmp[4] * src[12] + tmp[9] * src[13] + tmp[10] * src[14];
+		dst[12] = tmp[2] * src[10] + tmp[5] * src[11] + tmp[1] * src[9];
+		dst[12] -= tmp[4] * src[11] + tmp[0] * src[9] + tmp[3] * src[10];
+		dst[13] = tmp[8] * src[11] + tmp[0] * src[8] + tmp[7] * src[10];
+		dst[13] -= tmp[6] * src[10] + tmp[9] * src[11] + tmp[1] * src[8];
+		dst[14] = tmp[6] * src[9] + tmp[11] * src[11] + tmp[3] * src[8];
+		dst[14] -= tmp[10] * src[11] + tmp[2] * src[8] + tmp[7] * src[9];
+		dst[15] = tmp[10] * src[10] + tmp[4] * src[8] + tmp[9] * src[9];
+		dst[15] -= tmp[8] * src[9] + tmp[11] * src[10] + tmp[5] * src[8];
+		/* calculate determinant */
+		det = src[0] * dst[0] + src[1] * dst[1] + src[2] * dst[2] + src[3] * dst[3];
+		/* calculate matrix inverse */
+		det = 1 / det;
+		for (int j = 0; j < 16; j++) {
+			dst[j] *= det;
+		}
+		for (int i = 0; i < 4; ++i) {
+			for (int j = 0; j < 4; ++j) {
+				ret.m[i][j] = dst[i * 4 + j];
+			}
+		}
+		return ret;
 	}
 
 	vec4 operator * (const matrix& m, const vec4& v) {

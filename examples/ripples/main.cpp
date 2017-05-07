@@ -83,7 +83,8 @@ int add(const ds::vec2& p, const ds::vec4& r, Sprite* sprites, int index) {
 RID loadImage(const char* name) {
 	int x, y, n;
 	unsigned char *data = stbi_load(name, &x, &y, &n, 4);
-	RID textureID = ds::createTexture(x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM);
+	ds::TextureInfo texInfo = { x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM , ds::BindFlag::BF_SHADER_RESOURCE };
+	RID textureID = ds::createTexture(texInfo);
 	stbi_image_free(data);
 	return textureID;
 }
@@ -133,40 +134,62 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID bgTextureID = loadImage("martian_oasis_by_smnbrnr.png");
 
 
-	RID bs_id = ds::createBlendState(ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true);
+	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
+	RID bs_id = ds::createBlendState(blendInfo);
 
-	RID spritesVS = ds::loadVertexShader("Sprites_vs.cso");
-	RID spritesPS = ds::loadPixelShader("Sprites_ps.cso");
-	RID spritesGS = ds::loadGeometryShader("Sprites_gs.cso");
+	ds::ShaderInfo vsInfo = { "Sprites_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	RID spritesVS = ds::createShader(vsInfo);
+	ds::ShaderInfo psInfo = { "Sprites_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	RID spritesPS = ds::createShader(psInfo);
+	ds::ShaderInfo gsInfo = { "Sprites_gs.cso" , 0, 0, ds::ShaderType::ST_GEOMETRY_SHADER };
+	RID spritesGS = ds::createShader(gsInfo);
 
-	RID rippleVS = ds::loadVertexShader("Ripple_vs.cso");
-	RID ripplePS = ds::loadPixelShader("Ripple_ps.cso");
+	ds::ShaderInfo rippleVSInfo = { "Ripple_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	RID rippleVS = ds::createShader(rippleVSInfo);
+	ds::ShaderInfo ripplePSInfo = { "Ripple_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	RID ripplePS = ds::createShader(ripplePSInfo);
 
 	// very special buffer layout 
-	ds::VertexDeclaration decl[] = {
+	ds::InputLayoutDefinition decl[] = {
 		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 },
 		{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,3 },
 		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
 	};
-
-	RID vertexDeclId = ds::createVertexDeclaration(decl, 4, spritesVS);
+	ds::InputLayoutInfo layoutInfo = { decl, 4, spritesVS };
+	RID rid = ds::createInputLayout(layoutInfo);
+	
 		
 	RID cbid = ds::createConstantBuffer(sizeof(SpriteConstantBuffer), &constantBuffer);
-	RID vertexBufferID = ds::createVertexBuffer(ds::BufferType::DYNAMIC, 64, sizeof(SpriteVertex));
-	RID ssid = ds::createSamplerState(ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR);
+	ds::VertexBufferInfo vbInfo = { ds::BufferType::DYNAMIC, 64, sizeof(SpriteVertex) };
+	RID vertexBufferID = ds::createVertexBuffer(vbInfo);
+	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
+	RID ssid = ds::createSamplerState(samplerInfo);
 
 	// create orthographic view
 	ds::matrix viewMatrix = ds::matIdentity();
 	ds::matrix projectionMatrix = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
-	ds::matrix viewProjectionMatrix = viewMatrix * projectionMatrix;
+	ds::Camera camera = {
+		viewMatrix,
+		projectionMatrix,
+		viewMatrix * projectionMatrix,
+		ds::vec3(0,3,-6),
+		ds::vec3(0,0,1),
+		ds::vec3(0,1,0),
+		ds::vec3(1,0,0),
+		0.0f,
+		0.0f,
+		0.0f
+	};
+	ds::RenderPassInfo rpInfo = { &camera, ds::DepthBufferState::ENABLED, 0, 0 };
+	RID basicPass = ds::createRenderPass(rpInfo);
 
 //	ds::setViewMatrix(viewMatrix);
 	//ds::setProjectionMatrix(projectionMatrix);
-	constantBuffer.wvp = ds::matTranspose(viewProjectionMatrix);
+	constantBuffer.wvp = ds::matTranspose(camera.viewProjectionMatrix);
 
 	RID rippleStateGroup = ds::StateGroupBuilder()
-		.inputLayout(vertexDeclId)
+		.inputLayout(rid)
 		.constantBuffer(cbid, spritesVS, 0)
 		.constantBuffer(cbid, spritesPS, 0)
 		.blendState(bs_id)
@@ -228,11 +251,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			vertices[i] = SpriteVertex(sprite.position, sprite.texture, ds::vec3(sprite.scale.x, sprite.scale.y, sprite.rotation), sprite.color);
 		}
 		ds::mapBufferData(vertexBufferID, vertices, numSprites * sizeof(SpriteVertex));
-		ds::submit(rippleItem, numSprites);
+		ds::submit(basicPass, rippleItem, numSprites);
 
 		ds::restoreBackBuffer();
 
-		ds::submit(bgItem,0);
+		ds::submit(basicPass, bgItem,0);
 		
 		ds::setDepthBufferState(ds::DepthBufferState::ENABLED);
 

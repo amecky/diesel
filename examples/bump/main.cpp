@@ -184,11 +184,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
 	RID bs_id = ds::createBlendState(blendInfo);
 
-	RID texturedVS = ds::loadVertexShader("..\\common\\Textured_vs.cso");
-	RID texturedPS = ds::loadPixelShader("..\\common\\Textured_ps.cso");
+	ds::ShaderInfo texturedVSInfo = { "..\\common\\Textured_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	RID texturedVS = ds::createShader(texturedVSInfo);
+	ds::ShaderInfo texturedPSInfo = { "..\\common\\Textured_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	RID texturedPS = ds::createShader(texturedPSInfo);
 
-	RID bumpVS = ds::loadVertexShader("Bump_vs.cso");
-	RID bumpPS = ds::loadPixelShader("Bump_ps.cso");
+	ds::ShaderInfo bumpVSInfo = { "Bump_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	RID bumpVS = ds::createShader(bumpVSInfo);
+	ds::ShaderInfo bumpPSInfo = { "Bump_vs.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	RID bumpPS = ds::createShader(bumpPSInfo);
 
 	Grid grid(&camera);
 	ds::vec3 gridPositions[] = {
