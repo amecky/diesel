@@ -8,21 +8,32 @@
 const int MAX_SPRITES = 1024;
 
 // based on the presentation: https://de.slideshare.net/DevCentralAMD/vertex-shader-tricks-bill-bilodeau by Bill Bilodeau
-// ---------------------------------------------------------------
-// The sprite
-// ---------------------------------------------------------------
-struct Sprite {
 
-	ds::vec2 position;
-	ds::vec2 scale;
-	float rotation;
-	ds::vec4 texture;
-	ds::Color color;
-	ds::vec2 velocity;
+struct SpriteBuffer {
 
-	Sprite() : position(0, 0), scale(1, 1), rotation(0.0f), color(ds::Color(255, 255, 255, 255)) , texture(0,0,0,0) , velocity(0.0f,0.0f) {}
+	ds::vec2* positions;
+	ds::vec2* scales;
+	float* rotations;
+	ds::vec4* textures;
+	ds::Color* colors;
+	ds::vec2* velocities;
+	char* data;
+	int total;
 
 };
+
+void allocateSpriteBuffer(SpriteBuffer* buffer) {
+	int size = MAX_SPRITES * (sizeof(ds::vec2) + sizeof(ds::vec2) + sizeof(float) + sizeof(ds::vec4) + sizeof(ds::Color) + sizeof(ds::vec2));
+	buffer->data = new char[size];
+	buffer->positions = (ds::vec2*)(buffer->data);
+	buffer->scales = (ds::vec2*)(buffer->positions + MAX_SPRITES);
+	buffer->rotations = (float*)(buffer->scales + MAX_SPRITES);
+	buffer->textures = (ds::vec4*)(buffer->rotations + MAX_SPRITES);
+	buffer->colors = (ds::Color*)(buffer->textures + MAX_SPRITES);
+	buffer->velocities = (ds::vec2*)(buffer->colors + MAX_SPRITES);
+	buffer->total = size;
+}
+
 
 struct GPUSprite {
 	ds::vec2 position; // x, y world position
@@ -53,19 +64,18 @@ float getAngle(const ds::vec2& u, const ds::vec2& v) {
 // ---------------------------------------------------------------
 // create sprite
 // ---------------------------------------------------------------
-int add(const ds::vec2& p, const ds::vec4& r, Sprite* sprites, int index) {
+int add(const ds::vec2& p, const ds::vec4& r, SpriteBuffer* sprites, int index) {
 	if ((index + 1) < MAX_SPRITES) {
 		float angle = ds::random(0.0f, ds::PI * 2.0f);
-		Sprite& s = sprites[index];
-		s.position = p;
-		s.color = ds::Color(1.0f, 1.0f, 1.0f, 1.0f);
-		s.scale = ds::vec2(1.0f, 1.0f);
-		s.rotation = angle;
-		s.texture = r;
+		sprites->positions[index] = p;
+		sprites->colors[index] = ds::Color(1.0f, 1.0f, 1.0f, 1.0f);
+		sprites->scales[index] = ds::vec2(1.0f, 1.0f);
+		sprites->rotations[index] = angle;
+		sprites->textures[index] = r;
 		float vel = ds::random(100.0f,250.0f);
 		float vx = cos(angle) * vel;
 		float vy = sin(angle) * vel;
-		s.velocity = ds::vec2(vx,vy);
+		sprites->velocities[index] = ds::vec2(vx,vy);
 		return index + 1;
 	}
 	return index;
@@ -76,7 +86,10 @@ int add(const ds::vec2& p, const ds::vec4& r, Sprite* sprites, int index) {
 // ---------------------------------------------------------------
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
 	
-	Sprite sprites[MAX_SPRITES];
+	SpriteBuffer spriteBuffer;
+	allocateSpriteBuffer(&spriteBuffer);
+
+	//Sprite sprites[MAX_SPRITES];
 	int numSprites = 0;
 	// create some sprites
 	for (int i = 0; i < MAX_SPRITES; ++i) {
@@ -84,7 +97,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		float y = ds::random(100.0f, 700.0f);
 		int r = ds::random(0.0, 1.9f);
 		int c = ds::random(0.0, 1.9f);
-		numSprites = add(ds::vec2(x, y), ds::vec4(r * 40, c * 40, 40, 40), sprites, numSprites);
+		numSprites = add(ds::vec2(x, y), ds::vec4(r * 40, c * 40, 40, 40), &spriteBuffer, numSprites);
 	}
 
 	SpriteConstantBuffer constantBuffer;
@@ -131,7 +144,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	sbInfo.textureID = NO_RID;
 	RID sbID = ds::createStructuredBuffer(sbInfo);
 
-	GPUSprite gpuSprites[4096];
+	GPUSprite* gpuSprites = new GPUSprite[4096];
 
 	// create orthographic view
 	ds::matrix orthoView = ds::matIdentity();
@@ -169,30 +182,43 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	while (ds::isRunning()) {
 		// move sprites
+		ds::vec2* positions = spriteBuffer.positions;
+		ds::vec2* velocities = spriteBuffer.velocities;
+		float* rotations = spriteBuffer.rotations;
+		ds::vec2* scales = spriteBuffer.scales;
+		ds::vec4* tex = spriteBuffer.textures;
+		GPUSprite* current = gpuSprites;
 		for (int i = 0; i < numSprites; ++i) {
-			Sprite& s = sprites[i];
-			s.position += s.velocity * static_cast<float>(ds::getElapsedSeconds());
-			if (s.position.x < 10.0f || s.position.x > 1000.0f) {
-				s.velocity.x *= -1.0f;
-				s.position += s.velocity * static_cast<float>(ds::getElapsedSeconds());
-				s.rotation = getAngle(s.velocity, ds::vec2(1, 0));
+			*positions += *velocities * static_cast<float>(ds::getElapsedSeconds());
+			if (positions->x < 10.0f || positions->x > 1000.0f) {
+				velocities->x *= -1.0f;
+				*positions += *velocities * static_cast<float>(ds::getElapsedSeconds());
+				*rotations = getAngle(*velocities, ds::vec2(1, 0));
 			}
-			if (s.position.y < 10.0f || s.position.y > 760.0f) {
-				s.velocity.y *= -1.0f;
-				s.position += s.velocity * static_cast<float>(ds::getElapsedSeconds());
-				s.rotation = getAngle(s.velocity, ds::vec2(1, 0));
-			}			
+			if (positions->y < 10.0f || positions->y > 760.0f) {
+				velocities->y *= -1.0f;
+				*positions += *velocities * static_cast<float>(ds::getElapsedSeconds());
+				*rotations = getAngle(*velocities, ds::vec2(1, 0));
+			}		
+			current->position = *positions;
+			current->rotation = *rotations;
+			current->scaling = 1.0f;
+			current->texture = *tex;
+			++positions;
+			++velocities;
+			++rotations;
+			++scales;
+			++tex;
+			++current;
 		}
 			
 		ds::begin();
-		for (int i = 0; i < numSprites; ++i) {
-			const Sprite& sprite = sprites[i];
-			gpuSprites[i] = GPUSprite{ sprite.position,sprite.rotation,sprite.scale.x, sprite.texture };
-		}
 		ds::mapBufferData(sbID, gpuSprites, numSprites * sizeof(GPUSprite));
 		drawCmd.size = numSprites;
 		ds::submit(orthoPass, drawItem, numSprites * 6);
 		ds::end();
 	}
+	delete[] gpuSprites;
+	delete[] spriteBuffer.data;
 	ds::shutdown();
 }
