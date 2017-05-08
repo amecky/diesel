@@ -25,3 +25,10 @@ PS_Input VS_Main(uint id:SV_VERTEXID) {
     return vsOut;
 }
 
+Texture2D colorMap_ : register(t0);
+SamplerState colorSampler_ : register(s0);
+
+float4 PS_Main( PS_Input frag ) : SV_TARGET {
+	return colorMap_.Sample(colorSampler_, frag.tex);
+}
+

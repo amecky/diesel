@@ -1,5 +1,6 @@
 #include "ScreenShakeComponent.h"
-
+#include "ScreenShake_PS_Main.h"
+#include "ScreenShake_VS_Main.h"
 
 
 ScreenShakeComponent::ScreenShakeComponent(ScreenShakeSettings* settings) : _settings(settings), _active(false) , _timer(0.0f) {
@@ -25,8 +26,11 @@ ScreenShakeComponent::ScreenShakeComponent(ScreenShakeSettings* settings) : _set
 	//
 	// load shader
 	//
-	RID screenShakeVS = ds::loadVertexShader("Screenshake_vs.cso");
-	RID screenShakePS = ds::loadPixelShader("Screenshake_ps.cso");
+	ds::ShaderInfo vsInfo = { 0, ScreenShake_VS_Main, sizeof(ScreenShake_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
+	RID screenShakeVS = ds::createShader(vsInfo);
+	ds::ShaderInfo psInfo = { 0, ScreenShake_PS_Main, sizeof(ScreenShake_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
+	RID screenShakePS = ds::createShader(psInfo);
+
 	RID bufferID = ds::createConstantBuffer(sizeof(ScreenShakeBuffer), &_buffer);
 	//
 	// create state group

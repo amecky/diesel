@@ -3,7 +3,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "..\common\stb_image.h"
 #include "ScreenShakeComponent.h"
-
+#include "Fullscreen_PS_Main.h"
+#include "Fullscreen_VS_Main.h"
 // ---------------------------------------------------------------
 // load image using stb_image
 // ---------------------------------------------------------------
@@ -31,7 +32,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	//
 	RID rt1 = ds::createRenderTarget(1024, 768, ds::Color(0, 0, 0, 0));
 	//
-	// otho pass simply draws a full screen quad using the loaded image and writes to RT1
+	// orthographic pass simply draws a full screen quad using the loaded image and writes to RT1
 	//
 	RID targets[] = { rt1 };
 	ds::matrix orthoView = ds::matIdentity();
@@ -53,15 +54,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::RenderPassInfo ppPassInfo = { &camera, ds::DepthBufferState::DISABLED, 0, 0 };
 	RID ppPass = ds::createRenderPass(ppPassInfo);
 
-	// render pass using RT1
-	//RID rt1s[] = { rt1 };
-	//RID rt1Pass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::DISABLED, rt1s, 1);
-
 	RID bgTextureID = loadImage("martian_oasis_by_smnbrnr.png");
 
-	ds::ShaderInfo vsInfo = { "Fullscreen_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	ds::ShaderInfo vsInfo = { 0, Fullscreen_VS_Main, sizeof(Fullscreen_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
 	RID fsVertexShader = ds::createShader(vsInfo);
-	ds::ShaderInfo psInfo = { "Fullscreen_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	ds::ShaderInfo psInfo = { 0, Fullscreen_PS_Main, sizeof(Fullscreen_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
 	RID fsPixelShader = ds::createShader(psInfo);
 
 	//

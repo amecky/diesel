@@ -6,11 +6,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ScreenShakeComponent.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="Screenshake_vs.hlsl" />
-    <FxCompile Include="Screenshake_ps.hlsl" />
-    <FxCompile Include="Fullscreen_ps.hlsl" />
-    <FxCompile Include="Fullscreen_vs.hlsl" />
+    <ClInclude Include="ScreenShake_VS_Main.h" />
+    <ClInclude Include="ScreenShake_PS_Main.h" />
+    <ClInclude Include="Fullscreen_VS_Main.h" />
+    <ClInclude Include="Fullscreen_PS_Main.h" />
   </ItemGroup>
 </Project>
