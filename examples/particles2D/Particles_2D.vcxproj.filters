@@ -11,11 +11,7 @@
     <ClInclude Include="Particlesystem.h" />
     <ClInclude Include="..\common\imgui.h" />
     <ClInclude Include="..\common\SpriteBuffer.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="Particles_2D_gs.hlsl" />
-    <FxCompile Include="Particles_2D_ps.hlsl" />
-    <FxCompile Include="Particles_2D_vs.hlsl" />
-    <FxCompile Include="Particles_2D_Tex_ps.hlsl" />
+    <ClInclude Include="Particles_VS_Main.h" />
+    <ClInclude Include="Particles_PS_Main.h" />
   </ItemGroup>
 </Project>

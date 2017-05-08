@@ -28,7 +28,7 @@ struct ExplosionSettings {
 	ds::vec2 sizeVariance;
 };
 
-void emittExplosion(Particlesystem* system, const ExplosionSettings& settings, float px, float py, float radius) {
+void emittExplosion(ParticleManager* particles,uint32_t id, const ExplosionSettings& settings, float px, float py, float radius) {
 	for (int i = 0; i < settings.count; ++i) {
 		float angle = ds::TWO_PI * static_cast<float>(i) / static_cast<float>(settings.count);
 		float x = px + cos(angle) * (radius + ds::random(-settings.radiusVariance, settings.radiusVariance));
@@ -41,8 +41,9 @@ void emittExplosion(Particlesystem* system, const ExplosionSettings& settings, f
 		float ttl = ds::random(settings.ttl.x, settings.ttl.y);
 		float rotation = angle;
 		ds::vec2 velocity = ds::random(settings.velocityVariance.x, settings.velocityVariance.y) * ds::vec2(cos(angle), sin(angle));
-		ds::vec2 acc = velocity * -0.5f;
-		system->add(ds::vec2(x, y), velocity, acc, ttl, rotation);
+		//ds::vec2 acc = ds::vec2(0.0f, -400.0f);
+		ds::vec2 acc = velocity * -0.8f;
+		particles->add(id, ds::vec2(x, y), velocity, acc, ttl, rotation);
 	}
 }
 
@@ -55,7 +56,7 @@ struct SparksSettings {
 	ds::vec2 growth;
 };
 
-void emittSparks(Particlesystem* system, const SparksSettings& settings, float px, float py, float radius) {
+void emittSparks(ParticleManager* particles, uint32_t id, const SparksSettings& settings, float px, float py, float radius) {
 	for (int i = 0; i < settings.count; ++i) {
 		float angle = ds::TWO_PI * static_cast<float>(i) / static_cast<float>(settings.count);
 		float x = px + cos(angle) * (radius + ds::random(-settings.radiusVariance, settings.radiusVariance));
@@ -65,7 +66,7 @@ void emittSparks(Particlesystem* system, const SparksSettings& settings, float p
 		float ttl = ds::random(settings.ttl.x, settings.ttl.y);
 		float rotation = angle;
 		ds::vec2 velocity = ds::random(settings.velocityVariance.x, settings.velocityVariance.y) * ds::vec2(cos(angle), sin(angle));
-		system->add(ds::vec2(x, y), velocity, ds::vec2(0.0f,0.0f), ttl, rotation);
+		particles->add(id, ds::vec2(x, y), velocity, ds::vec2(0.0f,0.0f), ttl, rotation);
 	}
 }
 // ---------------------------------------------------------------
@@ -83,47 +84,41 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.useGPUProfiling = false;
 	ds::init(rs);
 
-	ParticlesystemDescriptor descriptor;
-	descriptor.maxParticles = 1024;
-	descriptor.particleDimension = ds::vec2(64, 64);
-	descriptor.scale = ds::vec2(0.2f, 0.2f);
-	descriptor.growth = ds::vec2(-0.5f, -0.5f);
-	descriptor.startColor = ds::Color(250,250,250, 255);
-	descriptor.endColor = ds::Color(248, 213, 131, 0);
-	descriptor.textureRect = ds::vec4(0, 0, 64, 64);
+	ParticlesystemDescriptor explosionDescriptor;
+	explosionDescriptor.maxParticles = 4096;
+	explosionDescriptor.particleDimension = ds::vec2(64, 64);
+	explosionDescriptor.scale = ds::vec2(0.2f, 0.2f);
+	explosionDescriptor.growth = ds::vec2(-0.5f, -0.5f);
+	//explosionDescriptor.growth = ds::vec2(1.5f, 1.5f);
+	explosionDescriptor.startColor = ds::Color(250,250,250, 255);
+	explosionDescriptor.endColor = ds::Color(128, 0, 0, 0);
+	explosionDescriptor.textureRect = ds::vec4(0, 0, 64, 64) / 64.0f;
 
-	ParticlesystemDescriptor spsDescriptor;
-	spsDescriptor.maxParticles = 1024;
-	spsDescriptor.particleDimension = ds::vec2(64, 64);
-	spsDescriptor.scale = ds::vec2(1.1f, 0.1f);
-	spsDescriptor.growth = ds::vec2(-0.9f, 0.0f);
-	spsDescriptor.startColor = ds::Color(248, 213, 131, 255);
-	spsDescriptor.endColor = ds::Color(248, 213, 131, 0);
-	spsDescriptor.textureRect = ds::vec4(0, 0, 64, 64);
+	ParticlesystemDescriptor sparksDescriptor;
+	sparksDescriptor.maxParticles = 1024;
+	sparksDescriptor.particleDimension = ds::vec2(64, 64);
+	sparksDescriptor.scale = ds::vec2(1.8f, 0.1f);
+	sparksDescriptor.growth = ds::vec2(-0.9f, 0.0f);
+	sparksDescriptor.startColor = ds::Color(248, 213, 131, 255);
+	sparksDescriptor.endColor = ds::Color(248, 213, 131, 0);
+	sparksDescriptor.textureRect = ds::vec4(0, 0, 64, 64) / 64.0f;
 	// load image using stb_image
 	int x, y, n;
 	unsigned char *data = stbi_load("particles.png", &x, &y, &n, 4);
 	ds::TextureInfo texInfo = { x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM , ds::BindFlag::BF_SHADER_RESOURCE };
-	descriptor.textureID = ds::createTexture(texInfo);
+	explosionDescriptor.textureID = ds::createTexture(texInfo);	
+	sparksDescriptor.textureID = explosionDescriptor.textureID;
 	stbi_image_free(data);
-	spsDescriptor.textureID = descriptor.textureID;
 	// prepare IMGUI
 
 	RID guiTextureID = loadImage("..\\common\\imgui.png");
 	SpriteBuffer spriteBuffer(512, guiTextureID);
 	gui::init(&spriteBuffer, guiTextureID);
 
-	
-
-	Particlesystem system(descriptor);
-	Particlesystem sparks(spsDescriptor);
-
-	ParticleManager particles(2048, descriptor.textureID);
-	particles.add(&system);
-	particles.add(&sparks);
+	ParticleManager particles(4096, explosionDescriptor.textureID);
 
 	ExplosionSettings explosionSettings;
-	explosionSettings.count = 128;
+	explosionSettings.count = 512;
 	explosionSettings.angleVariance = 0.1f;
 	explosionSettings.radiusVariance = 10.0f;
 	explosionSettings.ttl = ds::vec2(0.6f, 0.9f);
@@ -137,6 +132,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	sparksSettings.ttl = ds::vec2(0.6f, 0.9f);
 	sparksSettings.velocityVariance = ds::vec2(120.0f, 200.0f);
 	sparksSettings.growth = ds::vec2(0.8f, 0.0f);
+
+	int explosionID = particles.add(&explosionDescriptor);
+	int sparksID = particles.add(&sparksDescriptor);
 	
 	int emitter = 128;
 	float t = 1.1f;
@@ -149,17 +147,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	while (ds::isRunning()) {
 
 		t += static_cast<float>(ds::getElapsedSeconds());
-		// every second emitt some particles at random position
+		// every second emit some particles at random position
 		if (t >= 1.0f) {
 			t -= 1.0f;
 			float radius = ds::random(25.0f,100.0f);
 			float px = ds::random(200.0f, 800.0f);
 			float py = ds::random(200.0, 500.0f);
 			if (useExplosion) {
-				emittExplosion(&system, explosionSettings, px, py, radius);
+				emittExplosion(&particles, explosionID, explosionSettings, px, py, radius);
 			}
 			if (useSparks) {
-				emittSparks(&sparks, sparksSettings, px, py, radius);
+				emittSparks(&particles, sparksID, sparksSettings, px, py, radius);
 			}
 		}			
 		ds::begin();
@@ -178,6 +176,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			gui::Input("ttl", &explosionSettings.ttl);
 			gui::Input("velocityVariance", &explosionSettings.velocityVariance);
 			gui::Input("sizeVariance", &explosionSettings.sizeVariance);
+			gui::Value("Alive", particles.numAlive(explosionID));
 		}
 		gui::end();
 		gui::begin("Sparks", &sparksState);
@@ -189,6 +188,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			gui::Input("ttl", &sparksSettings.ttl);
 			gui::Input("velocityVariance", &sparksSettings.velocityVariance);
 			gui::Input("growth", &sparksSettings.growth);
+			gui::Value("Alive", particles.numAlive(sparksID));
 		}
 		gui::end();
 		spriteBuffer.flush();

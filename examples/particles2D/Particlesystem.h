@@ -3,27 +3,25 @@
 #include "..\..\diesel.h"
 #include <vector>
 
-// ---------------------------------------------------------------
-// The particle vertex
-// ---------------------------------------------------------------
-struct ParticleVertex {
-	ds::vec3 pos;
-	ds::vec3 velocity;
-	ds::vec3 acceleration;
-	ds::vec4 timer; // timer / ttl / norm / rotation
+struct GPUParticle {
+	ds::vec2 position;
+	float rotation;
+	ds::vec2 velocity;
+	ds::vec2 acceleration;
+	ds::vec2 timer;
 };
-
 
 // ---------------------------------------------------------------
 // the sprite constant buffer
 // ---------------------------------------------------------------
 struct ParticleConstantBuffer {
-	ds::vec4 screenDimension;
 	ds::vec4 screenCenter;
 	ds::Color startColor;
 	ds::Color endColor;
 	ds::vec4 scale;
 	ds::vec4 texture;
+	ds::vec2 dimension;
+	ds::vec2 dummy;
 	ds::matrix wvp;
 };
 
@@ -104,30 +102,9 @@ struct ParticlesystemDescriptor {
 // -------------------------------------------------------
 // Particlesystem
 // -------------------------------------------------------
-class Particlesystem {
-
-public:
-	Particlesystem(ParticlesystemDescriptor descriptor);
-	void add(const ds::vec2& pos, const ds::vec2& velocity, const ds::vec2& acceleration, float ttl, float rotation);
-	void tick(float dt);
-	const ParticleArray* getArray() const {
-		return &_array;
-	}
-	const ParticlesystemDescriptor& getDescriptor() const {
-		return _descriptor;
-	}
-	void preapreBuffer(ParticleConstantBuffer* constantBuffer) {
-		ds::vec2 endScale = _descriptor.scale;
-		endScale.x += _descriptor.scale.x * _descriptor.growth.x;
-		endScale.y += _descriptor.scale.y * _descriptor.growth.y;
-		constantBuffer->startColor = _descriptor.startColor;
-		constantBuffer->endColor = _descriptor.endColor;
-		constantBuffer->scale = ds::vec4(_descriptor.scale.x, _descriptor.scale.y, endScale.x, endScale.y);
-		constantBuffer->texture = _descriptor.textureRect;
-	}
-private:
-	ParticlesystemDescriptor _descriptor;
-	ParticleArray _array;
+struct Particlesystem {
+	ParticlesystemDescriptor* descriptor;
+	ParticleArray array;
 };
 
 // -------------------------------------------------------
@@ -137,16 +114,22 @@ class ParticleManager {
 
 public:
 	ParticleManager(int maxParticles, RID textureID);
-	void add(Particlesystem* system);
+	//void add(Particlesystem* system);
+	uint32_t add(ParticlesystemDescriptor* descriptor);
+	void add(uint32_t id, const ds::vec2& pos, const ds::vec2& velocity, const ds::vec2& acceleration, float ttl, float rotation);
 	void tick(float dt);
 	void render();
+	int numAlive(uint32_t id) const {
+		return _partSystems[id].array.countAlive;
+	}
 private:
-	std::vector<Particlesystem*> _systems;
+	void prepareBuffer(const ParticlesystemDescriptor& descriptor);
+	//std::vector<Particlesystem*> _systems;
 	ParticleConstantBuffer _constantBuffer;
-	
-	ParticleVertex* _vertices;
+	std::vector<Particlesystem> _partSystems;
+	GPUParticle* _vertices;
 	ds::matrix _viewprojectionMatrix;
 	RID _drawItem;
-	RID _vertexBuffer;
 	RID _orthoPass;
+	RID _structuredBufferId;
 };

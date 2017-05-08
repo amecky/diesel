@@ -35,7 +35,6 @@
 // 0.1 - initial release
 // ------------------------------------------------------------------------------------
 
-
 //#define DS_IMPLEMENTATION
 
 typedef unsigned char BYTE;
@@ -2583,7 +2582,7 @@ namespace ds {
 			memset(buffer, 0, sizeof(buffer));
 			int written = vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, format, args);		
 			char complete[1600];
-			sprintf(complete, "%s - %d : %s", file, line, buffer);
+			sprintf_s(complete, "%s - %d : %s", file, line, buffer);
 			MessageBox(_ctx->hwnd, complete, "ERROR", NULL);
 			va_end(args);
 			exit(-1);
@@ -2597,7 +2596,7 @@ namespace ds {
 		memset(buffer, 0, sizeof(buffer));
 		int written = vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, format, args);
 		char complete[1600];
-		sprintf(complete, "%s - %d : %s", file, line, buffer);
+		sprintf_s(complete, "%s - %d : %s", file, line, buffer);
 		MessageBox(_ctx->hwnd, complete, "ERROR", NULL);
 		va_end(args);
 		exit(-1);
@@ -3084,6 +3083,7 @@ namespace ds {
 		_ctx->numInputKeys = 0;
 		_ctx->totalTicks = 0;
 		_ctx->maxDelta = _ctx->timerFrequency.QuadPart / 10;
+		_ctx->running = true;
 		for (int i = 0; i < 256; ++i) {
 			_ctx->errorBuffer[i] = '\0';
 		}

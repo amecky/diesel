@@ -1,51 +1,54 @@
 #include "Particlesystem.h"
-
+#include "Particles_VS_Main.h"
+#include "Particles_PS_Main.h"
 // ------------------------------------------------------ -
 // create new particlesystem
 // -------------------------------------------------------
 ParticleManager::ParticleManager(int maxParticles, RID textureID) {
-	_vertices = new ParticleVertex[maxParticles];
-	_constantBuffer.screenDimension = ds::vec4(1024.0f, 768.0f, 64.0f, 64.0f);
+	_vertices = new GPUParticle[maxParticles];
 	_constantBuffer.screenCenter = ds::vec4(512.0f, 384.0f, 0.0f, 0.0f);
 	ds::matrix viewMatrix = ds::matIdentity();
 	ds::matrix projectionMatrix = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
 	_viewprojectionMatrix = viewMatrix * projectionMatrix;
 
-	ds::ShaderInfo vsInfo = { "Particles_2D_vs.cso" , 0, 0, ds::ShaderType::ST_VERTEX_SHADER};
+	ds::ShaderInfo vsInfo = { 0 , Particles_VS_Main, sizeof(Particles_VS_Main), ds::ShaderType::ST_VERTEX_SHADER};
 	RID vertexShader = ds::createShader(vsInfo, "ParticlesVS");
-	ds::ShaderInfo psInfo = { "Particles_2D_ps.cso" , 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	ds::ShaderInfo psInfo = { 0 , Particles_PS_Main, sizeof(Particles_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
 	RID pixelShader = ds::createShader(psInfo, "ParticlesPS");
-	ds::ShaderInfo gsInfo = { "Particles_2D_gs.cso" , 0, 0, ds::ShaderType::ST_GEOMETRY_SHADER };
-	RID geoShader = ds::createShader(gsInfo, "ParticlesGS");
-
-	// very special buffer layout 
-	ds::InputLayoutDefinition decl[] = {
-		{ ds::BufferAttribute::POSITION, ds::BufferAttributeType::FLOAT,3 },
-		{ ds::BufferAttribute::NORMAL, ds::BufferAttributeType::FLOAT,3 },
-		{ ds::BufferAttribute::TANGENT ,ds::BufferAttributeType::FLOAT,3 },
-		{ ds::BufferAttribute::COLOR, ds::BufferAttributeType::FLOAT,4 }
-	};
-	ds::InputLayoutInfo layoutInfo = { decl, 4, vertexShader };
-	RID vertexDeclaration = ds::createInputLayout(layoutInfo, "ParticleLayout");
 
 	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
 	RID bs_id = ds::createBlendState(blendInfo);
+
 	RID constantBuffer = ds::createConstantBuffer(sizeof(ParticleConstantBuffer), &_constantBuffer);
-	ds::VertexBufferInfo vbInfo = { ds::BufferType::DYNAMIC, maxParticles, sizeof(ParticleVertex) };
-	_vertexBuffer = ds::createVertexBuffer(vbInfo);
+
+	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
+	RID ssid = ds::createSamplerState(samplerInfo);
+
+	int indices[] = { 0,1,2,1,3,2 };
+	RID idxBuffer = ds::createQuadIndexBuffer(maxParticles, indices);
+
+	ds::StructuredBufferInfo sbInfo;
+	sbInfo.cpuWritable = true;
+	sbInfo.data = 0;
+	sbInfo.elementSize = sizeof(GPUParticle);
+	sbInfo.numElements = maxParticles;
+	sbInfo.gpuWritable = false;
+	sbInfo.renderTarget = NO_RID;
+	sbInfo.textureID = NO_RID;
+	_structuredBufferId = ds::createStructuredBuffer(sbInfo);
 
 	RID basicGroup = ds::StateGroupBuilder()
-		.inputLayout(vertexDeclaration)
+		.constantBuffer(constantBuffer, vertexShader)
+		.structuredBuffer(_structuredBufferId, vertexShader, 1)
+		.vertexBuffer(NO_RID)
 		.vertexShader(vertexShader)
-		//.blendState(bs_id)
-		.geometryShader(geoShader)
+		.indexBuffer(idxBuffer)
 		.pixelShader(pixelShader)
-		.constantBuffer(constantBuffer, geoShader, 0)
+		.samplerState(ssid, pixelShader)
 		.texture(textureID, pixelShader, 0)
-		.vertexBuffer(_vertexBuffer)
 		.build();
 
-	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::POINT_LIST };
+	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
 
 	_drawItem = ds::compile(drawCmd, basicGroup, "ParticleDrawItem");
 
@@ -70,65 +73,73 @@ ParticleManager::ParticleManager(int maxParticles, RID textureID) {
 
 }
 
-void ParticleManager::add(Particlesystem* system) {
-	_systems.push_back(system);
+uint32_t ParticleManager::add(ParticlesystemDescriptor* descriptor) {
+	Particlesystem ps;
+	ps.descriptor = descriptor;
+	ps.array.initialize(descriptor->maxParticles);
+	_partSystems.push_back(ps);
+	return _partSystems.size() - 1;
 }
 
+void ParticleManager::prepareBuffer(const ParticlesystemDescriptor& descriptor) {
+	ds::vec2 endScale = descriptor.scale;
+	endScale.x += descriptor.scale.x * descriptor.growth.x;
+	endScale.y += descriptor.scale.y * descriptor.growth.y;
+	_constantBuffer.startColor = descriptor.startColor;
+	_constantBuffer.endColor = descriptor.endColor;
+	_constantBuffer.scale = ds::vec4(descriptor.scale.x, descriptor.scale.y, endScale.x, endScale.y);
+	_constantBuffer.texture = descriptor.textureRect;
+	_constantBuffer.dimension = descriptor.particleDimension;
+	_constantBuffer.dummy = ds::vec2(0.0f);
+}
+
+//void ParticleManager::add(Particlesystem* system) {
+	//_systems.push_back(system);
+//}
+
 void ParticleManager::tick(float dt) {
-	for (size_t p = 0; p < _systems.size(); ++p) {
-		_systems[p]->tick(dt);
+	for (size_t p = 0; p < _partSystems.size(); ++p) {
+		Particlesystem& ps = _partSystems[p];
+		for (int i = 0; i < ps.array.countAlive; ++i) {
+			ds::vec3 t = ps.array.timers[i];
+			t.x += dt;
+			t.z = t.x / t.y;
+			ps.array.timers[i] = t;
+			if (t.z >= 1.0f) {
+				ps.array.kill(i);
+			}
+		}
 	}
 }
 
 void ParticleManager::render() {
 	ds::matrix w = ds::matIdentity();
 	_constantBuffer.wvp = ds::matTranspose(_viewprojectionMatrix);
-	for (size_t p = 0; p < _systems.size(); ++p) {
-		_systems[p]->preapreBuffer(&_constantBuffer);
-		const ParticleArray* array = _systems[p]->getArray();
-		const ParticlesystemDescriptor& desc = _systems[p]->getDescriptor();
+	for (size_t p = 0; p < _partSystems.size(); ++p) {
+		ParticlesystemDescriptor* desc = _partSystems[p].descriptor;
+		prepareBuffer(*desc);
+		const ParticleArray* array = &_partSystems[p].array;
 		for (int i = 0; i < array->countAlive; ++i) {
-			_vertices[i] = { array->positions[i], array->velocities[i], array->accelerations[i], ds::vec4(array->timers[i].x, array->timers[i].y, 0.0f, array->rotations[i]) };
+			_vertices[i] = { array->positions[i].xy(), array->rotations[i], array->velocities[i].xy(), array->accelerations[i].xy(), ds::vec2(array->timers[i].x, array->timers[i].z)};
 		}
-		ds::mapBufferData(_vertexBuffer, _vertices, array->countAlive * sizeof(ParticleVertex));
-		ds::submit(_orthoPass, _drawItem, array->countAlive);
+		ds::mapBufferData(_structuredBufferId, _vertices, array->countAlive * sizeof(GPUParticle));
+		ds::submit(_orthoPass, _drawItem, array->countAlive * 6);
 	}
-}
-
-// -------------------------------------------------------
-// create new particlesystem
-// -------------------------------------------------------
-Particlesystem::Particlesystem(ParticlesystemDescriptor descriptor) : _descriptor(descriptor) {
-	_array.initialize(descriptor.maxParticles);
 }
 
 // -------------------------------------------------------
 // add particle based on ParticleDescriptor
 // -------------------------------------------------------
-void Particlesystem::add(const ds::vec2& pos, const ds::vec2& velocity, const ds::vec2& acceleration, float ttl, float rotation) {
-	int start = _array.countAlive;
-	if ((start + 1) < _array.count) {	
-		_array.rotations[start] = rotation;
-		_array.timers[start] = ds::vec3(0.0f, ttl, 1);
-		_array.velocities[start] = ds::vec3(velocity);
-		_array.positions[start] = ds::vec3(pos);
-		//_array.accelerations[start] = ds::vec3(velocity) * -0.8f;
-		_array.accelerations[start] = ds::vec3(acceleration);
-		_array.wake(start);
+void ParticleManager::add(uint32_t id, const ds::vec2& pos, const ds::vec2& velocity, const ds::vec2& acceleration, float ttl, float rotation) {
+	ParticleArray* array = &_partSystems[id].array;
+	int start = array->countAlive;
+	if ((start + 1) < array->count) {	
+		array->rotations[start] = rotation;
+		array->timers[start] = ds::vec3(0.0f, ttl, 1);
+		array->velocities[start] = ds::vec3(velocity);
+		array->positions[start] = ds::vec3(pos);
+		array->accelerations[start] = ds::vec3(acceleration);
+		array->wake(start);
 	}
 }
 
-// -------------------------------------------------------
-// tick - updates all particles and manages lifetime
-// -------------------------------------------------------
-void Particlesystem::tick(float dt) {
-	for (int i = 0; i < _array.countAlive; ++i) {
-		ds::vec3 t = _array.timers[i];
-		t.x += dt;
-		t.z = t.x / t.y;
-		_array.timers[i] = t;
-		if (t.z >= 1.0f) {
-			_array.kill(i);
-		}
-	}
-}
