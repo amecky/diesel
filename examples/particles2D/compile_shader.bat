@@ -9,8 +9,8 @@ rem Copyright (c) Microsoft Corporation. All rights reserved.
 setlocal
 set error=0
 
-rem set FX_PATH=C:\devtools\DirectX_SDK\Utilities\bin\x86
-set FX_PATH=C:\devtools\DirectX\Utilities\bin\x86
+set FX_PATH=C:\devtools\DirectX_SDK\Utilities\bin\x86
+rem set FX_PATH=C:\devtools\DirectX\Utilities\bin\x86
 
 rem Particles
 call :CompileShader%1 Particles Particles vs VS_Main

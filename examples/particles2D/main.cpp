@@ -18,7 +18,7 @@ RID loadImage(const char* name) {
 	stbi_image_free(data);
 	return textureID;
 }
-
+/*
 struct ExplosionSettings {
 	int count;
 	ds::vec2 ttl;
@@ -69,6 +69,7 @@ void emittSparks(ParticleManager* particles, uint32_t id, const SparksSettings& 
 		particles->add(id, ds::vec2(x, y), velocity, ds::vec2(0.0f,0.0f), ttl, rotation);
 	}
 }
+*/
 // ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------
@@ -117,21 +118,31 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	ParticleManager particles(4096, explosionDescriptor.textureID);
 
-	ExplosionSettings explosionSettings;
+	EmitterSettings explosionSettings;
 	explosionSettings.count = 512;
 	explosionSettings.angleVariance = 0.1f;
+	explosionSettings.radius = 50.0f;
 	explosionSettings.radiusVariance = 10.0f;
 	explosionSettings.ttl = ds::vec2(0.6f, 0.9f);
+	explosionSettings.velocity = ds::vec2(0.0f);
 	explosionSettings.velocityVariance = ds::vec2(100.0f, 240.0f);
-	explosionSettings.sizeVariance = ds::vec2(0.5f, 2.0f);
+	explosionSettings.size = ds::vec2(0.2f, 0.2f);
+	explosionSettings.sizeVariance = ds::vec2(0.2f,0.2f);
+	explosionSettings.acceleration = explosionSettings.velocity * -0.8f;
+	explosionSettings.growth = ds::vec2(-1.5f, -0.5f);
 
-	SparksSettings sparksSettings;
+	EmitterSettings sparksSettings;
 	sparksSettings.count = 128;
 	sparksSettings.angleVariance = 0.2f;
+	sparksSettings.radius = 50.0f;
 	sparksSettings.radiusVariance = 10.0f;
 	sparksSettings.ttl = ds::vec2(0.6f, 0.9f);
+	sparksSettings.velocity = ds::vec2(0.0f);
 	sparksSettings.velocityVariance = ds::vec2(120.0f, 200.0f);
-	sparksSettings.growth = ds::vec2(0.8f, 0.0f);
+	sparksSettings.size = ds::vec2(0.6f, 0.1f);
+	sparksSettings.sizeVariance = ds::vec2(1.2f, 0.0f);
+	sparksSettings.acceleration = ds::vec2(0.0f);
+	sparksSettings.growth = ds::vec2(1.0f, 0.0f);
 
 	int explosionID = particles.add(&explosionDescriptor);
 	int sparksID = particles.add(&sparksDescriptor);
@@ -154,10 +165,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			float px = ds::random(200.0f, 800.0f);
 			float py = ds::random(200.0, 500.0f);
 			if (useExplosion) {
-				emittExplosion(&particles, explosionID, explosionSettings, px, py, radius);
+				particles.emitt(explosionID, ds::vec2(px, py), explosionSettings);
 			}
 			if (useSparks) {
-				emittSparks(&particles, sparksID, sparksSettings, px, py, radius);
+				particles.emitt(sparksID, ds::vec2(px, py), sparksSettings);
 			}
 		}			
 		ds::begin();
@@ -172,21 +183,29 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			gui::Checkbox("Show explosion", &useExplosion);
 			gui::Input("Count", &explosionSettings.count);
 			gui::Input("angleVariance", &explosionSettings.angleVariance);
+			gui::Input("radius", &explosionSettings.radius);
 			gui::Input("radiusVariance", &explosionSettings.radiusVariance);
 			gui::Input("ttl", &explosionSettings.ttl);
+			gui::Input("velocity", &explosionSettings.velocity);
 			gui::Input("velocityVariance", &explosionSettings.velocityVariance);
+			gui::Input("size", &explosionSettings.size);
 			gui::Input("sizeVariance", &explosionSettings.sizeVariance);
+			gui::Input("growth", &explosionSettings.growth);
 			gui::Value("Alive", particles.numAlive(explosionID));
 		}
 		gui::end();
 		gui::begin("Sparks", &sparksState);
 		if (sparksState == 1) {
 			gui::Checkbox("Show sparks", &useSparks);
-			gui::Input("Count",&sparksSettings.count);
+			gui::Input("Count", &sparksSettings.count);
 			gui::Input("angleVariance", &sparksSettings.angleVariance);
+			gui::Input("radius", &sparksSettings.radius);
 			gui::Input("radiusVariance", &sparksSettings.radiusVariance);
 			gui::Input("ttl", &sparksSettings.ttl);
+			gui::Input("velocity", &sparksSettings.velocity);
 			gui::Input("velocityVariance", &sparksSettings.velocityVariance);
+			gui::Input("size", &sparksSettings.size);
+			gui::Input("sizeVariance", &sparksSettings.sizeVariance);
 			gui::Input("growth", &sparksSettings.growth);
 			gui::Value("Alive", particles.numAlive(sparksID));
 		}

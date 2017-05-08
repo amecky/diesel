@@ -69,16 +69,24 @@ ParticleManager::ParticleManager(int maxParticles, RID textureID) {
 	};
 	ds::RenderPassInfo rpInfo = { &camera, ds::DepthBufferState::DISABLED, 0, 0 };
 	_orthoPass = ds::createRenderPass(rpInfo, "ParticleOrthoPass");
-	//constantBuffer.wvp = ds::matTranspose(orthoView * orthoProjection);
 
 }
 
+ParticleManager::~ParticleManager() {
+	// always clean up
+	std::vector<Particlesystem*>::iterator it = _particleSystems.begin();
+	while (it != _particleSystems.end()) {
+		delete (*it);
+		it = _particleSystems.erase(it);
+	}
+}
+
 uint32_t ParticleManager::add(ParticlesystemDescriptor* descriptor) {
-	Particlesystem ps;
-	ps.descriptor = descriptor;
-	ps.array.initialize(descriptor->maxParticles);
-	_partSystems.push_back(ps);
-	return _partSystems.size() - 1;
+	Particlesystem* ps = new Particlesystem;
+	ps->descriptor = descriptor;
+	ps->array.initialize(descriptor->maxParticles);
+	_particleSystems.push_back(ps);
+	return _particleSystems.size() - 1;
 }
 
 void ParticleManager::prepareBuffer(const ParticlesystemDescriptor& descriptor) {
@@ -87,26 +95,22 @@ void ParticleManager::prepareBuffer(const ParticlesystemDescriptor& descriptor) 
 	endScale.y += descriptor.scale.y * descriptor.growth.y;
 	_constantBuffer.startColor = descriptor.startColor;
 	_constantBuffer.endColor = descriptor.endColor;
-	_constantBuffer.scale = ds::vec4(descriptor.scale.x, descriptor.scale.y, endScale.x, endScale.y);
+	//_constantBuffer.scale = ds::vec4(descriptor.scale.x, descriptor.scale.y, endScale.x, endScale.y);
 	_constantBuffer.texture = descriptor.textureRect;
 	_constantBuffer.dimension = descriptor.particleDimension;
 	_constantBuffer.dummy = ds::vec2(0.0f);
 }
 
-//void ParticleManager::add(Particlesystem* system) {
-	//_systems.push_back(system);
-//}
-
 void ParticleManager::tick(float dt) {
-	for (size_t p = 0; p < _partSystems.size(); ++p) {
-		Particlesystem& ps = _partSystems[p];
-		for (int i = 0; i < ps.array.countAlive; ++i) {
-			ds::vec3 t = ps.array.timers[i];
+	for (size_t p = 0; p < _particleSystems.size(); ++p) {
+		Particlesystem* ps = _particleSystems[p];
+		for (int i = 0; i < ps->array.countAlive; ++i) {
+			ds::vec3 t = ps->array.timers[i];
 			t.x += dt;
 			t.z = t.x / t.y;
-			ps.array.timers[i] = t;
+			ps->array.timers[i] = t;
 			if (t.z >= 1.0f) {
-				ps.array.kill(i);
+				ps->array.kill(i);
 			}
 		}
 	}
@@ -115,31 +119,59 @@ void ParticleManager::tick(float dt) {
 void ParticleManager::render() {
 	ds::matrix w = ds::matIdentity();
 	_constantBuffer.wvp = ds::matTranspose(_viewprojectionMatrix);
-	for (size_t p = 0; p < _partSystems.size(); ++p) {
-		ParticlesystemDescriptor* desc = _partSystems[p].descriptor;
+	for (size_t p = 0; p < _particleSystems.size(); ++p) {
+		ParticlesystemDescriptor* desc = _particleSystems[p]->descriptor;
 		prepareBuffer(*desc);
-		const ParticleArray* array = &_partSystems[p].array;
-		for (int i = 0; i < array->countAlive; ++i) {
-			_vertices[i] = { array->positions[i].xy(), array->rotations[i], array->velocities[i].xy(), array->accelerations[i].xy(), ds::vec2(array->timers[i].x, array->timers[i].z)};
+		const ParticleArray& array = _particleSystems[p]->array;
+		for (int i = 0; i < array.countAlive; ++i) {
+			_vertices[i] = { 
+				array.positions[i], 
+				array.rotations[i], 
+				array.velocities[i], 
+				array.accelerations[i], 
+				ds::vec2(array.timers[i].x,array.timers[i].z),
+				array.scales[i],
+				array.growth[i]
+			};
 		}
-		ds::mapBufferData(_structuredBufferId, _vertices, array->countAlive * sizeof(GPUParticle));
-		ds::submit(_orthoPass, _drawItem, array->countAlive * 6);
+		ds::mapBufferData(_structuredBufferId, _vertices, array.countAlive * sizeof(GPUParticle));
+		ds::submit(_orthoPass, _drawItem, array.countAlive * 6);
 	}
 }
 
 // -------------------------------------------------------
 // add particle based on ParticleDescriptor
 // -------------------------------------------------------
-void ParticleManager::add(uint32_t id, const ds::vec2& pos, const ds::vec2& velocity, const ds::vec2& acceleration, float ttl, float rotation) {
-	ParticleArray* array = &_partSystems[id].array;
-	int start = array->countAlive;
-	if ((start + 1) < array->count) {	
-		array->rotations[start] = rotation;
-		array->timers[start] = ds::vec3(0.0f, ttl, 1);
-		array->velocities[start] = ds::vec3(velocity);
-		array->positions[start] = ds::vec3(pos);
-		array->accelerations[start] = ds::vec3(acceleration);
-		array->wake(start);
+void ParticleManager::emitt(uint32_t id, const ds::vec2& pos, const EmitterSettings& emitter) {
+	ParticleArray& array = _particleSystems[id]->array;
+	int start = array.countAlive;
+	for (int i = 0; i < emitter.count; ++i) {
+		if ((start + 1) < array.count) {
+			float angle = ds::TWO_PI * static_cast<float>(i) / static_cast<float>(emitter.count);
+			float x = pos.x + cos(angle) * (emitter.radius + ds::random(-emitter.radiusVariance, emitter.radiusVariance));
+			float y = pos.y + sin(angle) * (emitter.radius + ds::random(-emitter.radiusVariance, emitter.radiusVariance));
+			float da = angle * emitter.angleVariance;
+			angle += ds::random(-da, da);
+			array.rotations[start] = angle;
+			ds::vec2 s(1.0f);
+			s.x = emitter.size.x + ds::random(-emitter.sizeVariance.x, emitter.sizeVariance.x);
+			if (s.x <= 0.0f) {
+				s.x = 0.1f;
+			}
+			s.y = emitter.size.y + ds::random(-emitter.sizeVariance.y, emitter.sizeVariance.y);
+			if (s.y <= 0.0f) {
+				s.y = 0.1f;
+			}
+			array.scales[start] = s;
+			array.growth[start] = emitter.growth;
+			float ttl = ds::random(emitter.ttl.x, emitter.ttl.y);
+			array.timers[start] = ds::vec3(0.0f, ttl, 1);
+			array.velocities[start] = ds::random(emitter.velocityVariance.x, emitter.velocityVariance.y) * ds::vec2(cos(angle), sin(angle));
+			array.accelerations[start] = emitter.acceleration;			
+			array.positions[start] = ds::vec2(x,y);
+			array.wake(start);
+			++start;
+		}
 	}
 }
 

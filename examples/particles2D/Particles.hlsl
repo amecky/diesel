@@ -2,7 +2,6 @@ cbuffer cbChangesPerFrame : register(b0) {
 	float4 screenCenter;
     float4 startColor;
 	float4 endColor;
-	float4 scale;
 	float4 texRect;
     float2 dimension;
     float2 dummy;
@@ -15,6 +14,8 @@ struct Particle {
 	float2 velocity;
     float2 acceleration;
     float2 timer;
+	float2 scale;
+	float2 growth;
 };
 
 StructuredBuffer<Particle> ParticlesRO : register(t1);
@@ -29,8 +30,8 @@ PS_Input VS_Main(uint id:SV_VERTEXID) {
 	PS_Input vsOut = (PS_Input)0;
 	uint particleIndex = id / 4;
 	uint vertexIndex = id % 4;	
-    float norm = ParticlesRO[particleIndex].timer.y;
-
+	float elapsed = ParticlesRO[particleIndex].timer.x;
+    float norm = ParticlesRO[particleIndex].timer.y;	
 	float3 position;
 	position.x = (vertexIndex % 2) ? 0.5 : -0.5;
 	position.y = (vertexIndex & 2) ? -0.5 : 0.5;
@@ -43,7 +44,9 @@ PS_Input VS_Main(uint id:SV_VERTEXID) {
 	float s = sin(rot);
 	float c = cos(rot);
 
-    float2 scaling = lerp(scale.xy,scale.zw,norm);
+    float2 scaling = ParticlesRO[particleIndex].scale;
+	scaling += ParticlesRO[particleIndex].growth * elapsed;
+	scaling = saturate(scaling);
 
 	float sx = position.x * scaling.x;
 	float sy = position.y * scaling.y;
@@ -52,8 +55,8 @@ PS_Input VS_Main(uint id:SV_VERTEXID) {
 	float yt = s * sx + c * sy;
 
 	float3 sp = float3(ParticlesRO[particleIndex].position, 0.0);
-    sp += float3(ParticlesRO[particleIndex].velocity,0.0) * ParticlesRO[particleIndex].timer.x;
-    sp += float3(ParticlesRO[particleIndex].acceleration,0.0) * ParticlesRO[particleIndex].timer.x * ParticlesRO[particleIndex].timer.x;
+    sp += float3(ParticlesRO[particleIndex].velocity,0.0) * elapsed;
+    sp += float3(ParticlesRO[particleIndex].acceleration,0.0) * elapsed * elapsed;
 	sp.x -= screenCenter.x;
 	sp.y -= screenCenter.y;
 
