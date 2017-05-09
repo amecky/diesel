@@ -4,11 +4,13 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Particlesystem.cpp" />
     <ClCompile Include="..\common\Grid.cpp" />
+    <ClCompile Include="..\common\Camera.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Particlesystem.h" />
     <ClInclude Include="..\common\Grid.h" />
     <ClInclude Include="GPUParticles_PS_Main.h" />
     <ClInclude Include="GPUParticles_VS_Main.h" />
+    <ClInclude Include="..\common\Camera.h" />
   </ItemGroup>
 </Project>

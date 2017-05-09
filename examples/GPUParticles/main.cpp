@@ -5,7 +5,7 @@
 #define DS_IMPLEMENTATION
 #include "Particlesystem.h"
 #include "..\common\Grid.h"
-
+#include "..\common\Camera.h"
 // ---------------------------------------------------------------
 // load image using stb_image
 // ---------------------------------------------------------------
@@ -68,9 +68,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	particleDescriptor.ttl = 0.4f;
 	particleDescriptor.velocity = ds::vec2(20.0f, 0.0f);
 	particleDescriptor.friction = 0.5f;
-	particleDescriptor.maxScale = ds::vec2(0.02f,0.02f);
+	particleDescriptor.maxScale = ds::vec2(0.02f, 0.02f);
 	particleDescriptor.minScale = ds::vec2(0.05f, 0.05f);
-	particleDescriptor.acceleration = ds::vec3(0.0f, -1.25f, 0.0f);
+	particleDescriptor.acceleration = ds::vec3(0.0f, -1.75f, 0.0f);
 	
 	int emitter = 64;
 	float radius = 0.05f;
@@ -96,7 +96,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	float frequency = 200.0f * dt;
 	float accu = 0.0f;
 
+	FPSCamera fpsCamera(&camera);
+	fpsCamera.setPosition(ds::vec3(0, 1, -6));
+	fpsCamera.buildView();
+
 	while (ds::isRunning()) {
+
+		fpsCamera.update(static_cast<float>(ds::getElapsedSeconds()));
 
 		t += static_cast<float>(ds::getElapsedSeconds());
 		if (t >= dt) {
@@ -107,7 +113,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				float x = cos(angle) * radius;
 				float y = -1.0f;
 				float z = sin(angle) * radius;
-				particleDescriptor.ttl = ds::random(0.6f, 1.2f);
+				particleDescriptor.ttl = ds::random(1.0f, 1.2f);
 				particleDescriptor.velocity = ds::vec3(ds::random(-0.4f,0.4f), ds::random(1.2f, 2.6f), ds::random(-0.4f, 0.4f));
 				system.add(ds::vec3(x, y, z), particleDescriptor);
 			}

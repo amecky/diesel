@@ -127,11 +127,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\common\Camera.cpp" />
     <ClCompile Include="..\common\Grid.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Particlesystem.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\common\Camera.h" />
     <ClInclude Include="..\common\Grid.h" />
     <ClInclude Include="GPUParticles_PS_Main.h" />
     <ClInclude Include="GPUParticles_VS_Main.h" />

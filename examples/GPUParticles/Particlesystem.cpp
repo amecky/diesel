@@ -8,8 +8,8 @@ Particlesystem::Particlesystem(ds::Camera* camera, ParticlesystemDescriptor desc
 	_array.initialize(descriptor.maxParticles);
 	_vertices = new GPUParticle[descriptor.maxParticles];
 
-	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
-	RID blendState = ds::createBlendState(blendInfo);
+	ds::BlendStateInfo blendStateInfo{ ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
+	RID blendState = ds::createBlendState(blendStateInfo);
 
 	ds::ShaderInfo vsInfo = { 0, GPUParticles_VS_Main, sizeof(GPUParticles_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
 	RID vertexShader = ds::createShader(vsInfo, "ParticlesVS");
@@ -22,7 +22,6 @@ Particlesystem::Particlesystem(ds::Camera* camera, ParticlesystemDescriptor desc
 	RID samplerState = ds::createSamplerState(samplerInfo);
 
 	int indices[] = { 0,1,2,1,3,2 };
-	//int indices[] = { 0,1,3,1,2,3 };
 	RID idxBuffer = ds::createQuadIndexBuffer(descriptor.maxParticles, indices);
 
 	ds::StructuredBufferInfo sbInfo;
@@ -36,6 +35,7 @@ Particlesystem::Particlesystem(ds::Camera* camera, ParticlesystemDescriptor desc
 	_structuredBufferId = ds::createStructuredBuffer(sbInfo);
 
 	RID basicGroup = ds::StateGroupBuilder()
+		.blendState(blendState)
 		.constantBuffer(constantBuffer, vertexShader)
 		.structuredBuffer(_structuredBufferId, vertexShader, 1)
 		.vertexBuffer(NO_RID)
@@ -94,22 +94,14 @@ void Particlesystem::render() {
 	_constantBuffer.eyePos = _camera->position;
 	_constantBuffer.padding = 0.0f;
 	_constantBuffer.world = ds::matTranspose(w);
-	/*
-	ds::vec3 position;
-	ds::vec3 velocity;
-	ds::vec3 acceleration;
-	ds::vec2 timer;
-	ds::vec3 scale;
-	ds::vec3 growth;
-	*/
 	for (int i = 0; i < _array.countAlive; ++i) {
-		_vertices[i] = { 
-			_array.positions[i], 
-			_array.velocities[i], 
+		_vertices[i] = {
+			_array.positions[i],
+			_array.velocities[i],
 			_array.accelerations[i],
-			ds::vec2(_array.timers[i].x, _array.timers[i].y), 
-			ds::vec3(_array.sizes[i].xy(),1.0),
-			ds::vec3(0.0f)
+			ds::vec2(_array.timers[i].x, _array.timers[i].y),
+			ds::vec2(_array.sizes[i].xy()),
+			ds::vec2(_array.sizes[i].z,_array.sizes[i].w)
 		};
 	}
 	ds::mapBufferData(_structuredBufferId, _vertices, _array.countAlive * sizeof(GPUParticle));

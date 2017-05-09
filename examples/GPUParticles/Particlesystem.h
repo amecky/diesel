@@ -7,8 +7,8 @@ struct GPUParticle {
 	ds::vec3 velocity;
 	ds::vec3 acceleration;
 	ds::vec2 timer;
-	ds::vec3 scale;
-	ds::vec3 growth;
+	ds::vec2 scale;
+	ds::vec2 growth;
 
 };
 
