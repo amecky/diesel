@@ -1,50 +1,52 @@
 #include "Particlesystem.h"
-
+#include "GPUParticles_PS_Main.h"
+#include "GPUParticles_VS_Main.h"
 // -------------------------------------------------------
 // create new particlesystem
 // -------------------------------------------------------
 Particlesystem::Particlesystem(ds::Camera* camera, ParticlesystemDescriptor descriptor, RID renderPass) : _camera(camera), _descriptor(descriptor) , _renderPass(renderPass) {
 	_array.initialize(descriptor.maxParticles);
-	_vertices = new ParticleVertex[descriptor.maxParticles];
+	_vertices = new GPUParticle[descriptor.maxParticles];
 
 	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
 	RID blendState = ds::createBlendState(blendInfo);
 
-	ds::ShaderInfo vsInfo = { "GPUParticles_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	ds::ShaderInfo vsInfo = { 0, GPUParticles_VS_Main, sizeof(GPUParticles_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
 	RID vertexShader = ds::createShader(vsInfo, "ParticlesVS");
-	ds::ShaderInfo psInfo = { "GPUParticles_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	ds::ShaderInfo psInfo = { 0, GPUParticles_PS_Main, sizeof(GPUParticles_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
 	RID pixelShader = ds::createShader(psInfo, "ParticlesPS");
-	ds::ShaderInfo gsInfo = { "GPUParticles_gs.cso" , 0, 0, ds::ShaderType::ST_GEOMETRY_SHADER };
-	RID geoShader = ds::createShader(gsInfo, "ParticlesGS");
 
-	// very special buffer layout 
-	ds::InputLayoutDefinition decl[] = {
-		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
-		{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,3 },
-		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 },
-		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
-	};
-	ds::InputLayoutInfo layoutInfo = { decl, 4, vertexShader };
-	RID vertexDeclaration = ds::createInputLayout(layoutInfo);
 
 	RID constantBuffer = ds::createConstantBuffer(sizeof(ParticleConstantBuffer), &_constantBuffer);
-	ds::VertexBufferInfo vbInfo = { ds::BufferType::DYNAMIC, descriptor.maxParticles, sizeof(ParticleVertex) };
-	_vertexBuffer = ds::createVertexBuffer(vbInfo);
 	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
 	RID samplerState = ds::createSamplerState(samplerInfo);
 
+	//int indices[] = { 0,1,2,1,3,2 };
+	int indices[] = { 0,1,3,1,2,3 };
+	RID idxBuffer = ds::createQuadIndexBuffer(descriptor.maxParticles, indices);
+
+	ds::StructuredBufferInfo sbInfo;
+	sbInfo.cpuWritable = true;
+	sbInfo.data = 0;
+	sbInfo.elementSize = sizeof(GPUParticle);
+	sbInfo.numElements = descriptor.maxParticles;
+	sbInfo.gpuWritable = false;
+	sbInfo.renderTarget = NO_RID;
+	sbInfo.textureID = NO_RID;
+	_structuredBufferId = ds::createStructuredBuffer(sbInfo);
+
 	RID basicGroup = ds::StateGroupBuilder()
-		.inputLayout(vertexDeclaration)
-		.vertexBuffer(_vertexBuffer)
-		.constantBuffer(constantBuffer, vertexShader, 0)
-		.constantBuffer(constantBuffer, geoShader, 0)
+		.constantBuffer(constantBuffer, vertexShader)
+		.structuredBuffer(_structuredBufferId, vertexShader, 1)
+		.vertexBuffer(NO_RID)
 		.vertexShader(vertexShader)
-		.geometryShader(geoShader)
+		.indexBuffer(idxBuffer)
 		.pixelShader(pixelShader)
+		.samplerState(samplerState, pixelShader)
 		.texture(descriptor.texture, pixelShader, 0)
 		.build();
 
-	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::POINT_LIST, 0 };
+	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::TRIANGLE_LIST, 0 };
 
 	_drawItem = ds::compile(drawCmd, basicGroup);
 }
@@ -91,10 +93,25 @@ void Particlesystem::render() {
 	_constantBuffer.eyePos = _camera->position;
 	_constantBuffer.padding = 0.0f;
 	_constantBuffer.world = ds::matTranspose(w);
+	/*
+	ds::vec3 position;
+	ds::vec3 velocity;
+	ds::vec3 acceleration;
+	ds::vec2 timer;
+	ds::vec3 scale;
+	ds::vec3 growth;
+	*/
 	for (int i = 0; i < _array.countAlive; ++i) {
-		_vertices[i] = ParticleVertex(_array.positions[i], _array.velocities[i], ds::vec2(_array.timers[i].x, _array.timers[i].y), _array.sizes[i]);
+		_vertices[i] = { 
+			_array.positions[i], 
+			_array.velocities[i], 
+			ds::vec3(0.0f),
+			ds::vec2(_array.timers[i].x, _array.timers[i].y), 
+			ds::vec3(_array.sizes[i].xy(),1.0),
+			ds::vec3(0.0f)
+		};
 	}
-	ds::mapBufferData(_vertexBuffer, _vertices, _array.countAlive * sizeof(ParticleVertex));
-	ds::submit(_renderPass, _drawItem, _array.countAlive);
+	ds::mapBufferData(_structuredBufferId, _vertices, _array.countAlive * sizeof(GPUParticle));
+	ds::submit(_renderPass, _drawItem, _array.countAlive * 6);
 
 }

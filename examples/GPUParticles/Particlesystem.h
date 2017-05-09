@@ -2,18 +2,14 @@
 #include <stdint.h>
 #include "..\..\diesel.h"
 
-// ---------------------------------------------------------------
-// The sprite vertex
-// ---------------------------------------------------------------
-struct ParticleVertex {
-
+struct GPUParticle {
 	ds::vec3 position;
 	ds::vec3 velocity;
-	ds::vec2 ttl;
-	ds::vec4 size;
+	ds::vec3 acceleration;
+	ds::vec2 timer;
+	ds::vec3 scale;
+	ds::vec3 growth;
 
-	ParticleVertex() : position(0, 0, 0) , velocity(0.0f) , ttl(0.0f) , size(1.0f) {}
-	ParticleVertex(const ds::vec3& p, const ds::vec3& v, const ds::vec2& t, const ds::vec4& s) : position(p), velocity(v), ttl(t) , size(s) {}
 };
 
 // ---------------------------------------------------------------
@@ -122,8 +118,8 @@ private:
 	ParticlesystemDescriptor _descriptor;
 	ParticleConstantBuffer _constantBuffer;
 	ParticleArray _array;
-	ParticleVertex* _vertices;
+	GPUParticle* _vertices;
 	RID _drawItem;
-	RID _vertexBuffer;
 	ds::Camera* _camera;
+	RID _structuredBufferId;
 };

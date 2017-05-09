@@ -125,11 +125,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	explosionSettings.radiusVariance = 10.0f;
 	explosionSettings.ttl = ds::vec2(0.6f, 0.9f);
 	explosionSettings.velocity = ds::vec2(0.0f);
-	explosionSettings.velocityVariance = ds::vec2(100.0f, 240.0f);
+	explosionSettings.velocityVariance = ds::vec2(200.0f, 300.0f);
 	explosionSettings.size = ds::vec2(0.2f, 0.2f);
 	explosionSettings.sizeVariance = ds::vec2(0.2f,0.2f);
-	explosionSettings.acceleration = explosionSettings.velocity * -0.8f;
-	explosionSettings.growth = ds::vec2(-1.5f, -0.5f);
+	explosionSettings.acceleration = explosionSettings.velocity * -0.9f;
+	explosionSettings.growth = ds::vec2(-0.5f, -0.5f);
 
 	EmitterSettings sparksSettings;
 	sparksSettings.count = 128;

@@ -133,6 +133,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\common\Grid.h" />
+    <ClInclude Include="GPUParticles_PS_Main.h" />
+    <ClInclude Include="GPUParticles_VS_Main.h" />
     <ClInclude Include="Particlesystem.h" />
   </ItemGroup>
   <ItemGroup>

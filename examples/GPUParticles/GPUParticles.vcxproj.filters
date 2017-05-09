@@ -8,6 +8,8 @@
   <ItemGroup>
     <ClInclude Include="Particlesystem.h" />
     <ClInclude Include="..\common\Grid.h" />
+    <ClInclude Include="GPUParticles_PS_Main.h" />
+    <ClInclude Include="GPUParticles_VS_Main.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="GPUParticles_gs.hlsl" />
