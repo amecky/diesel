@@ -11,9 +11,4 @@
     <ClInclude Include="GPUParticles_PS_Main.h" />
     <ClInclude Include="GPUParticles_VS_Main.h" />
   </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="GPUParticles_gs.hlsl" />
-    <FxCompile Include="GPUParticles_ps.hlsl" />
-    <FxCompile Include="GPUParticles_vs.hlsl" />
-  </ItemGroup>
 </Project>

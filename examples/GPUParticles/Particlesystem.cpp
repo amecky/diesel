@@ -21,8 +21,8 @@ Particlesystem::Particlesystem(ds::Camera* camera, ParticlesystemDescriptor desc
 	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
 	RID samplerState = ds::createSamplerState(samplerInfo);
 
-	//int indices[] = { 0,1,2,1,3,2 };
-	int indices[] = { 0,1,3,1,2,3 };
+	int indices[] = { 0,1,2,1,3,2 };
+	//int indices[] = { 0,1,3,1,2,3 };
 	RID idxBuffer = ds::createQuadIndexBuffer(descriptor.maxParticles, indices);
 
 	ds::StructuredBufferInfo sbInfo;
@@ -46,7 +46,7 @@ Particlesystem::Particlesystem(ds::Camera* camera, ParticlesystemDescriptor desc
 		.texture(descriptor.texture, pixelShader, 0)
 		.build();
 
-	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::TRIANGLE_LIST, 0 };
+	ds::DrawCommand drawCmd = { 100, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST, 0 };
 
 	_drawItem = ds::compile(drawCmd, basicGroup);
 }
@@ -61,6 +61,7 @@ void Particlesystem::add(const ds::vec3& pos, ParticleDescriptor descriptor) {
 		_array.velocities[start] = ds::vec3(descriptor.velocity);
 		_array.positions[start] = pos;
 		_array.sizes[start] = ds::vec4(descriptor.minScale.x, descriptor.minScale.y, descriptor.maxScale.x, descriptor.maxScale.y);
+		_array.accelerations[start] = descriptor.acceleration;
 		_array.wake(start);
 	}
 }
@@ -105,7 +106,7 @@ void Particlesystem::render() {
 		_vertices[i] = { 
 			_array.positions[i], 
 			_array.velocities[i], 
-			ds::vec3(0.0f),
+			_array.accelerations[i],
 			ds::vec2(_array.timers[i].x, _array.timers[i].y), 
 			ds::vec3(_array.sizes[i].xy(),1.0),
 			ds::vec3(0.0f)

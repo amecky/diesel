@@ -33,6 +33,7 @@ struct ParticleArray {
 	ds::vec3* velocities;
 	ds::vec3* timers;
 	ds::vec4* sizes;
+	ds::vec3* accelerations;
 	char* buffer;
 
 	uint32_t count;
@@ -47,12 +48,13 @@ struct ParticleArray {
 	}
 
 	void initialize(unsigned int maxParticles) {
-		int size = maxParticles * (sizeof(ds::vec3) + sizeof(ds::vec3) + sizeof(ds::vec3) + sizeof(ds::vec4));
+		int size = maxParticles * (sizeof(ds::vec3) + sizeof(ds::vec3) + sizeof(ds::vec3) + sizeof(ds::vec4) + sizeof(ds::vec3));
 		buffer = new char[size];
 		positions = (ds::vec3*)(buffer);
 		velocities = (ds::vec3*)(positions + maxParticles);
 		timers = (ds::vec3*)(velocities + maxParticles);
 		sizes = (ds::vec4*)(timers + maxParticles);
+		accelerations = (ds::vec3*)(sizes + maxParticles);
 		count = maxParticles;
 		countAlive = 0;
 	}
@@ -63,6 +65,7 @@ struct ParticleArray {
 			velocities[a] = velocities[b];
 			timers[a] = timers[b];
 			sizes[a] = sizes[b];
+			accelerations[a] = accelerations[b];
 		}
 	}
 
@@ -101,6 +104,7 @@ struct ParticleDescriptor {
 	ds::vec2 maxScale;
 	ds::vec3 velocity;
 	float friction;	
+	ds::vec3 acceleration;
 };
 
 // -------------------------------------------------------
