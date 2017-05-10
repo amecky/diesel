@@ -3,8 +3,4 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="Triangle_vs.hlsl" />
-    <FxCompile Include="Triangle_ps.hlsl" />
-  </ItemGroup>
 </Project>

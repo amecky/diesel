@@ -9,13 +9,12 @@ rem Copyright (c) Microsoft Corporation. All rights reserved.
 setlocal
 set error=0
 
-set FX_PATH=C:\devtools\DirectX_SDK\Utilities\bin\x86
-rem set FX_PATH=C:\devtools\DirectX\Utilities\bin\x86
+rem set FX_PATH=C:\devtools\DirectX_SDK\Utilities\bin\x86
+set FX_PATH=C:\devtools\DirectX\Utilities\bin\x86
 
-rem SpriteBuffer
-call :CompileShader%1 Sprite Sprite vs VS_Main
-call :CompileShader%1 Sprite Sprite ps PS_Main
-call :CompileShader%1 Sprite Sprite gs GS_Main
+rem Textured
+call :CompileShader%1 Textured Textured vs VS_Main
+call :CompileShader%1 Textured Textured ps PS_Main
 
 echo.
 
@@ -29,7 +28,7 @@ endlocal
 exit /b
 
 :CompileShader
-set fxc=%FX_PATH%\fxc /nologo %1.fx /T%3_4_0 /Zi /Zpc /Qstrip_reflect /Qstrip_debug /E%4 /Fh%1_%4.inc /Vn%2_%4
+set fxc=%FX_PATH%\fxc /nologo %1.hlsl /T%3_4_0 /Zi /Zpc /Qstrip_reflect /Qstrip_debug /E%4 /Fh%1_%4.h /Vn%2_%4
 echo.
 echo %fxc%
 %fxc% || set error=1

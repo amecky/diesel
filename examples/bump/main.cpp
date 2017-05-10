@@ -6,7 +6,10 @@
 #include "..\common\Geometry.h"
 #include "..\common\worldMatrix.h"
 #include "..\common\Camera.h"
-
+#include "Bump_VS_Main.h"
+#include "Bump_PS_Main.h"
+#include "..\common\Textured_VS_Main.h"
+#include "..\common\Textured_PS_Main.h"
 // ---------------------------------------------------------------
 // Vertex
 // ---------------------------------------------------------------
@@ -184,14 +187,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
 	RID bs_id = ds::createBlendState(blendInfo);
 
-	ds::ShaderInfo texturedVSInfo = { "..\\common\\Textured_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	ds::ShaderInfo texturedVSInfo = { 0, Textured_VS_Main, sizeof(Textured_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
 	RID texturedVS = ds::createShader(texturedVSInfo);
-	ds::ShaderInfo texturedPSInfo = { "..\\common\\Textured_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	ds::ShaderInfo texturedPSInfo = { 0, Textured_PS_Main, sizeof(Textured_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
 	RID texturedPS = ds::createShader(texturedPSInfo);
 
-	ds::ShaderInfo bumpVSInfo = { "Bump_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	ds::ShaderInfo bumpVSInfo = { 0, Bump_VS_Main, sizeof(Bump_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
 	RID bumpVS = ds::createShader(bumpVSInfo);
-	ds::ShaderInfo bumpPSInfo = { "Bump_vs.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	ds::ShaderInfo bumpPSInfo = { 0, Bump_PS_Main, sizeof(Bump_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
 	RID bumpPS = ds::createShader(bumpPSInfo);
 
 	Grid grid(&camera);

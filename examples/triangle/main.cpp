@@ -1,5 +1,7 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
+#include "Triangle_VS_Main.h"
+#include "Triangle_PS_Main.h"
 
 // ---------------------------------------------------------------
 // Vertex
@@ -48,9 +50,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	//
 	// create resources
 	//
-	ds::ShaderInfo vsInfo = { "Trianle_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	ds::ShaderInfo vsInfo = { 0, Triangle_VS_Main, sizeof(Triangle_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
 	RID vertexShader = ds::createShader(vsInfo);
-	ds::ShaderInfo psInfo = { "Trianle_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	ds::ShaderInfo psInfo = { 0, Triangle_PS_Main, sizeof(Triangle_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
 	RID pixelShader = ds::createShader(psInfo);
 	// create buffer input layout
 	ds::InputLayoutDefinition decl[] = {

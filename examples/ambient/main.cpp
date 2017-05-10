@@ -2,6 +2,8 @@
 #include "..\..\diesel.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "..\common\stb_image.h"
+#include "AmbientLightning_VS_Main.h"
+#include "AmbientLightning_PS_Main.h"
 
 struct Vertex {
 	ds::vec3 p;
@@ -108,7 +110,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::RenderSettings rs;
 	rs.width = 1024;
 	rs.height = 768;
-	rs.title = "Hello world";
+	rs.title = "Ambient lightning demo";
 	rs.clearColor = ds::Color(0.2f, 0.2f, 0.2f, 1.0f);
 	rs.multisampling = 4;
 	ds::init(rs);
@@ -119,9 +121,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::BlendStateInfo bsInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
 	RID bs_id = ds::createBlendState(bsInfo);
 
-	ds::ShaderInfo vsInfo = { "AmbientLightning_vs.cso" ,0,0,ds::ShaderType::ST_VERTEX_SHADER };
+	ds::ShaderInfo vsInfo = { 0, AmbientLightning_VS_Main , sizeof(AmbientLightning_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
 	RID vertexShader = ds::createShader(vsInfo);
-	ds::ShaderInfo psInfo = { "AmbientLightning_ps.cso" ,0,0,ds::ShaderType::ST_PIXEL_SHADER };
+	ds::ShaderInfo psInfo = { 0, AmbientLightning_PS_Main, sizeof(AmbientLightning_PS_Main),ds::ShaderType::ST_PIXEL_SHADER };
 	RID pixelShader = ds::createShader(psInfo);
 
 	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 2.0f, -6.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
