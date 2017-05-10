@@ -4,7 +4,8 @@
 #include "..\common\stb_image.h"
 #define DS_IMPLEMENTATION
 #include "Particlesystem.h"
-#include "..\common\SpriteBuffer.h"
+#define SPRITE_IMPLEMENTATION
+#include "..\common\SpriteBatchBuffer.h"
 #include "..\common\imgui.h"
 
 // ---------------------------------------------------------------
@@ -113,7 +114,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	// prepare IMGUI
 
 	RID guiTextureID = loadImage("..\\common\\imgui.png");
-	SpriteBuffer spriteBuffer(512, guiTextureID);
+	SpriteBatchBufferInfo sbbInfo = { 512, guiTextureID };
+	SpriteBatchBuffer spriteBuffer(sbbInfo);
 	gui::init(&spriteBuffer, guiTextureID);
 
 	ParticleManager particles(4096, explosionDescriptor.textureID);

@@ -2,16 +2,9 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="..\common\SpriteBuffer.cpp" />
     <ClCompile Include="..\common\imgui.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\common\SpriteBuffer.h" />
     <ClInclude Include="..\common\imgui.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\common\Sprite_GS_Main.inc" />
-    <None Include="..\common\Sprite_PS_Main.inc" />
-    <None Include="..\common\Sprite_VS_Main.inc" />
   </ItemGroup>
 </Project>

@@ -128,17 +128,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\common\imgui.cpp" />
-    <ClCompile Include="..\common\SpriteBuffer.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\common\imgui.h" />
-    <ClInclude Include="..\common\SpriteBuffer.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\common\Sprite_GS_Main.inc" />
-    <None Include="..\common\Sprite_PS_Main.inc" />
-    <None Include="..\common\Sprite_VS_Main.inc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

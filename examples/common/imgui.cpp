@@ -1,6 +1,6 @@
 #include "imgui.h"
 #include <vector>
-#include "SpriteBuffer.h"
+#include "SpriteBatchBuffer.h"
 #include <stdarg.h>
 
 namespace gui {
@@ -42,7 +42,7 @@ namespace gui {
 
 	struct GUIContext {
 		RID textureID;
-		SpriteBuffer* buffer;
+		SpriteBatchBuffer* buffer;
 		std::vector<DrawCall> calls;
 		bool clicked;
 		bool buttonPressed;
@@ -176,7 +176,7 @@ namespace gui {
 	// -------------------------------------------------------
 	// initialize GUI
 	// -------------------------------------------------------
-	void init(SpriteBuffer* buffer, RID textureID) {
+	void init(SpriteBatchBuffer* buffer, RID textureID) {
 		_guiCtx = new GUIContext;
 		_guiCtx->buffer = buffer;
 		_guiCtx->textureID = textureID;

@@ -2,7 +2,8 @@
 #include "..\..\diesel.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "..\common\stb_image.h"
-#include "..\common\SpriteBuffer.h"
+#define SPRITE_IMPLEMENTATION
+#include "..\common\SpriteBatchBuffer.h"
 
 const unsigned char font[128][16] = {
 	{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
@@ -226,7 +227,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	
 	ds::TextureInfo texInfo = { 128, 128, 4, data, ds::TextureFormat::R8G8B8A8_UNORM, ds::BindFlag::BF_SHADER_RESOURCE };
 	RID textureID = ds::createTexture(texInfo);
-	SpriteBuffer buffer(1024, textureID);
+	SpriteBatchBufferInfo sbbInfo = { 1024,textureID };
+	SpriteBatchBuffer buffer(sbbInfo);
 
 	const char* message = "-9E Hello World! This is 123.45 Test. Just get me going.";
 

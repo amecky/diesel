@@ -138,7 +138,6 @@
     <ClCompile Include="..\common\Geometry.cpp" />
     <ClCompile Include="..\common\Grid.cpp" />
     <ClCompile Include="..\common\imgui.cpp" />
-    <ClCompile Include="..\common\SpriteBuffer.cpp" />
     <ClCompile Include="..\common\WorldMatrix.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
@@ -146,7 +145,6 @@
     <ClInclude Include="..\common\Geometry.h" />
     <ClInclude Include="..\common\Grid.h" />
     <ClInclude Include="..\common\imgui.h" />
-    <ClInclude Include="..\common\SpriteBuffer.h" />
     <ClInclude Include="..\common\WorldMatrix.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

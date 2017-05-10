@@ -1,11 +1,11 @@
 #pragma once
 #include "..\..\diesel.h"
 
-class SpriteBuffer;
+class SpriteBatchBuffer;
 
 namespace gui {
 
-	void init(SpriteBuffer* buffer, RID textureID);
+	void init(SpriteBatchBuffer* buffer, RID textureID);
 
 	void start(const ds::vec2& pos);
 

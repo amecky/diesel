@@ -45,7 +45,6 @@
     <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="Grid.cpp" />
     <ClCompile Include="imgui.cpp" />
-    <ClCompile Include="SpriteBuffer.cpp" />
     <ClCompile Include="WaveFrontReader.cpp" />
     <ClCompile Include="WorldMatrix.cpp" />
   </ItemGroup>
@@ -54,14 +53,9 @@
     <ClInclude Include="Geometry.h" />
     <ClInclude Include="Grid.h" />
     <ClInclude Include="imgui.h" />
-    <ClInclude Include="SpriteBuffer.h" />
+    <ClInclude Include="SpriteBatchBuffer.h" />
     <ClInclude Include="WaveFrontReader.h" />
     <ClInclude Include="WorldMatrix.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Sprite_GS_Main.inc" />
-    <None Include="Sprite_PS_Main.inc" />
-    <None Include="Sprite_VS_Main.inc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{BE7450E3-C0D5-49D6-AE88-01526066A831}</ProjectGuid>

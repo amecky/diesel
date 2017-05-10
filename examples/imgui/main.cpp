@@ -2,7 +2,8 @@
 #include "..\..\diesel.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "..\common\stb_image.h"
-#include "..\common\SpriteBuffer.h"
+#define SPRITE_IMPLEMENTATION
+#include "..\common\SpriteBatchBuffer.h"
 #include "..\common\imgui.h"
 
 struct TestSettings {
@@ -126,7 +127,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID textureID = ds::createTexture(texInfo);
 	stbi_image_free(data);
 
-	SpriteBuffer spriteBuffer(512, textureID);
+	SpriteBatchBufferInfo sbbInfo = { 512, textureID };
+	SpriteBatchBuffer spriteBuffer(sbbInfo);
 
 	gui::init(&spriteBuffer, textureID);
 

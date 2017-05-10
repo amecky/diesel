@@ -2,7 +2,8 @@
 #include "..\..\diesel.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "..\common\stb_image.h"
-#include "..\common\SpriteBuffer.h"
+#define SPRITE_IMPLEMENTATION
+#include "..\common\SpriteBatchBuffer.h"
 #include "..\common\imgui.h"
 #include "BloomComponent.h"
 
@@ -158,7 +159,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	// prepare IMGUI
 	RID guiTextureID = loadImage("..\\common\\imgui.png");
-	SpriteBuffer spriteBuffer(512, guiTextureID);
+	SpriteBatchBufferInfo sbbInfo = { 512,guiTextureID };
+	SpriteBatchBuffer spriteBuffer(sbbInfo);
 	gui::init(&spriteBuffer, guiTextureID);
 
 	int state = 1;

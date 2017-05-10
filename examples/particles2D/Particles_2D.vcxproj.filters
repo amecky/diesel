@@ -4,13 +4,11 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Particlesystem.cpp" />
     <ClCompile Include="..\common\imgui.cpp" />
-    <ClCompile Include="..\common\SpriteBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="Particlesystem.h" />
     <ClInclude Include="..\common\imgui.h" />
-    <ClInclude Include="..\common\SpriteBuffer.h" />
     <ClInclude Include="Particles_VS_Main.h" />
     <ClInclude Include="Particles_PS_Main.h" />
   </ItemGroup>

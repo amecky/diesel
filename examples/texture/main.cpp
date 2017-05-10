@@ -5,7 +5,8 @@
 #include "..\common\Grid.h"
 #include "..\common\Geometry.h"
 #include "..\common\worldMatrix.h"
-#include "..\common\SpriteBuffer.h"
+#define SPRITE_IMPLEMENTATION
+#include "..\common\SpriteBatchBuffer.h"
 #include "..\common\imgui.h"
 
 // ---------------------------------------------------------------
@@ -162,7 +163,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	// prepare IMGUI
 	
 	RID guiTextureID = loadImage("..\\common\\imgui.png");
-	SpriteBuffer spriteBuffer(512, guiTextureID);
+	SpriteBatchBufferInfo sbbInfo{ 512, guiTextureID };
+	SpriteBatchBuffer spriteBuffer(sbbInfo);
 	gui::init(&spriteBuffer, guiTextureID);
 
 	ds::vec3 rotation = ds::vec3(0.0f, 0.0f, 0.0f);
