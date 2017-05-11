@@ -13,8 +13,4 @@
     <ClInclude Include="..\common\WorldMatrix.h" />
     <ClInclude Include="..\common\Camera.h" />
   </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="Bump_ps.hlsl" />
-    <FxCompile Include="Bump_vs.hlsl" />
-  </ItemGroup>
 </Project>
