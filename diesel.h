@@ -1145,24 +1145,15 @@ namespace ds {
 	RID findResource(const StaticHash& hash, ResourceType type);
 
 	void rebuildCamera(Camera* camera);
+	
 	// drawing
-	/**
-	* Starts the rendering. Must be called at the beginning of each frame
-	*/
+	
 	void begin();
-	/**
-	* Ends the rendering. Must be called at the end of the frame
-	*/
+	
 	void end();
-	/**
-	* Returns whether the engine is running or not
-	*
-	* @return true if still running
-	*/
+	
 	bool isRunning();
-	/**
-	* Stops the rendering and will shutdown the engine. It will also clean up all resources
-	*/
+	
 	void shutdown();
 
 	//
@@ -1204,51 +1195,23 @@ namespace ds {
 	// GPU profiling
 
 	namespace gpu {
-		/**
-		* Initializes the GPU profiler. This will be handled by the engine of you the render settings useGPUProfiler to true
-		*/
+		
 		void init();
-		/**
-		* Will reset the GPU profiler and will start a new frame. If the GPU profiler is enabled it will be called by the engine
-		*/
+		
 		void beginFrame();
-		/**
-		* Ends the current frame. This will be handled by the engine if the GPU profiler is active
-		*/
+		
 		void endFrame();
-		/**
-		* Adds a spot to measure. 
-		*
-		* @param index the index of this spot
-		*/
+		
 		void measure(int index);
-		/**
-		* Waits for the data from the GPU. You need to call this before you can get the timing data
-		*/
+		
 		void waitForData();
-		/**
-		* Returns the elapsed time for the given measurement
-		*
-		* @param index index of the measurement
-		* @return the elapsed time
-		*/
+		
 		float dt(int index);
-		/**
-		* Returns the average time measured between several frames for a measurement
-		*
-		* @param index the index of the measurement
-		* @return the average time
-		*/
+		
 		float dtAvg(int index);
-		/**
-		* Returns the total time of the frame
-		*
-		* @return the total time
-		*/
+		
 		float totalTime();
-		/**
-		* Will shutdown and clean up the GPU profiler. This is automatically handled by the engine.
-		*/
+		
 		void shutdown();
 	}
 
@@ -1305,17 +1268,9 @@ namespace ds {
 	const InputKey& getInputKey(int index);
 
 	// ------------------------------------------
-	/**
-	*
-	* @param name the name of the pixel shader - default is UNKNOWN
-	* @return RID the unique resource identifier
-	*/
+	
 	void dbgPrint(uint16_t x, uint16_t y, char* format, ...);
-	/**
-	*
-	* @param name the name of the pixel shader - default is UNKNOWN
-	* @return RID the unique resource identifier
-	*/
+	
 	void saveResourcesToFile(const char* fileName = "resources.txt");
 
 }
@@ -4166,11 +4121,6 @@ namespace ds {
 	// ------------------------------------------------------
 	// create render target
 	// ------------------------------------------------------
-	//RID createRenderTarget(uint16_t width, uint16_t height, const ds::Color& clearColor, const char* name) {
-		//RenderTargetInfo info = { width, height, clearColor };
-		//return createRenderTarget(info, name);
-	//}
-
 	RID createRenderTarget(const RenderTargetInfo& info, const char* name) {
 		RenderTarget* rt = new RenderTarget;
 		rt->clearColor = info.clearColor;
