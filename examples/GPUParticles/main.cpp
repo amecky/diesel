@@ -6,6 +6,8 @@
 #include "Particlesystem.h"
 #include "..\common\Grid.h"
 #include "..\common\Camera.h"
+#include "..\common\Textured_VS_Main.h"
+#include "..\common\Textured_PS_Main.h"
 // ---------------------------------------------------------------
 // load image using stb_image
 // ---------------------------------------------------------------
@@ -78,9 +80,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID textureID = loadImage("..\\common\\cube_map.png");
 
-	ds::ShaderInfo vsInfo = { "..\\common\\Textured_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	ds::ShaderInfo vsInfo = { 0, Textured_VS_Main, sizeof(Textured_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
 	RID vertexShader = ds::createShader(vsInfo, "TexturedVS");
-	ds::ShaderInfo psInfo = { "..\\common\\Textured_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	ds::ShaderInfo psInfo = { 0, Textured_PS_Main, sizeof(Textured_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
 	RID pixelShader = ds::createShader(psInfo, "TexturedPS");
 
 	Grid grid(&camera);
