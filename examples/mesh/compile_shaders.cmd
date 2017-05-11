@@ -13,8 +13,8 @@ rem set FX_PATH=C:\devtools\DirectX_SDK\Utilities\bin\x86
 set FX_PATH=C:\devtools\DirectX\Utilities\bin\x86
 
 rem Triangle
-call :CompileShader%1 Triangle Triangle vs VS_Main
-call :CompileShader%1 Triangle Triangle ps PS_Main
+call :CompileShader%1 Instancing Instancing vs VS_Main
+call :CompileShader%1 Instancing Instancing ps PS_Main
 
 echo.
 

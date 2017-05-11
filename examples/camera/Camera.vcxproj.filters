@@ -7,10 +7,6 @@
     <ClCompile Include="..\common\Camera.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Coloured_ps.hlsl" />
-    <FxCompile Include="Coloured_vs.hlsl" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="..\common\Grid.h" />
     <ClInclude Include="..\common\Geometry.h" />
     <ClInclude Include="..\common\Camera.h" />

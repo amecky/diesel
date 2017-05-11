@@ -3,8 +3,4 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="Fullscreen_vs.hlsl" />
-    <FxCompile Include="Fullscreen_ps.hlsl" />
-  </ItemGroup>
 </Project>

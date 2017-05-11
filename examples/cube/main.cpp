@@ -1,5 +1,7 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
+#include "Cube_VS_Main.h"
+#include "Cube_PS_Main.h"
 /*
 	This demo draws a moving coloured cube.
 */
@@ -89,9 +91,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::BlendStateInfo bsInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
 	RID bs_id = ds::createBlendState(bsInfo);
 
-	ds::ShaderInfo vsInfo = { "Cube_vs.cso" , 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	ds::ShaderInfo vsInfo = { 0, Cube_VS_Main, sizeof(Cube_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
 	RID vertexShader = ds::createShader(vsInfo);
-	ds::ShaderInfo psInfo = { "Cube_ps.cso" , 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	ds::ShaderInfo psInfo = { 0, Cube_PS_Main, sizeof(Cube_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
 	RID pixelShader = ds::createShader(psInfo);
 
 	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 2.0f, -6.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));

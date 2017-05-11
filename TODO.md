@@ -5,6 +5,7 @@
 - [ ] check if common\WaveFrontReader still needed -> adapt changes from tigre
 - [ ] remove warping grid -> new project
 - [ ] remove ripples -> new project
+- [ ] remove screenshake -> new project
 - [ ] take screenshots of every example
 - [ ] write short summaries of every example
 - [ ] write documentation about how to compile shader with batch 

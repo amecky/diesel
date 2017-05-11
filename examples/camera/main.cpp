@@ -5,7 +5,8 @@
 #include "..\common\stb_image.h"
 #include "..\common\Grid.h"
 #include "..\common\Geometry.h"
-
+#include "..\common\Textured_VS_Main.h"
+#include "..\common\Textured_PS_Main.h"
 // ---------------------------------------------------------------
 // Vertex
 // ---------------------------------------------------------------
@@ -86,9 +87,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::BlendStateInfo blendStateInfo {ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
 	RID bs_id = ds::createBlendState(blendStateInfo);
 
-	ds::ShaderInfo vsInfo = { "..\\common\\Textured_vs.cso" , 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	ds::ShaderInfo vsInfo = { 0, Textured_VS_Main, sizeof(Textured_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
 	RID vertexShader = ds::createShader(vsInfo);
-	ds::ShaderInfo psInfo = { "..\\common\\Textured_ps.cso" , 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	ds::ShaderInfo psInfo = { 0, Textured_PS_Main, sizeof(Textured_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
 	RID pixelShader = ds::createShader(psInfo);
 
 	Grid grid(&camera);

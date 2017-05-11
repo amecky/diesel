@@ -15,6 +15,9 @@ set FX_PATH=C:\devtools\DirectX\Utilities\bin\x86
 rem Textured
 call :CompileShader%1 Textured Textured vs VS_Main
 call :CompileShader%1 Textured Textured ps PS_Main
+rem Fullscreen_Quad
+call :CompileShader%1 Fullscreen_Quad Fullscreen_Quad vs VS_Main
+call :CompileShader%1 Fullscreen_Quad Fullscreen_Quad ps PS_Main
 
 echo.
 

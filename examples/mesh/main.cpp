@@ -3,6 +3,8 @@
 #include "..\common\WaveFrontReader.h"
 #include "..\common\Camera.h"
 #include "HexGrid.h"
+#include "Instancing_VS_Main.h"
+#include "Instancing_PS_Main.h"
 
 const int HEIGHT = 10;
 const int WIDTH = 14;
@@ -79,9 +81,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
 	RID bs_id = ds::createBlendState(blendInfo);
 
-	ds::ShaderInfo vsInfo = { "Mesh_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	ds::ShaderInfo vsInfo = { 0, Instancing_VS_Main, sizeof(Instancing_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
 	RID vertexShader = ds::createShader(vsInfo);
-	ds::ShaderInfo psInfo = { "Mesh_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	ds::ShaderInfo psInfo = { 0, Instancing_PS_Main, sizeof(Instancing_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
 	RID pixelShader = ds::createShader(psInfo);
 
 	ds::InstancedInputLayoutDefinition instDecl[] = {

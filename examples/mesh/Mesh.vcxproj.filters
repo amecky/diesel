@@ -12,8 +12,4 @@
     <ClInclude Include="hex.h" />
     <ClInclude Include="..\common\WaveFrontReader.h" />
   </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="Mesh_vs.hlsl" />
-    <FxCompile Include="Mesh_ps.hlsl" />
-  </ItemGroup>
 </Project>

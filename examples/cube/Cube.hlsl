@@ -22,3 +22,7 @@ PS_Input VS_Main( VS_Input vertex ) {
     vsOut.color = vertex.color;
     return vsOut;
 }
+
+float4 PS_Main( PS_Input frag ) : SV_TARGET {
+    return frag.color;
+}

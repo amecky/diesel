@@ -2,6 +2,10 @@
 #include "..\..\diesel.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "..\common\stb_image.h"
+#include "GrayFade_VS_Main.h"
+#include "GrayFade_PS_Main.h"
+#include "..\common\Textured_VS_Main.h"
+#include "..\common\Textured_PS_Main.h"
 // ---------------------------------------------------------------
 // Vertex
 // ---------------------------------------------------------------
@@ -73,9 +77,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID textureID = ds::createTexture(texInfo);
 	stbi_image_free(data);
 
-	ds::ShaderInfo vsInfo = { "..\\..\\examples\\obj\\Obj_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	ds::ShaderInfo vsInfo = { 0, Textured_VS_Main, sizeof(Textured_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
 	RID objVertexShader = ds::createShader(vsInfo);
-	ds::ShaderInfo psInfo = { "..\\..\\examples\\obj\\Obj_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	ds::ShaderInfo psInfo = { 0, Textured_PS_Main, sizeof(Textured_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
 	RID objPixelShader = ds::createShader(psInfo);
 
 	ds::InputLayoutDefinition decl[] = {
@@ -99,9 +103,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
 	RID ssid = ds::createSamplerState(samplerInfo);
 
-	ds::ShaderInfo fvsInfo = { "Fullscreen_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	ds::ShaderInfo fvsInfo = { 0, GrayFade_VS_Main, sizeof(GrayFade_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
 	RID fsVertexShader = ds::createShader(fvsInfo);
-	ds::ShaderInfo fpsInfo = { "Fullscreen_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	ds::ShaderInfo fpsInfo = { 0, GrayFade_PS_Main, sizeof(GrayFade_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
 	RID fsPixelShader = ds::createShader(fpsInfo);
 
 	PostProcessBuffer ppBuffer;
