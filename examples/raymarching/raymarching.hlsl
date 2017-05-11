@@ -1,10 +1,29 @@
-cbuffer cbChangesPerFrame : register(b0) {
-	float4 data;
+cbuffer cbChangesPerObject : register(b0) {
+	matrix mvp;
+	matrix world;
 };
 
 struct PS_Input {
 	float4 pos  : SV_POSITION;
 	float2 tex : TEXCOORD;
+};
+
+struct VS_Input {
+	float4 position  : POSITION;
+	float2 texcoord : TEXCOORD;
+};
+
+PS_Input VS_Main(VS_Input vertex) {
+	PS_Input vsOut = (PS_Input)0;
+	vertex.position.w = 1.0;
+	vsOut.pos = mul(vertex.position, world);
+	vsOut.pos = mul(vsOut.pos, mvp);
+	vsOut.tex = vertex.texcoord;
+	return vsOut;
+}
+
+cbuffer cbChangesPerFrame : register(b0) {
+	float4 data;
 };
 
 SamplerState colorSampler_ : register(s0);

@@ -3,9 +3,4 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="Font_vs.hlsl" />
-    <FxCompile Include="Font_gs.hlsl" />
-    <FxCompile Include="Font_ps.hlsl" />
-  </ItemGroup>
 </Project>

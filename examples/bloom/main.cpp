@@ -43,7 +43,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	//
 	// create three render targets to switch between
 	//
-	RID rt1 = ds::createRenderTarget(1024, 768, ds::Color(0, 0, 0, 0));
+	ds::RenderTargetInfo rtInfo = { 1024, 768, ds::Color(0, 0, 0, 0) };
+	RID rt1 = ds::createRenderTarget(rtInfo);
 	//
 	// The bloom settings 
 	//

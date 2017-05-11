@@ -1,6 +1,7 @@
 #define DS_IMPLEMENTATION
 #include "..\..\diesel.h"
-
+#include "Raymarching_VS_Main.h"
+#include "Raymarching_PS_Main.h"
 // ---------------------------------------------------------------
 // Vertex
 // ---------------------------------------------------------------
@@ -29,7 +30,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::RenderSettings rs;
 	rs.width = 800;
 	rs.height = 600;
-	rs.title = "Raymarching demo";
+	rs.title = "ray marching demo";
 	rs.clearColor = ds::Color(0.1f, 0.1f, 0.1f, 1.0f);
 	rs.multisampling = 4;
 	ds::init(rs);
@@ -39,9 +40,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
 	RID ssid = ds::createSamplerState(samplerInfo);
 
-	ds::ShaderInfo vsInfo = { "raymarching_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	ds::ShaderInfo vsInfo = { 0, Raymarching_VS_Main, sizeof(Raymarching_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
 	RID rayVS = ds::createShader(vsInfo);
-	ds::ShaderInfo psInfo = { "raymarching_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	ds::ShaderInfo psInfo = { 0, Raymarching_PS_Main, sizeof(Raymarching_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
 	RID rayPS = ds::createShader(psInfo);
 
 	ds::InputLayoutDefinition decl[] = {

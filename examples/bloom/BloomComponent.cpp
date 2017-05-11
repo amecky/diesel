@@ -28,8 +28,9 @@ void BloomComponent::initialize() {
 	//
 	// create three render targets to switch between
 	//
-	RID bloomRT1 = ds::createRenderTarget(1024, 768, ds::Color(0, 0, 0, 0));
-	RID bloomRT2 = ds::createRenderTarget(1024, 768, ds::Color(0, 0, 0, 0));
+	ds::RenderTargetInfo rtInfo = { 1024, 768, ds::Color(0, 0, 0, 0) };
+	RID bloomRT1 = ds::createRenderTarget(rtInfo);
+	RID bloomRT2 = ds::createRenderTarget(rtInfo);
 	//
 	// basic pass 
 	//

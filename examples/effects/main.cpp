@@ -44,8 +44,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.multisampling = 4;
 	rs.useGPUProfiling = false;
 	ds::init(rs);
-
-	RID rtID = ds::createRenderTarget(1024, 768, ds::Color(0.0f, 0.0f, 0.0f, 1.0f));
+	ds::RenderTargetInfo rtInfo = { 1024, 768, ds::Color(0, 0, 0, 1) };
+	RID rtID = ds::createRenderTarget(rtInfo);
 	RID rts[] = { rtID };
 
 	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 0.0f, -1.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));

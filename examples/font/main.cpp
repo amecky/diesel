@@ -35,8 +35,6 @@ void fillTextEntry(const char* text, TextEntry* entry, int max) {
 // ---------------------------------------------------------------
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
 	
-	numSprites = 0;
-
 	TextEntry entries[3];
 	TextEntry& first = entries[0];
 	first.pos = ds::vec2(300, 500);

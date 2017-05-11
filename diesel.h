@@ -1126,11 +1126,9 @@ namespace ds {
 
 	RID createRenderTarget(const RenderTargetInfo& info, const char* name = "RenderTarget");
 
-	RID createRenderTarget(uint16_t width, uint16_t height, const ds::Color& clearColor, const char* name = "RenderTarget");
+	//void setRenderTarget(RID rtID);
 
-	void setRenderTarget(RID rtID);
-
-	void restoreBackBuffer();
+	//void restoreBackBuffer();
 
 	// rasterizer state
 	struct RasterizerStateInfo {
@@ -4168,10 +4166,10 @@ namespace ds {
 	// ------------------------------------------------------
 	// create render target
 	// ------------------------------------------------------
-	RID createRenderTarget(uint16_t width, uint16_t height, const ds::Color& clearColor, const char* name) {
-		RenderTargetInfo info = { width, height, clearColor };
-		return createRenderTarget(info, name);
-	}
+	//RID createRenderTarget(uint16_t width, uint16_t height, const ds::Color& clearColor, const char* name) {
+		//RenderTargetInfo info = { width, height, clearColor };
+		//return createRenderTarget(info, name);
+	//}
 
 	RID createRenderTarget(const RenderTargetInfo& info, const char* name) {
 		RenderTarget* rt = new RenderTarget;

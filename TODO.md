@@ -10,13 +10,13 @@
 - [ ] write documentation about how to load textures
 - [ ] finish resources.md
 - [ ] GPUProfiler -> there is a warning - fix the bug
-- [ ] change all shaders to be compiled by batch script and include it as header
 - [ ] write a short readme.md for every example
 - [ ] Font -> do something interesting with this demo
 - [ ] Write some documentation about the external projects like colors and ds_arena
 - [ ] ds_arena -> set "Additional VC++ Include directories" to diesel!!!
 
 ## 2017-05-11
+- [x] change all shaders to be compiled by batch script and include it as header
 - [x] clean up common\Camera
 - [x] check if common\WaveFrontReader still needed -> adapt changes from tigre
 

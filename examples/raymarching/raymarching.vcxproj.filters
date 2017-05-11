@@ -3,8 +3,4 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="raymarching_ps.hlsl" />
-    <FxCompile Include="raymarching_vs.hlsl" />
-  </ItemGroup>
 </Project>
