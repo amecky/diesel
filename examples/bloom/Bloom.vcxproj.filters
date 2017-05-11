@@ -10,12 +10,4 @@
     <ClInclude Include="..\common\imgui.h" />
     <ClInclude Include="BloomComponent.h" />
   </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="Fullscreen_vs.hlsl" />
-    <FxCompile Include="Fullscreen_ps.hlsl" />
-    <FxCompile Include="BlurH_ps.hlsl" />
-    <FxCompile Include="Blur_vs.hlsl" />
-    <FxCompile Include="Bloom_ps.hlsl" />
-    <FxCompile Include="Bloom_Combine_ps.hlsl" />
-  </ItemGroup>
 </Project>

@@ -883,9 +883,6 @@ namespace ds {
 	// ---------------------------------------------------
 	// State group
 	// ---------------------------------------------------	
-	/**
-	* A StateGroup is a combination of several resources.
-	*/
 	struct StateGroup {
 		RID* items;
 		int num;
@@ -961,9 +958,6 @@ namespace ds {
 		RID build(const char* name = "ComputeShader");
 	};
 
-	/**
-	* StaticHash is a helper class to support building a hash at compile time.
-	*/
 	class StaticHash {
 
 	public:
@@ -991,7 +985,6 @@ namespace ds {
 		Camera* camera;
 		RID rts[4];
 		int numRenderTargets;
-		//DepthTarget depthTarget;
 		DepthBufferState depthState;
 	};
 
@@ -1002,45 +995,15 @@ namespace ds {
 		RID* renderTargets;
 		int numRenderTargets;
 	};
-	/**
-	* Creates a render pass.
-	*
-	* @param info the RenderPassInfo
-	* @param name the name of the render pass - default is RenderPass
-	* @return RID the unique resource identifier
-	*/
+	
 	RID createRenderPass(const RenderPassInfo& info, const char* name = "RenderPass");
 
-	// items, groups, passes
-	/**
-	* Compiles a draw command and a list of StateGroups into a DrawCommand
-	*
-	* @param cmd the DrawCommand
-	* @param groups a pointer to a list of StateGroups
-	* @param num number of StateGroups
-	* @param name optional name of the DrawItem - default is UNKNOWN
-	* @return RID the unique resource identifier
-	*/
 	RID compile(const DrawCommand cmd, RID* groups, int num, const char* name = "UNKNOWN");
-	/**
-	* Compiles a DrawCommand and one StateGroup into a DrawItem. The default state group
-	* is added automatically.
-	*
-	* @param cmd the DrawCommand
-	* @param group the StateGroup
-	* @param name the name of the pixel shader - default is UNKNOWN
-	* @return RID the unique resource identifier
-	*/
+	
 	RID compile(const DrawCommand cmd, RID group, const char* name = "UNKNOWN");
 
 	void submit(RID renderPass, RID drawItemID, int numElements = -1);
-
-	/**
-	* Initialize the rendering engine.
-	*
-	* @param settings the RenderSettings
-	* @return true if the engine could be instantiated
-	*/
+	
 	bool init(const RenderSettings& settings);
 
 	// vertex declaration / buffer input layout
@@ -1060,16 +1023,7 @@ namespace ds {
 	};
 	RID createInstancedInputLayout(const InstancedInputLayoutInfo& info, const char* name = "InstancedInputLayout");
 
-	// constant buffer
-	/**
-	* Creates a new constant buffer which can be bound to a vertex shader or pixel and so on
-	*
-	* @param byteWidth the size of the bytes
-	* @param data optional data - the buffer will be filled with the data when created
-	* @param name optional name of the constant buffer - default is UNKNOWN
-	* @return RID the unique resource identifier
-	*/
-	RID createConstantBuffer(int byteWidth, void* data = 0, const char* name = "UNKNOWN");
+	RID createConstantBuffer(int byteWidth, void* data = 0, const char* name = "ConstantBuffer");
 
 	struct IndexBufferInfo {
 		uint32_t numIndices;
@@ -1077,24 +1031,9 @@ namespace ds {
 		BufferType type;
 		void* data;
 	};
-	// index buffer
-	/**
-	* Creates an index buffer.
-	* 
-	* @param info the IndexBufferInfo
-	* @param name the name of the index buffer - default is IndexBuffer
-	* @return RID the unique resource identifier
-	*/
-	RID createIndexBuffer(const IndexBufferInfo& info, const char* name = "IndexBuffer");
-
-
 	
-	/**
-	* Creates a quad index buffer. 
-	* @param name the name of the index buffer - default is QuadIndexBuffer
-	* @return RID the unique resource identifier
-	*/
-	// FIXME: replace with buildQuadsIndices(int numQuads,int* order,const char* name);
+	RID createIndexBuffer(const IndexBufferInfo& info, const char* name = "IndexBuffer");
+	
 	RID createQuadIndexBuffer(int numQuads, const char* name = "QuadIndexBuffer");
 
 	RID createQuadIndexBuffer(int numQuads, int* order, const char* name = "QuadIndexBuffer");
@@ -1106,39 +1045,13 @@ namespace ds {
 		uint32_t vertexSize;
 		void* data;
 	};
-	/**
-	* Creates a vertex buffer
-	*
-	* @param info the VertexBufferInfo
-	* @param name the name of the vertex buffer - default is VertexBuffer
-	* @return RID the unique resource identifier
-	*/
 	RID createVertexBuffer(const VertexBufferInfo& info, const char* name = "VertexBuffer");
-	/**
-	* Maps the data to a constant buffer or vertex buffer or index buffer
-	* 
-	* @param rid the unique resource identifier of the resource
-	* @param data the actual data
-	* @param size the size of the data
-	*/
+	
 	void mapBufferData(RID rid, void* data, uint32_t size);
-	/**
-	*
-	* @param name the name of the pixel shader - default is UNKNOWN
-	* @return RID the unique resource identifier
-	*/
+	
 	RID createInstancedBuffer(RID vertexBuffer, RID instanceBuffer, const char* name = "UNKNOWN");
 
-	// GPU buffer
-	/**
-	* Creates a buffer in GPU memory
-	*
-	* @param numElemens the number of elements for this buffer
-	* @param byteStride the stride of every byte
-	* @param data optional initial data
-	* @param name the name of the buffer - default is UNKNOWN
-	* @return RID the unique resource identifier
-	*/
+	
 	RID createBuffer(int numElements, int byteStride, void* data = 0, const char* name = "UNKNOWN");
 
 	// ---------------------------------------------------
@@ -1159,14 +1072,7 @@ namespace ds {
 		TextureAddressModes addressMode;
 		TextureFilters filter;
 	};
-	// sampler state
-	/**
-	* Creates a sampler state
-	*
-	* @param info the SamplerStateInfo
-	* @param name the name of the sampler state - default is SamplerState
-	* @return RID the unique resource identifier
-	*/
+	
 	RID createSamplerState(const SamplerStateInfo& info, const char* name = "SamplerState");
 
 	// FIXME: add blendOperation!!! and blendMask!!!
@@ -1177,12 +1083,7 @@ namespace ds {
 		BlendStates destAlphaBlend;
 		bool alphaEnabled;
 	};
-	// blendstate
-	/**
-	* @param info the BlendStateInfo
-	* @param name the name of the pixel shader - default is UNKNOWN
-	* @return RID the unique resource identifier
-	*/
+
 	RID createBlendState(const BlendStateInfo& info, const char* name = "BlendState");
 
 	enum ShaderType {
@@ -1210,39 +1111,22 @@ namespace ds {
 		TextureFormat format;
 		uint16_t bindFlags;
 	};
-	/**
-	* Creates a new shader resource view. 
-	*
-	* @param width the width of the texture
-	* @param height the height of the texture
-	* @param channels number of channels (usually 4 which means RGBA)
-	* @param data the data that will be used for the texture
-	* @param format the TextureFormat
-	* @param name the name of the texture - default is Texture
-	* @return RID the unique resource identifier
-	*/
+	
 	RID createTexture(const TextureInfo& info, const char* name = "Texture");
 
-	/**
-	* Returns the size of a texture
-	*
-	* @param rid the unique resource identifier
-	* @return a ds::vec2 containing the size or (0,0) if the resource was not found 
-	*/
 	ds::vec2 getTextureSize(RID rid);
 
 	byte* getBufferData(RID bufferID);
-	// render target
-	/**
-	* Creates a render target.
-	*
-	* @param width the width of the render target
-	* @param height the height of the render target
-	* @param clearColor the color that will be used to clear the render target
-	* @param name the name of the pixel shader - default is UNKNOWN
-	* @return RID the unique resource identifier
-	*/
-	RID createRenderTarget(uint16_t width, uint16_t height, const ds::Color& clearColor, const char* name = "UNKNOWN");
+
+	struct RenderTargetInfo {
+		uint16_t width;
+		uint16_t height;
+		const ds::Color& clearColor;
+	};
+
+	RID createRenderTarget(const RenderTargetInfo& info, const char* name = "RenderTarget");
+
+	RID createRenderTarget(uint16_t width, uint16_t height, const ds::Color& clearColor, const char* name = "RenderTarget");
 
 	void setRenderTarget(RID rtID);
 
@@ -1257,11 +1141,7 @@ namespace ds {
 		float depthBias;
 		float slopeDepthBias;
 	};
-	/**
-	* @param info the RasterizerStateInfo
-	* @param name the name of the rasterizer state - default is RasterizerState
-	* @return RID the unique resource identifier
-	*/
+
 	RID createRasterizerState(const RasterizerStateInfo& info, const char* name = "RasterizerState");
 
 	RID findResource(const StaticHash& hash, ResourceType type);
@@ -4289,15 +4169,20 @@ namespace ds {
 	// create render target
 	// ------------------------------------------------------
 	RID createRenderTarget(uint16_t width, uint16_t height, const ds::Color& clearColor, const char* name) {
+		RenderTargetInfo info = { width, height, clearColor };
+		return createRenderTarget(info, name);
+	}
+
+	RID createRenderTarget(const RenderTargetInfo& info, const char* name) {
 		RenderTarget* rt = new RenderTarget;
-		rt->clearColor = clearColor;
+		rt->clearColor = info.clearColor;
 		// Initialize the render target texture description.
 		D3D11_TEXTURE2D_DESC textureDesc;
 		ZeroMemory(&textureDesc, sizeof(textureDesc));
 
 		// Setup the render target texture description.
-		textureDesc.Width = width;
-		textureDesc.Height = height;
+		textureDesc.Width = info.width;
+		textureDesc.Height = info.height;
 		textureDesc.MipLevels = 1;
 		textureDesc.ArraySize = 1;
 		textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
@@ -4329,8 +4214,8 @@ namespace ds {
 
 		D3D11_TEXTURE2D_DESC depthTexDesc;
 		ZeroMemory(&depthTexDesc, sizeof(depthTexDesc));
-		depthTexDesc.Width = width;
-		depthTexDesc.Height = height;
+		depthTexDesc.Width = info.width;
+		depthTexDesc.Height = info.height;
 		depthTexDesc.MipLevels = 1;
 		depthTexDesc.ArraySize = 1;
 		depthTexDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;

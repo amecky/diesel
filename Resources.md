@@ -1,28 +1,25 @@
 # Resources 
 
+
 ## Table of contents
 
 - [Camera](#camera)
 - [RenderPass](#renderpass)
+- [RenderTarget](#rendertarget)
 - [Blendstate](#blendstate)
+- [SamplerState](#samplerstate)
+- [Texture](#texture)
+- [VertexBuffer](#vertexbuffer)
+- [InputLayoutDefinition](#inputlayoutdefinition)
+- [InputLayout](#inputlayout)
+- [IndexBuffer](#indexbuffer)
+- [QuadIndexBuffer](#quadindexbuffer)
+- [RasterizerState](#rasterizerstate)
+- [Shader](#shader)
+- [ConstantBuffer](#constantbuffer)
+- [StructuredBuffer](#structuredbuffer)
 
-- [x] INPUT_LAYOUT
-- [ ] CONSTANT_BUFFER
-- [x] INDEX_BUFFER
-- [x] VERTEX_BUFFER
-- [ ] SAMPLER_STATE
-- [ ] BLENDSTATE
-- [ ] SRV
-- [x] RASTERIZER_STATE		
 - [ ] INSTANCED_VERTEX_BUFFER
-- [ ] VERTEX_SHADER
-- [ ] GEOMETRY_SHADER
-- [ ] PIXEL_SHADER
-- [ ] RENDER_TARGET
-- [x] RENDER_PASS
-- [ ] DRAW_ITEM
-- [ ] STATE_GROUP
-- [ ] STRUCTURED_BUFFER
         
 ## Camera <a name="camera"></a>
 
@@ -147,6 +144,16 @@ ds::RenderPassInfo rpInfo = { &camera, ds::DepthBufferState::ENABLED, 0, 0 };
 RID ppPass = ds::createRenderPass(rpInfo);
 ```
 
+## RenderTarget <a name="rendertarget"></a>
+
+struct RenderTargetInfo {
+    uint16_t width;
+    uint16_t height;
+    const ds::Color& clearColor;
+};
+
+RID createRenderTarget(const RenderTargetInfo& info, const char* name = "RenderTarget");
+
 ## BlendState <a name="blendstate"></a>
 
 In order to create a BlendState you need to fill out a BlendStateInfo:
@@ -172,7 +179,7 @@ ds::BlendStateInfo myBlendState = { ds::BlendStates::SRC_ALPHA, ds::BlendStates:
 RID bs_id = ds::createBlendState( myBlendState, "MyBlendState");
 ```
 
-## SamplerState
+## SamplerState <a name="samplerstate"></a>
 
 ```c
 struct SamplerStateInfo {
@@ -205,7 +212,7 @@ RID createSamplerState(const SamplerStateInfo& info, const char* name = "Sampler
 ```
     
     
-## Texture
+## Texture <a name="texture"></a>
 
 In order to create a Texture you need to fill out the TextureInfo
 
@@ -244,7 +251,7 @@ stbi_image_free(data);
 return textureID;
 ```
 
-## VertexBuffer
+## VertexBuffer <a name="vertexbuffer"></a>
 
 You can create a vertex buffer by using the VertexBufferInfo:
 
@@ -289,7 +296,7 @@ ds::VertexBufferInfo vbInfo = { ds::BufferType::STATIC, 3, sizeof(Vertex), v };
 RID vbid = ds::createVertexBuffer(vbInfo);
 ```
 
-## InputLayoutDefinition
+## InputLayoutDefinition <a name="inputlayoutdefinition"></a>
 
 In order to create an InputLayout you need to provide an array of InputLayoutDefinitions:
 ```c
@@ -320,7 +327,7 @@ Currently only the following BufferAttributeTypes are supported:
 - ds::BufferAttributeType::FLOAT
 - ds::BufferAttributeType::UINT_8
 
-## InputLayout
+## InputLayout <a name="inputlayout"></a>
 
 Once you have defined an array of InputLayoutDefitions you can create an InputLayout using the InputLayoutInfo:
 
@@ -353,7 +360,7 @@ ds::InputLayoutInfo layoutInfo = { decl, 2, vertexShader };
 RID rid = ds::createInputLayout(layoutInfo, "PosTex_Layout");
 ```
 
-## IndexBuffer
+## IndexBuffer <a name="indexbuffer"></a>
 
 You need to create an IndexBufferInfo to create an index buffer. Here is the IndexBufferInfo struct:
 ```c
@@ -393,7 +400,13 @@ ds::IndexBufferInfo info = {32, ds::IndexType::UINT_16,ds::BufferType::DYNAMIC,0
 RID indexBuffer = ds::createIndexBuffer(info, "MyIndexBuffer");
 ```
 
-## Rasterizer state
+## QuadIndexBuffer <a name="quadindexbuffer"></a>
+
+RID createQuadIndexBuffer(int numQuads, const char* name = "QuadIndexBuffer");
+
+RID createQuadIndexBuffer(int numQuads, int* order, const char* name = "QuadIndexBuffer");
+
+## Rasterizer state <a name="rasterizerstate"></a>
 
 In order to create a rasterizer state you need to fill out a RasterizerStateInfo:
 
@@ -434,7 +447,7 @@ Then you can create a rasterizer state:
 RID createRasterizerState(const RasterizerStateInfo& info, const char* name = "RasterizerState");
 ```    
 
-## Shader
+## Shader <a name="shader"></a>
 
 ```c    
 struct ShaderInfo {
@@ -470,3 +483,20 @@ RID vertexShader = ds::createShader(vsInfo);
 ds::ShaderInfo psInfo = { "Textured_ps.cso" , 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
 RID pixelShader = ds::createShader(psInfo);
 ```
+
+## ConstantBuffer <a name="constantbuffer"></a>
+
+RID createConstantBuffer(int byteWidth, void* data = 0, const char* name = "ConstantBuffer");
+
+## StructuredBuffer <a name="structuredbuffer"></a>
+
+struct StructuredBufferInfo {
+    unsigned int numElements;
+    int elementSize;
+    bool cpuWritable;
+    bool gpuWritable;
+    void* data;
+    RID textureID;
+    RID renderTarget;
+};
+RID createStructuredBuffer(const StructuredBufferInfo& info, const char* name = "StructuredBuffer");

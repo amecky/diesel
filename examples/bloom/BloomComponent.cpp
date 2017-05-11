@@ -1,5 +1,9 @@
 #include "BloomComponent.h"
-
+#include "..\common\Fullscreen_Quad_VS_Main.h"
+#include "..\common\Fullscreen_Quad_PS_Main.h"
+#include "Bloom_PS_Main.h"
+#include "Blurr_PS_Main.h"
+#include "BloomCombine_PS_Main.h"
 // Name        Thresh  Bloom  Base  BloomSat BaseSat
 // Default     0.25f   1.25f   1      1        1
 // Soft        0       1       1      1        1
@@ -44,15 +48,15 @@ void BloomComponent::initialize() {
 	ds::RenderPassInfo bloomRT2Info = { _camera, ds::DepthBufferState::DISABLED, rt2s, 1 };
 	_bloomRT2Pass = ds::createRenderPass(bloomRT2Info);
 
-	ds::ShaderInfo fsvsInfo = { "Fullscreen_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
+	ds::ShaderInfo fsvsInfo = { 0, Fullscreen_Quad_VS_Main, sizeof(Fullscreen_Quad_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
 	RID fsVertexShader = ds::createShader(fsvsInfo);
-	ds::ShaderInfo psvsInfo = { "Fullscreen_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	ds::ShaderInfo psvsInfo = { 0, Fullscreen_Quad_PS_Main, sizeof(Fullscreen_Quad_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
 	RID fsPixelShader = ds::createShader(psvsInfo);
-	ds::ShaderInfo blurPSInfo = { "BlurH_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	ds::ShaderInfo blurPSInfo = { 0, Blurr_PS_Main, sizeof(Blurr_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
 	RID blurPSShader = ds::createShader(blurPSInfo);
-	ds::ShaderInfo bloomPSInfo = { "Bloom_Combine_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	ds::ShaderInfo bloomPSInfo = { 0, BloomCombine_PS_Main, sizeof(BloomCombine_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
 	RID bloomPSShader = ds::createShader(bloomPSInfo);
-	ds::ShaderInfo bloomExtractPSInfo = { "Bloom_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
+	ds::ShaderInfo bloomExtractPSInfo = { 0, Bloom_PS_Main, sizeof(Bloom_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
 	RID bloomExtractPS = ds::createShader(bloomExtractPSInfo);
 	//
 	// the blur buffer 

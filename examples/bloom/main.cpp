@@ -6,7 +6,8 @@
 #include "..\common\SpriteBatchBuffer.h"
 #include "..\common\imgui.h"
 #include "BloomComponent.h"
-
+#include "..\common\Fullscreen_Quad_VS_Main.h"
+#include "..\common\Fullscreen_Quad_PS_Main.h"
 // Name        Thresh  Bloom  Base  BloomSat BaseSat
 // Default     0.25f   1.25f   1      1        1
 // Soft        0       1       1      1        1
@@ -110,10 +111,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID bgTextureID = loadImage("martian_oasis_by_smnbrnr.png");
 
-	ds::ShaderInfo vsInfo = { "Fullscreen_vs.cso", 0, 0, ds::ShaderType::ST_VERTEX_SHADER };
-	RID fsVertexShader = ds::createShader(vsInfo, "ParticlesVS");
-	ds::ShaderInfo psInfo = { "Fullscreen_ps.cso", 0, 0, ds::ShaderType::ST_PIXEL_SHADER };
-	RID fsPixelShader = ds::createShader(psInfo, "ParticlesPS");
+	ds::ShaderInfo vsInfo = { 0, Fullscreen_Quad_VS_Main, sizeof(Fullscreen_Quad_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
+	RID fsVertexShader = ds::createShader(vsInfo, "FullscreenQuadVS");
+	ds::ShaderInfo psInfo = { 0, Fullscreen_Quad_PS_Main, sizeof(Fullscreen_Quad_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
+	RID fsPixelShader = ds::createShader(psInfo, "FullscreenQuadPS");
 
 	//
 	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
