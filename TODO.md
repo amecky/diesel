@@ -1,8 +1,6 @@
 # TODO
 
 - [ ] add some more default states like a default orthographic render pass
-- [ ] clean up common\Camera
-- [ ] check if common\WaveFrontReader still needed -> adapt changes from tigre
 - [ ] remove warping grid -> new project
 - [ ] remove ripples -> new project
 - [ ] remove screenshake -> new project
@@ -17,6 +15,10 @@
 - [ ] Font -> do something interesting with this demo
 - [ ] Write some documentation about the external projects like colors and ds_arena
 - [ ] ds_arena -> set "Additional VC++ Include directories" to diesel!!!
+
+## 2017-05-11
+- [x] clean up common\Camera
+- [x] check if common\WaveFrontReader still needed -> adapt changes from tigre
 
 ## 2017-05-10
 - [x] remove APath -> new project [flowfield](https://github.com/amecky/flowfield)

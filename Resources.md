@@ -1,5 +1,11 @@
 # Resources 
 
+## Table of contents
+
+- [Camera](#camera)
+- [RenderPass](#renderpass)
+- [Blendstate](#blendstate)
+
 - [x] INPUT_LAYOUT
 - [ ] CONSTANT_BUFFER
 - [x] INDEX_BUFFER
@@ -16,13 +22,9 @@
 - [x] RENDER_PASS
 - [ ] DRAW_ITEM
 - [ ] STATE_GROUP
-- [ ] TEXTURE_FROM_RT
-- [ ] COMPUTE_SHADER
 - [ ] STRUCTURED_BUFFER
-- [ ] UA_SRV
-- [ ] CS_GROUP
         
-## Camera
+## Camera <a name="camera"></a>
 
 A camera is a logical unit containing the view and projection matrix. You need to create a camera to 
 create a RenderPass.
@@ -92,7 +94,7 @@ ds::Camera orthoCamera = {
 };
 ```
 
-## RenderPass
+## RenderPass <a name="renderpass"></a>
 
 You can create create a RenderPass by building a RenderPassInfo:
 
@@ -145,7 +147,7 @@ ds::RenderPassInfo rpInfo = { &camera, ds::DepthBufferState::ENABLED, 0, 0 };
 RID ppPass = ds::createRenderPass(rpInfo);
 ```
 
-## BlendState
+## BlendState <a name="blendstate"></a>
 
 In order to create a BlendState you need to fill out a BlendStateInfo:
 ```c
