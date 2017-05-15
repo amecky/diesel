@@ -6,9 +6,11 @@
 // -------------------------------------------------------
 ParticleManager::ParticleManager(int maxParticles, RID textureID) {
 	_vertices = new GPUParticle[maxParticles];
-	_constantBuffer.screenCenter = ds::vec4(512.0f, 384.0f, 0.0f, 0.0f);
+	float sw = ds::getScreenWidth();
+	float sh = ds::getScreenHeight();
+	_constantBuffer.screenCenter = ds::vec4(sw * 0.5f, sh * 0.5f, 0.0f, 0.0f);
 	ds::matrix viewMatrix = ds::matIdentity();
-	ds::matrix projectionMatrix = ds::matOrthoLH(1024.0f, 768.0f, 0.1f, 1.0f);
+	ds::matrix projectionMatrix = ds::matOrthoLH(sw, sh, 0.1f, 1.0f);
 	_viewprojectionMatrix = viewMatrix * projectionMatrix;
 
 	ds::ShaderInfo vsInfo = { 0 , Particles_VS_Main, sizeof(Particles_VS_Main), ds::ShaderType::ST_VERTEX_SHADER};
@@ -16,7 +18,7 @@ ParticleManager::ParticleManager(int maxParticles, RID textureID) {
 	ds::ShaderInfo psInfo = { 0 , Particles_PS_Main, sizeof(Particles_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
 	RID pixelShader = ds::createShader(psInfo, "ParticlesPS");
 
-	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
+	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::ZERO, ds::BlendStates::ONE, ds::BlendStates::ZERO, true };
 	RID bs_id = ds::createBlendState(blendInfo);
 
 	RID constantBuffer = ds::createConstantBuffer(sizeof(ParticleConstantBuffer), &_constantBuffer);
@@ -45,6 +47,7 @@ ParticleManager::ParticleManager(int maxParticles, RID textureID) {
 		.indexBuffer(idxBuffer)
 		.pixelShader(pixelShader)
 		.samplerState(ssid, pixelShader)
+		.blendState(bs_id)
 		.texture(textureID, pixelShader, 0)
 		.build();
 
@@ -79,6 +82,7 @@ ParticleManager::~ParticleManager() {
 		delete (*it);
 		it = _particleSystems.erase(it);
 	}
+	delete[] _vertices;
 }
 
 uint32_t ParticleManager::add(ParticlesystemDescriptor* descriptor) {
@@ -166,7 +170,8 @@ void ParticleManager::emitt(uint32_t id, const ds::vec2& pos, const EmitterSetti
 			float ttl = ds::random(emitter.ttl.x, emitter.ttl.y);
 			array.timers[start] = ds::vec3(0.0f, ttl, 1);
 			array.velocities[start] = ds::random(emitter.velocityVariance.x, emitter.velocityVariance.y) * ds::vec2(cos(angle), sin(angle));
-			array.accelerations[start] = emitter.acceleration;			
+			array.accelerations[start].x = array.velocities[start].x * emitter.acceleration.x;
+			array.accelerations[start].y = array.velocities[start].y * emitter.acceleration.y;
 			array.positions[start] = ds::vec2(x,y);
 			array.wake(start);
 			++start;
