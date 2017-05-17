@@ -19,58 +19,7 @@ RID loadImage(const char* name) {
 	stbi_image_free(data);
 	return textureID;
 }
-/*
-struct ExplosionSettings {
-	int count;
-	ds::vec2 ttl;
-	float angleVariance;
-	float radiusVariance;
-	ds::vec2 velocityVariance;
-	ds::vec2 sizeVariance;
-};
 
-void emittExplosion(ParticleManager* particles,uint32_t id, const ExplosionSettings& settings, float px, float py, float radius) {
-	for (int i = 0; i < settings.count; ++i) {
-		float angle = ds::TWO_PI * static_cast<float>(i) / static_cast<float>(settings.count);
-		float x = px + cos(angle) * (radius + ds::random(-settings.radiusVariance, settings.radiusVariance));
-		float y = py + sin(angle) * (radius + ds::random(-settings.radiusVariance, settings.radiusVariance));
-		float da = angle * settings.angleVariance;
-		angle += ds::random(-da, da);
-		ds::vec2 s = ds::vec2(0.2f, 0.15f);
-		float ds = ds::random(settings.sizeVariance.x,settings.sizeVariance.y);
-		s *= ds;
-		float ttl = ds::random(settings.ttl.x, settings.ttl.y);
-		float rotation = angle;
-		ds::vec2 velocity = ds::random(settings.velocityVariance.x, settings.velocityVariance.y) * ds::vec2(cos(angle), sin(angle));
-		//ds::vec2 acc = ds::vec2(0.0f, -400.0f);
-		ds::vec2 acc = velocity * -0.8f;
-		particles->add(id, ds::vec2(x, y), velocity, acc, ttl, rotation);
-	}
-}
-
-struct SparksSettings {
-	int count;
-	ds::vec2 ttl;
-	float angleVariance;
-	float radiusVariance;
-	ds::vec2 velocityVariance;
-	ds::vec2 growth;
-};
-
-void emittSparks(ParticleManager* particles, uint32_t id, const SparksSettings& settings, float px, float py, float radius) {
-	for (int i = 0; i < settings.count; ++i) {
-		float angle = ds::TWO_PI * static_cast<float>(i) / static_cast<float>(settings.count);
-		float x = px + cos(angle) * (radius + ds::random(-settings.radiusVariance, settings.radiusVariance));
-		float y = py + sin(angle) * (radius + ds::random(-settings.radiusVariance, settings.radiusVariance));
-		float da = angle * settings.angleVariance;
-		angle += ds::random(-da, da);
-		float ttl = ds::random(settings.ttl.x, settings.ttl.y);
-		float rotation = angle;
-		ds::vec2 velocity = ds::random(settings.velocityVariance.x, settings.velocityVariance.y) * ds::vec2(cos(angle), sin(angle));
-		particles->add(id, ds::vec2(x, y), velocity, ds::vec2(0.0f,0.0f), ttl, rotation);
-	}
-}
-*/
 // ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------
@@ -91,7 +40,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	explosionDescriptor.maxParticles = 4096;
 	explosionDescriptor.particleDimension = ds::vec2(64, 64);
 	explosionDescriptor.scale = ds::vec2(0.2f, 0.2f);
-	explosionDescriptor.growth = ds::vec2(-0.5f, -0.5f);
+	//explosionDescriptor.growth = ds::vec2(-0.5f, -0.5f);
 	explosionDescriptor.startColor = ds::Color(222, 222, 255, 255);
 	explosionDescriptor.endColor = ds::Color(0, 222, 255, 64);
 	explosionDescriptor.textureRect = ds::vec4(0, 0, 64, 64) / 64.0f;
@@ -100,7 +49,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	sparksDescriptor.maxParticles = 1024;
 	sparksDescriptor.particleDimension = ds::vec2(64, 64);
 	sparksDescriptor.scale = ds::vec2(1.8f, 0.1f);
-	sparksDescriptor.growth = ds::vec2(-0.9f, 0.0f);
+	//sparksDescriptor.growth = ds::vec2(-0.9f, 0.0f);
 	sparksDescriptor.startColor = ds::Color(222, 222, 255, 255);
 	sparksDescriptor.endColor = ds::Color(0, 222, 255, 64);
 	sparksDescriptor.textureRect = ds::vec4(0, 0, 64, 64) / 64.0f;

@@ -100,7 +100,6 @@ struct ParticlesystemDescriptor {
 	ds::vec2 particleDimension;
 	RID textureID;
 	ds::vec2 scale;
-	ds::vec2 growth;
 	ds::Color startColor;
 	ds::Color endColor;
 	ds::vec4 textureRect;

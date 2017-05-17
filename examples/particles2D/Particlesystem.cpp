@@ -94,9 +94,6 @@ uint32_t ParticleManager::add(ParticlesystemDescriptor* descriptor) {
 }
 
 void ParticleManager::prepareBuffer(const ParticlesystemDescriptor& descriptor) {
-	ds::vec2 endScale = descriptor.scale;
-	endScale.x += descriptor.scale.x * descriptor.growth.x;
-	endScale.y += descriptor.scale.y * descriptor.growth.y;
 	_constantBuffer.startColor = descriptor.startColor;
 	_constantBuffer.endColor = descriptor.endColor;
 	_constantBuffer.texture = descriptor.textureRect;
