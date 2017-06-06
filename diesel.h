@@ -59,6 +59,14 @@ const uint16_t NO_RID = UINT16_MAX - 1;
 #define RADTODEG( radian ) ((radian) * (180.0f / 3.141592654f))
 #endif
 
+enum LogLevel {
+	LL_DEBUG,
+	LL_INFO,
+	LL_ERROR
+};
+
+typedef void(*dsLogHandler)(const LogLevel&, const char* message);
+
 namespace ds {
 
 #ifndef DS_VERSION
@@ -840,6 +848,7 @@ namespace ds {
 		const char* title;
 		bool useGPUProfiling;
 		bool supportDebug;
+		dsLogHandler logHandler;
 
 		RenderSettings() {
 			width = 1024;
@@ -849,6 +858,7 @@ namespace ds {
 			title = "No title";
 			useGPUProfiling = false;
 			supportDebug = true;
+			logHandler = 0;
 		}
 	};
 
@@ -1294,26 +1304,20 @@ namespace ds {
 
 namespace ds {
 
-	static void assert_fmt(char* expr_str, bool expr, char* file, int line, char* format, ...);
+	static void assert_fmt(char* expr_str, bool expr, char* format, ...);
 
-	static void assert_fmt(char* file, int line, char* format, ...);
+	static void log(const LogLevel& level, char* format,...);
 
-	static void reportLastError(const char* fileName, int line, const char* method, HRESULT hr);
-
-	static void assert_result(const char* file, int line, HRESULT result, const char* msg);
-
+	static void assert_result(HRESULT result, const char* msg);
 }
+
 #ifndef XASSERT
-#define XASSERT(Expr, s, ...) do { ds::assert_fmt(#Expr, Expr,__FILE__,__LINE__,s,__VA_ARGS__); } while(false);
+#define XASSERT(Expr, s, ...) do { ds::assert_fmt(#Expr, Expr,s,__VA_ARGS__); } while(false);
 #endif
-#ifndef ASSERT_RESULT
-#define ASSERT_RESULT(r,s) do { ds::assert_result(__FILE__,__LINE__,r,s); } while(false);
-#endif
+
 #ifndef REPORT
-#define REPORT(s,d) do { ds::reportLastError(__FILE__,__LINE__,s,d); } while(false);
+#define REPORT(s, ...) do { ds::log(LogLevel::LL_ERROR,s,__VA_ARGS__); } while(false);
 #endif
-
-
 
 namespace ds {
 
@@ -2210,7 +2214,8 @@ namespace ds {
 		uint16_t screenHeight;
 		Color clearColor;
 		uint8_t multisampling;
-		
+		dsLogHandler logHandler;
+
 		bool running;
 		D3D_DRIVER_TYPE driverType;
 		D3D_FEATURE_LEVEL featureLevel;
@@ -2254,9 +2259,6 @@ namespace ds {
 		uint64_t secondCounter;
 		uint64_t maxDelta;
 
-		char errorBuffer[256];
-		bool broken;
-		
 		InputKey inputKeys[256];
 		int numInputKeys;
 
@@ -2265,10 +2267,7 @@ namespace ds {
 		int lastDrawCall;
 		RID drawCalls[2];
 
-		//PipelineState* pipelineState;
-
 		RID defaultStateGroup;
-
 		// Debug
 		bool supportDebug;
 		RID debugTextureID;
@@ -2348,9 +2347,9 @@ namespace ds {
 		return dist(mt);
 	}
 
-	const char* getLastError() {
-		return _ctx->errorBuffer;
-	}
+	//const char* getLastError() {
+		//return _ctx->errorBuffer;
+	//}
 
 	static const uint64_t TicksPerSecond = 10000000;
 
@@ -2386,20 +2385,20 @@ namespace ds {
 		return _ctx->framesPerSecond;
 	}
 
-	static void reportLastError(const char* fileName, int line, const char* method, HRESULT hr) {
-		char msg[256];
-		DWORD result = FormatMessage(
-			FORMAT_MESSAGE_FROM_SYSTEM |
-			FORMAT_MESSAGE_IGNORE_INSERTS,
-			NULL,
-			hr,
-			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			(LPTSTR)&msg,
-			255, NULL);
-		if (result > 0) {
-			sprintf_s(_ctx->errorBuffer,"file: %s (%d) method: %s - %s\n", fileName, line, method, msg);
-			MessageBox(GetDesktopWindow(), _ctx->errorBuffer, "ERROR", NULL);
-			_ctx->running = false;
+	// ------------------------------------------------------
+	// assert functions
+	// ------------------------------------------------------
+	static void assert_fmt(char* expr_str, bool expr, char* format, ...) {
+		if (!expr) {
+			va_list args;
+			va_start(args, format);
+			char buffer[1024];
+			memset(buffer, 0, sizeof(buffer));
+			int written = vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, format, args);		
+			if (_ctx->logHandler != 0) {
+				(*_ctx->logHandler)(LogLevel::LL_ERROR, buffer);
+			}
+			va_end(args);
 			exit(-1);
 		}
 	}
@@ -2407,45 +2406,24 @@ namespace ds {
 	// ------------------------------------------------------
 	// assert functions
 	// ------------------------------------------------------
-	static void assert_fmt(char* expr_str, bool expr, char* file, int line, char* format, ...) {
-		if (!expr) {
-			va_list args;
-			va_start(args, format);
-			char buffer[1024];
-			memset(buffer, 0, sizeof(buffer));
-			int written = vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, format, args);		
-			char complete[1600];
-			sprintf_s(complete, "%s - %d : %s", file, line, buffer);
-			MessageBox(_ctx->hwnd, complete, "ERROR", NULL);
-			va_end(args);
-			exit(-1);
-		}
-	}
-
-	static void assert_fmt(char* file, int line, char* format, ...) {
+	static void log(const LogLevel& level,char* format, ...) {
 		va_list args;
 		va_start(args, format);
 		char buffer[1024];
 		memset(buffer, 0, sizeof(buffer));
 		int written = vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, format, args);
-		char complete[1600];
-		sprintf_s(complete, "%s - %d : %s", file, line, buffer);
-		MessageBox(_ctx->hwnd, complete, "ERROR", NULL);
+		if (_ctx->logHandler != 0) {
+			(*_ctx->logHandler)(level, buffer);
+		}
 		va_end(args);
-		exit(-1);
 	}
 
 	static void assert_result(HRESULT result, const char* msg) {
 		if (FAILED(result)) {
-			REPORT(msg, result);
+			log(LogLevel::LL_ERROR,"%s",msg);
 		}
 	}
 
-	static void assert_result(const char* file, int line, HRESULT result, const char* msg) {
-		if (FAILED(result)) {
-			reportLastError(file, line, msg, result);
-		}
-	}
 
 	// ------------------------------------------------------
 	// is running
@@ -2503,6 +2481,8 @@ namespace ds {
 		_ctx->clearColor = settings.clearColor;
 		_ctx->multisampling = settings.multisampling;
 		_ctx->supportDebug = settings.supportDebug;
+		_ctx->logHandler = settings.logHandler;
+
 		RECT dimensions;
 		GetClientRect(_ctx->hwnd, &dimensions);
 
@@ -2917,9 +2897,9 @@ namespace ds {
 		_ctx->totalTicks = 0;
 		_ctx->maxDelta = _ctx->timerFrequency.QuadPart / 10;
 		_ctx->running = true;
-		for (int i = 0; i < 256; ++i) {
-			_ctx->errorBuffer[i] = '\0';
-		}
+		//for (int i = 0; i < 256; ++i) {
+			//_ctx->errorBuffer[i] = '\0';
+		//}
 		return initializeDevice(settings);
 	}
 
@@ -3043,7 +3023,7 @@ namespace ds {
 		VertexShaderResource* sres = (VertexShaderResource*)_ctx->_resources[sidx];
 		VertexShader* s = sres->get();
 		ID3D11InputLayout* layout = 0;
-		ASSERT_RESULT(_ctx->d3dDevice->CreateInputLayout(descriptors, info.numDeclarations, s->vertexShaderBuffer, s->bufferSize, &layout), "Failed to create input layout");
+		assert_result(_ctx->d3dDevice->CreateInputLayout(descriptors, info.numDeclarations, s->vertexShaderBuffer, s->bufferSize, &layout), "Failed to create input layout");
 		InputLayoutResource* res = new InputLayoutResource(layout, index);
 		return addResource(res, RT_INPUT_LAYOUT, name);
 	}
@@ -3094,7 +3074,7 @@ namespace ds {
 		VertexShaderResource* sres = (VertexShaderResource*)_ctx->_resources[sidx];
 		VertexShader* s = sres->get();
 		ID3D11InputLayout* layout = 0;
-		ASSERT_RESULT(_ctx->d3dDevice->CreateInputLayout(descriptors, total, s->vertexShaderBuffer, s->bufferSize, &layout), "Failed to create input layout");
+		assert_result(_ctx->d3dDevice->CreateInputLayout(descriptors, total, s->vertexShaderBuffer, s->bufferSize, &layout), "Failed to create input layout");
 		InputLayoutResource* res = new InputLayoutResource(layout, index);
 		return addResource(res, RT_INPUT_LAYOUT, name);
 	}
@@ -3332,10 +3312,10 @@ namespace ds {
 			resource.pSysMem = info.data;
 			resource.SysMemPitch = 0;
 			resource.SysMemSlicePitch = 0;
-			ASSERT_RESULT(_ctx->d3dDevice->CreateBuffer(&bufferDesciption, &resource, &buffer), "Failed to create vertex buffer");
+			assert_result(_ctx->d3dDevice->CreateBuffer(&bufferDesciption, &resource, &buffer), "Failed to create vertex buffer");
 		}
 		else {
-			ASSERT_RESULT(_ctx->d3dDevice->CreateBuffer(&bufferDesciption, 0, &buffer), "Failed to create vertex buffer");
+			assert_result(_ctx->d3dDevice->CreateBuffer(&bufferDesciption, 0, &buffer), "Failed to create vertex buffer");
 		}
 		VertexBufferResource* res = new VertexBufferResource(buffer, size, info.type, info.vertexSize);
 		return addResource(res, RT_VERTEX_BUFFER, name);
@@ -3412,10 +3392,10 @@ namespace ds {
 			D3D11_SUBRESOURCE_DATA bufferInitData;
 			ZeroMemory(&bufferInitData, sizeof(bufferInitData));
 			bufferInitData.pSysMem = info.data;
-			ASSERT_RESULT(_ctx->d3dDevice->CreateBuffer(&bufferDesc, &bufferInitData, &sb->buffer), "Cannot create buffer");
+			assert_result(_ctx->d3dDevice->CreateBuffer(&bufferDesc, &bufferInitData, &sb->buffer), "Cannot create buffer");
 		}
 		else {
-			ASSERT_RESULT(_ctx->d3dDevice->CreateBuffer(&bufferDesc, NULL, &sb->buffer), "Cannot create buffer");
+			assert_result(_ctx->d3dDevice->CreateBuffer(&bufferDesc, NULL, &sb->buffer), "Cannot create buffer");
 		}
 		// FIXME: correct?
 		if (info.cpuWritable) {
@@ -3425,7 +3405,7 @@ namespace ds {
 			srvDesc.BufferEx.FirstElement = 0;
 			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
 			srvDesc.BufferEx.NumElements = info.numElements;
-			ASSERT_RESULT(_ctx->d3dDevice->CreateShaderResourceView(sb->buffer, &srvDesc, &sb->srv), "Cannot create shader resource view");
+			assert_result(_ctx->d3dDevice->CreateShaderResourceView(sb->buffer, &srvDesc, &sb->srv), "Cannot create shader resource view");
 		}
 		if (info.gpuWritable) {
 			D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc;
@@ -3438,13 +3418,13 @@ namespace ds {
 				ShaderResourceViewResource* bufferRes = (ShaderResourceViewResource*)_ctx->_resources[ridx];
 				InternalTexture* tex = bufferRes->get();
 				uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
-				ASSERT_RESULT(_ctx->d3dDevice->CreateUnorderedAccessView(tex->texture, &uavDesc, &sb->uav), "Cannot create unordered access view");
+				assert_result(_ctx->d3dDevice->CreateUnorderedAccessView(tex->texture, &uavDesc, &sb->uav), "Cannot create unordered access view");
 			}
 			else if (info.renderTarget != NO_RID) {
 
 			}
 			else {
-				ASSERT_RESULT(_ctx->d3dDevice->CreateUnorderedAccessView(sb->buffer, &uavDesc, &sb->uav), "Cannot create unordered access view");
+				assert_result(_ctx->d3dDevice->CreateUnorderedAccessView(sb->buffer, &uavDesc, &sb->uav), "Cannot create unordered access view");
 			}
 		}
 		BufferResource* res = new BufferResource(sb);
@@ -3951,10 +3931,10 @@ namespace ds {
 			subres.SysMemPitch = info.width * info.channels;
 			subres.SysMemSlicePitch = 0;
 
-			ASSERT_RESULT(_ctx->d3dDevice->CreateTexture2D(&desc, &subres, &tex->texture), "Failed to create Texture2D");
+			assert_result(_ctx->d3dDevice->CreateTexture2D(&desc, &subres, &tex->texture), "Failed to create Texture2D");
 		}
 		else {
-			ASSERT_RESULT(_ctx->d3dDevice->CreateTexture2D(&desc, NULL, &tex->texture), "Failed to create Texture2D");
+			assert_result(_ctx->d3dDevice->CreateTexture2D(&desc, NULL, &tex->texture), "Failed to create Texture2D");
 		}
 
 		ID3D11ShaderResourceView* srv = 0;
@@ -3968,7 +3948,7 @@ namespace ds {
 		srvDesc.Texture2D.MostDetailedMip = 0;
 		srvDesc.Texture2D.MipLevels = 1;
 		srvDesc.Format = TEXTURE_FOMATS[info.format];
-		ASSERT_RESULT(_ctx->d3dDevice->CreateShaderResourceView(tex->texture, &srvDesc, &tex->srv), "Failed to create resource view");
+		assert_result(_ctx->d3dDevice->CreateShaderResourceView(tex->texture, &srvDesc, &tex->srv), "Failed to create resource view");
 		ShaderResourceViewResource* res = new ShaderResourceViewResource(tex);
 		return addResource(res, RT_SRV, name);
 	}
@@ -3996,7 +3976,7 @@ namespace ds {
 		descView.Format = DXGI_FORMAT_UNKNOWN;
 		descView.BufferEx.NumElements = descBuf.ByteWidth / descBuf.StructureByteStride;
 		ID3D11ShaderResourceView* srv;
-		ASSERT_RESULT(_ctx->d3dDevice->CreateShaderResourceView(sb->buffer, &descView, &srv), "Failed to create resource view");
+		assert_result(_ctx->d3dDevice->CreateShaderResourceView(sb->buffer, &descView, &srv), "Failed to create resource view");
 		InternalTexture* tex = new InternalTexture;
 		// FIXME: get size!!
 		tex->width = 0;
@@ -4022,7 +4002,7 @@ namespace ds {
 		descView.Format = DXGI_FORMAT_UNKNOWN;      // Format must be must be DXGI_FORMAT_UNKNOWN, when creating a View of a Structured Buffer
 		descView.Buffer.NumElements = descBuf.ByteWidth / descBuf.StructureByteStride;
 		ID3D11UnorderedAccessView* srv;
-		ASSERT_RESULT(_ctx->d3dDevice->CreateUnorderedAccessView(sb->buffer, &descView, &srv), "Failed to create uav resource view");
+		assert_result(_ctx->d3dDevice->CreateUnorderedAccessView(sb->buffer, &descView, &srv), "Failed to create uav resource view");
 		UAResourceViewResource* res = new UAResourceViewResource(srv);
 		return addResource(res, RT_UA_SRV, name);
 	}
@@ -4042,7 +4022,7 @@ namespace ds {
 		descView.Format = DXGI_FORMAT_UNKNOWN;      // Format must be must be DXGI_FORMAT_UNKNOWN, when creating a View of a Structured Buffer
 		descView.Buffer.NumElements = numElements;
 		ID3D11UnorderedAccessView* srv;
-		ASSERT_RESULT(_ctx->d3dDevice->CreateUnorderedAccessView(tex->texture, &descView, &srv), "Failed to create uav resource view");
+		assert_result(_ctx->d3dDevice->CreateUnorderedAccessView(tex->texture, &descView, &srv), "Failed to create uav resource view");
 		UAResourceViewResource* res = new UAResourceViewResource(srv);
 		return addResource(res, RT_UA_SRV, name);
 	}
