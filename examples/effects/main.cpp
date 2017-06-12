@@ -163,4 +163,5 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::end();
 	}
 	ds::shutdown();
+	return 0;
 }

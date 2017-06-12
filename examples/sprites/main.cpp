@@ -221,4 +221,5 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	delete[] gpuSprites;
 	delete[] spriteBuffer.data;
 	ds::shutdown();
+	return 0;
 }

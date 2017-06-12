@@ -168,21 +168,28 @@ void convertImage() {
 	RID textureID = ds::createTexture(texInfo);
 	int dx = sx / 8;
 	FILE* fp = fopen("fixedsys.h","w");
-	fprintf(fp, "const unsigned char font[%d][%d] = {\n",sy,dx);
+	if (fp) {
+		fprintf(fp, "const unsigned char font[%d][%d] = {\n", sy, dx);
 		for (int y = 0; y < sy; ++y) {
-			fprintf(fp,"\t{ ");
+			fprintf(fp, "\t{ ");
 			for (int i = 0; i < dx; ++i) {
 				uint8_t r = convert(data, i * 8, y);
 				fprintf(fp, "0x%02X", r);
 				if (i < 15) {
-					fprintf(fp,", ");
+					fprintf(fp, ", ");
 				}
 			}
-			fprintf(fp," },\n");
+			fprintf(fp, " },\n");
+		}
+		fprintf(fp, "};\n");
+		fclose(fp);
 	}
-	fprintf(fp, "};\n");
-	fclose(fp);
 	stbi_image_free(data);
+}
+
+void log(const LogLevel& lvl, const char* message) {
+	OutputDebugString(message);
+	OutputDebugString("\n");
 }
 // ---------------------------------------------------------------
 // main method
@@ -199,6 +206,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.clearColor = ds::Color(0.2f, 0.2f, 0.2f, 1.0f);
 	rs.multisampling = 4;
 	rs.useGPUProfiling = false;
+	rs.logHandler = &log;
 	ds::init(rs);
 
 	//convertImage();
@@ -230,6 +238,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	SpriteBatchBufferInfo sbbInfo = { 1024,textureID };
 	SpriteBatchBuffer buffer(sbbInfo);
 
+	ds::logResources();
+
 	const char* message = "-9E Hello World! This is 123.45 Test. Just get me going.";
 
 	while (ds::isRunning()) {
@@ -251,4 +261,5 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::end();
 	}
 	ds::shutdown();
+	return 0;
 }

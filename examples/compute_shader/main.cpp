@@ -118,4 +118,5 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	stbi_image_free(data);
 	ds::shutdown();
+	return 0;
 }

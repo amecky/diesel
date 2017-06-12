@@ -43,7 +43,7 @@ struct ParticleArray {
 	uint32_t count;
 	uint32_t countAlive;
 
-	ParticleArray() : count(0), countAlive(0), buffer(0) {}
+	ParticleArray() : count(0), countAlive(0), buffer(0), positions(0), velocities(0), accelerations(0), rotations(0), scales(0), growth(0), timers(0) {}
 
 	~ParticleArray() {
 		if (buffer != 0) {

@@ -2,9 +2,13 @@
 #include <stdint.h>
 #include <stdio.h>
 
-/**
-* @file diesel.h
-*/
+//
+// Diesel - A DirectX 11 renderer
+//
+// https://github.com/amecky/diesel
+//
+// Contact: amecky@gmail.com
+//
 // ------------------------------------------------------------------------------------
 // MIT License
 // 
@@ -379,7 +383,7 @@ namespace ds {
 	}
 
 	template<int Size, class T>
-	Vector<Size, T>& operator -= (const Vector<Size, T>& u, const Vector<Size, T>& v) {
+	Vector<Size, T> operator -= (const Vector<Size, T>& u, const Vector<Size, T>& v) {
 		Vector<Size, T> r;
 		for (int i = 0; i < Size; ++i) {
 			r.data[i] = u.data[i] - v.data[i];
@@ -1281,6 +1285,8 @@ namespace ds {
 	
 	void dbgPrint(uint16_t x, uint16_t y, char* format, ...);
 	
+	void logResources();
+
 	void saveResourcesToFile(const char* fileName = "resources.txt");
 
 }
@@ -1313,6 +1319,10 @@ namespace ds {
 
 #ifndef XASSERT
 #define XASSERT(Expr, s, ...) do { ds::assert_fmt(#Expr, Expr,s,__VA_ARGS__); } while(false);
+#endif
+
+#ifndef DBG_LOG
+#define DBG_LOG(s, ...) do { ds::log(LogLevel::LL_DEBUG,s,__VA_ARGS__); } while(false);
 #endif
 
 #ifndef REPORT
@@ -1639,7 +1649,7 @@ namespace ds {
 	class BaseResource {
 
 	public:
-		BaseResource() {}
+		BaseResource() : _nameIndex(-1) , _rid(NO_RID), _hash("NO_HASH") {}
 		virtual ~BaseResource() {}
 		virtual void release() = 0;
 		virtual const ResourceType getType() const = 0;
@@ -1744,7 +1754,7 @@ namespace ds {
 	class VertexBufferResource : public AbstractResource<ID3D11Buffer*> {
 
 	public:
-		VertexBufferResource(ID3D11Buffer* t, int size, BufferType type, unsigned int vertexSize) : AbstractResource(t), _size(size), _vertexSize(vertexSize) {}
+		VertexBufferResource(ID3D11Buffer* t, int size, BufferType type, unsigned int vertexSize) : AbstractResource(t), _size(size), _type(type), _vertexSize(vertexSize) {}
 		virtual ~VertexBufferResource() {}
 
 		void release() {
@@ -1871,9 +1881,12 @@ namespace ds {
 		void release() {
 			if (_data->srv != 0) {
 				_data->srv->Release();
-				delete _data;
-				_data = 0;
 			}
+			if (_data->texture != 0) {
+				_data->texture->Release();
+			}
+			delete _data;
+			_data = 0;
 		}
 		const ds::vec2& getSize() const {
 			return _size;
@@ -1896,11 +1909,11 @@ namespace ds {
 		}
 		virtual ~UAResourceViewResource() {}
 		void release() {
-			//if (_data != 0) {
-				//_data->Release();
-				//delete _data;
-				//_data = 0;
-			//}
+			if (_data != 0) {
+				_data->Release();
+				delete _data;
+				_data = 0;
+			}
 		}
 		const ResourceType getType() const {
 			return RT_UA_SRV;
@@ -2307,6 +2320,7 @@ namespace ds {
 		RID rid = buildRID(static_cast<uint16_t>(_ctx->_resources.size() - 1), type);
 		res->setRID(rid);		
 		res->setNameIndex(_ctx->charBuffer->append(name), SID(name));
+		DBG_LOG("Resource %s (%s) created - id: %d", name, RESOURCE_NAMES[type], id_mask(rid));
 		return rid;
 	}
 
@@ -2346,10 +2360,6 @@ namespace ds {
 		std::uniform_real_distribution<float> dist(min, max);
 		return dist(mt);
 	}
-
-	//const char* getLastError() {
-		//return _ctx->errorBuffer;
-	//}
 
 	static const uint64_t TicksPerSecond = 10000000;
 
@@ -3004,6 +3014,7 @@ namespace ds {
 			const InputLayoutDefinition& current = info.declarations[i];
 			int fidx = find_format(info.declarations[i].type, info.declarations[i].size);
 			if (fidx == -1) {
+				delete[] descriptors;
 				return INVALID_RID;
 			}
 			const DXBufferAttributeType& formatType = DXBufferAttributeTypes[fidx];
@@ -3025,6 +3036,7 @@ namespace ds {
 		ID3D11InputLayout* layout = 0;
 		assert_result(_ctx->d3dDevice->CreateInputLayout(descriptors, info.numDeclarations, s->vertexShaderBuffer, s->bufferSize, &layout), "Failed to create input layout");
 		InputLayoutResource* res = new InputLayoutResource(layout, index);
+		delete[] descriptors;
 		return addResource(res, RT_INPUT_LAYOUT, name);
 	}
 
@@ -3039,6 +3051,7 @@ namespace ds {
 			const InputLayoutDefinition& current = info.decl[i];
 			int fidx = find_format(current.type, current.size);
 			if (fidx == -1) {
+				delete[] descriptors;
 				return INVALID_RID;
 			}
 			const DXBufferAttributeType& formatType = DXBufferAttributeTypes[fidx];
@@ -3058,6 +3071,7 @@ namespace ds {
 			const InstancedInputLayoutDefinition& current = info.instDecl[i];
 			int fidx = find_format(current.type, current.size);
 			if (fidx == -1) {
+				delete[] descriptors;
 				return INVALID_RID;
 			}
 			const DXBufferAttributeType& formatType = DXBufferAttributeTypes[fidx];
@@ -3076,6 +3090,7 @@ namespace ds {
 		ID3D11InputLayout* layout = 0;
 		assert_result(_ctx->d3dDevice->CreateInputLayout(descriptors, total, s->vertexShaderBuffer, s->bufferSize, &layout), "Failed to create input layout");
 		InputLayoutResource* res = new InputLayoutResource(layout, index);
+		delete[] descriptors;
 		return addResource(res, RT_INPUT_LAYOUT, name);
 	}
 
@@ -4189,12 +4204,12 @@ namespace ds {
 
 	void rebuildCamera(Camera* camera) {
 		vec3 R = camera->right;
-		vec3 U = camera->up;
+		//vec3 U = camera->up;
 		vec3 L = camera->target;
 		vec3 P = camera->position;
 
 		L = normalize(L);
-		U = normalize(cross(L, R));
+		vec3 U = normalize(cross(L, R));
 		R = cross(U, L);
 
 		float x = -dot(P, R);
@@ -5085,41 +5100,80 @@ namespace ds {
 	// ******************************************************
 	void saveResourcesToFile(const char* fileName) {
 		FILE* fp = fopen(fileName, "w");
-		fprintf(fp, " index | resource type       | Name\n");
-		fprintf(fp, "--------------------------------------------------------------\n");
+		if (fp) {
+			fprintf(fp, " index | resource type       | Name\n");
+			fprintf(fp, "--------------------------------------------------------------\n");
+			for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
+				const BaseResource* res = _ctx->_resources[i];
+				RID rid = res->getRID();
+				fprintf(fp, " %3d  | %-20s | %s\n", id_mask(rid), RESOURCE_NAMES[type_mask(rid)], _ctx->charBuffer->get(res->getNameIndex()));
+			}
+			fprintf(fp, "\n");
+			for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
+				const BaseResource* br = _ctx->_resources[i];
+				if (br->getType() == RT_DRAW_ITEM) {
+					const DrawItemResource* dir = (DrawItemResource*)_ctx->_resources[i];
+					const DrawItem* item = dir->get();
+					fprintf(fp, "\nDrawItem %d (%s) - groups: %d\n", id_mask(br->getRID()), _ctx->charBuffer->get(item->nameIndex), item->num);
+					for (int j = 0; j < item->num; ++j) {
+						RID groupID = item->groups[j];
+						StateGroupResource* res = (StateGroupResource*)_ctx->_resources[id_mask(groupID)];
+						StateGroup* group = res->get();
+						fprintf(fp, "Group: %d (%s)\n", id_mask(group->rid), _ctx->charBuffer->get(res->getNameIndex()));
+						fprintf(fp, "resource type        | id    | stage    | slot | Name\n");
+						fprintf(fp, "------------------------------------------------------------------------------------------\n");
+						for (int k = 0; k < group->num; ++k) {
+							RID current = group->items[k];
+							if (id_mask(current) != NO_RID) {
+								BaseResource* res = _ctx->_resources[id_mask(current)];
+								fprintf(fp, "%-20s | %5d | %-8s | %2d   | %s\n", RESOURCE_NAMES[type_mask(current)], id_mask(current), PIPELINE_STAGE_NAMES[stage_mask(current)], slot_mask(current), _ctx->charBuffer->get(res->getNameIndex()));
+							}
+							else {
+								fprintf(fp, "%-20s | %5d | %-8s | %2d   | NO_RID\n", RESOURCE_NAMES[type_mask(current)], id_mask(current), PIPELINE_STAGE_NAMES[stage_mask(current)], slot_mask(current));
+							}
+						}
+					}
+				}
+			}
+			fclose(fp);
+		}
+	}
+
+	void logResources() {
+		DBG_LOG(" index | resource type       | Name");
+		DBG_LOG("--------------------------------------------------------------");
 		for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
 			const BaseResource* res = _ctx->_resources[i];
-			RID rid = res->getRID();			
-			fprintf(fp," %3d  | %-20s | %s\n", id_mask(rid), RESOURCE_NAMES[type_mask(rid)], _ctx->charBuffer->get(res->getNameIndex()));
+			RID rid = res->getRID();
+			DBG_LOG(" %3d  | %-20s | %s", id_mask(rid), RESOURCE_NAMES[type_mask(rid)], _ctx->charBuffer->get(res->getNameIndex()));
 		}
-		fprintf(fp, "\n");
+		DBG_LOG("\n");
 		for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
 			const BaseResource* br = _ctx->_resources[i];
-			if (br->getType() == RT_DRAW_ITEM) {				
+			if (br->getType() == RT_DRAW_ITEM) {
 				const DrawItemResource* dir = (DrawItemResource*)_ctx->_resources[i];
 				const DrawItem* item = dir->get();
-				fprintf(fp,"\nDrawItem %d (%s) - groups: %d\n", id_mask(br->getRID()),_ctx->charBuffer->get(item->nameIndex),item->num);
+				DBG_LOG("DrawItem %d (%s) - groups: %d", id_mask(br->getRID()), _ctx->charBuffer->get(item->nameIndex), item->num);
 				for (int j = 0; j < item->num; ++j) {
-					RID groupID = item->groups[j];					
+					RID groupID = item->groups[j];
 					StateGroupResource* res = (StateGroupResource*)_ctx->_resources[id_mask(groupID)];
 					StateGroup* group = res->get();
-					fprintf(fp, "Group: %d (%s)\n", id_mask(group->rid), _ctx->charBuffer->get(res->getNameIndex()));
-					fprintf(fp, "resource type        | id    | stage    | slot | Name\n");
-					fprintf(fp, "------------------------------------------------------------------------------------------\n");
+					DBG_LOG("Group: %d (%s)", id_mask(group->rid), _ctx->charBuffer->get(res->getNameIndex()));
+					DBG_LOG("resource type        | id    | stage    | slot | Name");
+					DBG_LOG("------------------------------------------------------------------------------------------");
 					for (int k = 0; k < group->num; ++k) {
 						RID current = group->items[k];
 						if (id_mask(current) != NO_RID) {
 							BaseResource* res = _ctx->_resources[id_mask(current)];
-							fprintf(fp, "%-20s | %5d | %-8s | %2d   | %s\n", RESOURCE_NAMES[type_mask(current)], id_mask(current), PIPELINE_STAGE_NAMES[stage_mask(current)], slot_mask(current),_ctx->charBuffer->get(res->getNameIndex()));
+							DBG_LOG("%-20s | %5d | %-8s | %2d   | %s", RESOURCE_NAMES[type_mask(current)], id_mask(current), PIPELINE_STAGE_NAMES[stage_mask(current)], slot_mask(current), _ctx->charBuffer->get(res->getNameIndex()));
 						}
 						else {
-							fprintf(fp, "%-20s | %5d | %-8s | %2d   | NO_RID\n", RESOURCE_NAMES[type_mask(current)], id_mask(current), PIPELINE_STAGE_NAMES[stage_mask(current)], slot_mask(current));
+							DBG_LOG("%-20s | %5d | %-8s | %2d   | NO_RID", RESOURCE_NAMES[type_mask(current)], id_mask(current), PIPELINE_STAGE_NAMES[stage_mask(current)], slot_mask(current));
 						}
 					}
 				}
 			}
 		}
-		fclose(fp);
 	}
 
 	// ******************************************************
@@ -5189,7 +5243,8 @@ namespace ds {
 			if (_gpCtx != 0) {
 				measure(_gpCtx->currentMax);
 				_ctx->d3dContext->End(_gpCtx->disjointQuery[_gpCtx->currFrame]);
-				++_gpCtx->currFrame &= 1;
+				++_gpCtx->currFrame;
+				_gpCtx->currFrame &= 1;
 			}
 		}
 
@@ -5209,7 +5264,8 @@ namespace ds {
 				}
 
 				int iFrame = _gpCtx->lastFrame;
-				++_gpCtx->lastFrame &= 1;
+				++_gpCtx->lastFrame;
+				_gpCtx->lastFrame &= 1;
 
 				D3D11_QUERY_DATA_TIMESTAMP_DISJOINT timestampDisjoint;
 				HRESULT hr = _ctx->d3dContext->GetData(_gpCtx->disjointQuery[iFrame], &timestampDisjoint, sizeof(timestampDisjoint), 0);

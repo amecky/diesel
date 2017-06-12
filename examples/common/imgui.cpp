@@ -979,7 +979,7 @@ namespace gui {
 		HashedId id = HashPointer(values);
 		p.y -= height / 2.0f;
 		float delta = (maxValue - minValue);
-		if (delta == 0.0f) {
+		if (fabs(delta) < 0.000001f) {
 			delta = 1.0f;
 		}
 		float st = width / static_cast<float>(num - 1);

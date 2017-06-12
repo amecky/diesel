@@ -8,7 +8,7 @@ struct Hex {
 	int r;
 	int s;
 
-	Hex() : q(0), r(0) {}
+	Hex() : q(0), r(0), s(0) {}
 	Hex(int _q, int _r) : q(_q), r(_r) {
 		s = -q - r;
 	}
