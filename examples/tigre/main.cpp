@@ -44,9 +44,9 @@ RID buildTigreDrawItem(RID lightBufferID) {
 	RID pixelShader = ds::createShader(psInfo);
 
 	ds::InputLayoutDefinition tigreDecl[] = {
-		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
-		{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,3 },
-		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
+		{ "POSITION", 0, ds::BufferAttributeType::FLOAT3 },
+		{ "NORMAL"  , 0, ds::BufferAttributeType::FLOAT3 },
+		{ "COLOR"   , 0, ds::BufferAttributeType::FLOAT4 }
 	};
 	ds::InputLayoutInfo tigreLayoutInfo = { tigreDecl, 3, vertexShader };
 	RID nid = ds::createInputLayout(tigreLayoutInfo);

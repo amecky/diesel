@@ -29,9 +29,15 @@ struct LightBuffer {
 };
 
 struct InstanceData {
-	ds::vec3 pos;
+	//ds::vec3 pos;
+	ds::matrix worldMatrix;
 	ds::Color color;
 };
+
+void log(const LogLevel&, const char* message) {
+	OutputDebugString(message);
+	OutputDebugString("\n");
+}
 // ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------
@@ -56,6 +62,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.title = "Instancing example - 140 Hexagons";
 	rs.clearColor = ds::Color(0.1f, 0.1f, 0.1f, 1.0f);
 	rs.multisampling = 4;
+	rs.logHandler = &log;
 	ds::init(rs);
 
 	InstanceData instances[512];
@@ -87,15 +94,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID pixelShader = ds::createShader(psInfo);
 
 	ds::InstancedInputLayoutDefinition instDecl[] = {
-		{ "NORMAL", 1, ds::BufferAttributeType::FLOAT, 3 },
-		{ "COLOR", 1, ds::BufferAttributeType::FLOAT, 4 }
+		{ "WORLD", 0, ds::BufferAttributeType::FLOAT4 },
+		{ "WORLD", 1, ds::BufferAttributeType::FLOAT4 },
+		{ "WORLD", 2, ds::BufferAttributeType::FLOAT4 },
+		{ "WORLD", 3, ds::BufferAttributeType::FLOAT4 },
+		{ "COLOR", 1, ds::BufferAttributeType::FLOAT4 }
 	};
 
 	ds::InputLayoutDefinition decl[] = {
-		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
-		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 },
-		{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,3 },
-		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
+		{ "POSITION", 0, ds::BufferAttributeType::FLOAT3 },
+		{ "TEXCOORD", 0, ds::BufferAttributeType::FLOAT2 },
+		{ "NORMAL"  , 0, ds::BufferAttributeType::FLOAT3 },
+		{ "COLOR"   , 0, ds::BufferAttributeType::FLOAT4 }
 	};
 
 	LightBuffer lightBuffer;
@@ -104,7 +114,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	lightBuffer.padding = 0.0f;
 	ds::vec3 lightPos = ds::vec3(0.0f, 0.5f, 1.0f);
 	lightBuffer.lightDirection = normalize(lightPos);
-	ds::InstancedInputLayoutInfo iilInfo = { decl, 4, instDecl, 2, vertexShader };
+	ds::InstancedInputLayoutInfo iilInfo = { decl, 4, instDecl, 5, vertexShader };
 	RID rid = ds::createInstancedInputLayout(iilInfo);
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
 	RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer), &lightBuffer);
@@ -163,7 +173,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		for (int y = 0; y < TOTAL; ++y) {
 			GridItem& item = items[y];
 			item.timer += ds::getElapsedSeconds();
-			instances[y] = { ds::vec3(item.pos.x, item.pos.y, sin(item.timer) * 0.4f), item.color };
+			ds::matrix pm = ds::matTranslate(ds::vec3(item.pos.x, item.pos.y, sin(item.timer) * 0.4f));
+			ds::matrix rx = ds::matRotationX(item.timer);
+			float scale = 0.5f + sin(item.timer) * 0.2f;
+			ds::matrix sm = ds::matScale(ds::vec3(scale, scale, scale));
+			ds::matrix world = rx * sm * pm;
+			instances[y] = { ds::matTranspose(world), item.color };
+			
 		}
 		ds::mapBufferData(idid, instances, sizeof(InstanceData) * TOTAL);
 		fpsCamera.update(static_cast<float>(ds::getElapsedSeconds()));

@@ -112,8 +112,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	// create buffer input layout
 	ds::InputLayoutDefinition decl[] = {
-		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
-		{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
+		{ "POSITION", 0, ds::BufferAttributeType::FLOAT3 },
+		{ "COLOR"   , 0, ds::BufferAttributeType::FLOAT4 }
 	};
 
 	ds::InputLayoutInfo layoutInfo = { decl, 2, vertexShader };

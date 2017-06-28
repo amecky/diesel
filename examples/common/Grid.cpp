@@ -12,8 +12,8 @@ void Grid::create(ds::vec3* positions, int numCells, RID vertexShader, RID pixel
 	}
 
 	ds::InputLayoutDefinition decl[] = {
-		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
-		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }
+		{ "POSITION", 0, ds::BufferAttributeType::FLOAT3 },
+		{ "TEXCOORD", 0, ds::BufferAttributeType::FLOAT2 }
 	};
 	ds::InputLayoutInfo layoutInfo = { decl, 2, vertexShader };
 	RID vertexDeclaration = ds::createInputLayout(layoutInfo, "PT_Layout");

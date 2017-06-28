@@ -207,10 +207,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	grid.create(gridPositions, 2, texturedVS, texturedPS, textureID, basicPass);
 
 	ds::InputLayoutDefinition decl[] = {
-		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
-		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 },
-		{ ds::BufferAttribute::NORMAL,ds::BufferAttributeType::FLOAT,3 },
-		{ ds::BufferAttribute::TANGENT,ds::BufferAttributeType::FLOAT,3 }
+		{ "POSITION", 0,ds::BufferAttributeType::FLOAT3 },
+		{ "TEXCOORD", 0, ds::BufferAttributeType::FLOAT2 },
+		{ "NORMAL"  , 0, ds::BufferAttributeType::FLOAT3 },
+		{ "TANGENT" , 0 ,ds::BufferAttributeType::FLOAT3 }
 	};
 
 	ds::InputLayoutInfo layoutInfo = { decl, 4, bumpVS };

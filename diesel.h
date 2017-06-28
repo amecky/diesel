@@ -690,7 +690,11 @@ namespace ds {
 
 	enum BufferAttributeType {
 		FLOAT,
-		UINT_8
+		UINT_8,
+		FLOAT2,
+		FLOAT3,
+		FLOAT4,
+		MATRIX
 	};
 
 	enum BufferType {
@@ -720,16 +724,15 @@ namespace ds {
 	};
 
 	struct InputLayoutDefinition {
-		BufferAttribute attribute;
+		const char* name;
+		uint8_t nameIndex;
 		BufferAttributeType type;
-		uint8_t size;
 	};
 
 	struct InstancedInputLayoutDefinition {
 		const char* name;
 		uint8_t nameIndex;
 		BufferAttributeType type;
-		uint8_t size;		
 	};
 
 	enum BlendStates {
@@ -2432,6 +2435,7 @@ namespace ds {
 		if (FAILED(result)) {
 			log(LogLevel::LL_ERROR,"%s",msg);
 		}
+		//exit(-1);
 	}
 
 
@@ -2969,15 +2973,6 @@ namespace ds {
 		gpu::endFrame();
 	}
 
-	static const char* DXBufferAttributeNames[] = {
-		"POSITION",
-		"COLOR",
-		"TEXCOORD",
-		"NORMAL",
-		"TANGENT",
-		"BINORMAL"
-	};
-
 	struct DXBufferAttributeType {
 		BufferAttributeType type;
 		DXGI_FORMAT format;
@@ -2986,15 +2981,17 @@ namespace ds {
 	};
 
 	static const DXBufferAttributeType DXBufferAttributeTypes[] = {
-		{ FLOAT, DXGI_FORMAT_R32G32_FLOAT , 2, 8 },
-		{ FLOAT, DXGI_FORMAT_R32G32B32_FLOAT , 3, 12},
-		{ FLOAT, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, 16 },
+		{ FLOAT,  DXGI_FORMAT_R32G32_FLOAT , 2, 8 },
+		{ FLOAT2, DXGI_FORMAT_R32G32_FLOAT, 2, 8 },
+		{ FLOAT3, DXGI_FORMAT_R32G32B32_FLOAT, 3, 12 },
+		{ FLOAT4, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, 16 },
+		{ MATRIX, DXGI_FORMAT_R32G32B32A32_FLOAT, 16, 64 },
 
 	};
 
-	static int find_format(BufferAttributeType type, int size) {
-		for (int i = 0; i < 3; ++i) {
-			if (DXBufferAttributeTypes[i].type == type && DXBufferAttributeTypes[i].size == size) {
+	static int find_format(BufferAttributeType type) {
+		for (int i = 0; i < 5; ++i) {
+			if (DXBufferAttributeTypes[i].type == type) {
 				return i;
 			}
 		}
@@ -3007,28 +3004,23 @@ namespace ds {
 		D3D11_INPUT_ELEMENT_DESC* descriptors = new D3D11_INPUT_ELEMENT_DESC[info.numDeclarations];
 		uint32_t index = 0;
 		uint32_t counter = 0;
-		//char nb[64];
-		int si[8] = { 0 };
 		for (int i = 0; i < info.numDeclarations; ++i) {
 			D3D11_INPUT_ELEMENT_DESC& desc = descriptors[i];
 			const InputLayoutDefinition& current = info.declarations[i];
-			int fidx = find_format(info.declarations[i].type, info.declarations[i].size);
+			int fidx = find_format(info.declarations[i].type);
 			if (fidx == -1) {
 				delete[] descriptors;
 				return INVALID_RID;
 			}
 			const DXBufferAttributeType& formatType = DXBufferAttributeTypes[fidx];
-			//sprintf(nb, "%s%d", DXBufferAttributeNames[decl[i].attribute], si[decl[i].attribute]);
-			//desc.SemanticName = nb;
-			desc.SemanticName = DXBufferAttributeNames[info.declarations[i].attribute];
-			desc.SemanticIndex = si[info.declarations[i].attribute];
+			desc.SemanticName = current.name;
+			desc.SemanticIndex = current.nameIndex;
 			desc.Format = formatType.format;
 			desc.InputSlot = 0;
 			desc.AlignedByteOffset = index;
 			desc.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 			desc.InstanceDataStepRate = 0;
 			index += formatType.bytes;
-			si[info.declarations[i].attribute] += 1;
 		}		
 		uint16_t sidx = getResourceIndex(info.vertexShaderId, RT_VERTEX_SHADER);
 		VertexShaderResource* sres = (VertexShaderResource*)_ctx->_resources[sidx];
@@ -3045,31 +3037,29 @@ namespace ds {
 		D3D11_INPUT_ELEMENT_DESC* descriptors = new D3D11_INPUT_ELEMENT_DESC[total];
 		uint32_t index = 0;
 		uint32_t counter = 0;
-		int si[8] = { 0 };
 		for (int i = 0; i < info.num; ++i) {
 			D3D11_INPUT_ELEMENT_DESC& desc = descriptors[counter++];
 			const InputLayoutDefinition& current = info.decl[i];
-			int fidx = find_format(current.type, current.size);
+			int fidx = find_format(current.type);
 			if (fidx == -1) {
 				delete[] descriptors;
 				return INVALID_RID;
 			}
 			const DXBufferAttributeType& formatType = DXBufferAttributeTypes[fidx];
-			desc.SemanticName = DXBufferAttributeNames[info.decl[i].attribute];
-			desc.SemanticIndex = si[info.decl[i].attribute];
+			desc.SemanticName = current.name;
+			desc.SemanticIndex = current.nameIndex;
 			desc.Format = formatType.format;
 			desc.InputSlot = 0;
 			desc.AlignedByteOffset = index;
 			desc.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 			desc.InstanceDataStepRate = 0;
 			index += formatType.bytes;
-			si[info.decl[i].attribute] += 1;
 		}
 		index = 0;
 		for (int i = 0; i < info.instNum; ++i) {
 			D3D11_INPUT_ELEMENT_DESC& desc = descriptors[counter++];
 			const InstancedInputLayoutDefinition& current = info.instDecl[i];
-			int fidx = find_format(current.type, current.size);
+			int fidx = find_format(current.type);
 			if (fidx == -1) {
 				delete[] descriptors;
 				return INVALID_RID;
@@ -6028,9 +6018,9 @@ namespace ds {
 		RID pixelShader = createPixelShader(DebugText_PS_Main, sizeof(DebugText_PS_Main), "DebugPS");
 		RID geoShader = createGeometryShader(DebugText_GS_Main, sizeof(DebugText_GS_Main), "DebugGS");
 		ds::InputLayoutDefinition decl[] = {
-			{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
-			{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 },
-			{ ds::BufferAttribute::COLOR,ds::BufferAttributeType::FLOAT,4 }
+			{ "POSITION", 0, ds::BufferAttributeType::FLOAT3 },
+			{ "COLOR"   , 0, ds::BufferAttributeType::FLOAT4 },
+			{ "COLOR"   , 1, ds::BufferAttributeType::FLOAT4 }
 		};
 		InputLayoutInfo layoutInfo = { decl, 3, vertexShader };
 		RID vertexDeclId = createInputLayout( layoutInfo, "PCC_Layout");

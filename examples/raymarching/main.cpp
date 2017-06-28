@@ -46,8 +46,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID rayPS = ds::createShader(psInfo);
 
 	ds::InputLayoutDefinition decl[] = {
-		{ ds::BufferAttribute::POSITION,ds::BufferAttributeType::FLOAT,3 },
-		{ ds::BufferAttribute::TEXCOORD,ds::BufferAttributeType::FLOAT,2 }
+		{ "POSITION", 0, ds::BufferAttributeType::FLOAT3 },
+		{ "TEXCOORD", 0, ds::BufferAttributeType::FLOAT2 }
 	};
 
 	ds::InputLayoutInfo layoutInfo = { decl, 2, rayVS };
