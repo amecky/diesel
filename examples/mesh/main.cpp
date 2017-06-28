@@ -29,7 +29,6 @@ struct LightBuffer {
 };
 
 struct InstanceData {
-	//ds::vec3 pos;
 	ds::matrix worldMatrix;
 	ds::Color color;
 };
@@ -65,7 +64,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.logHandler = &log;
 	ds::init(rs);
 
-	InstanceData instances[512];
+	InstanceData instances[TOTAL];
 
 	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 3.0f, -8.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
 	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
@@ -84,7 +83,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::RenderPassInfo rpInfo = { &camera, ds::DepthBufferState::ENABLED, 0, 0 };
 	RID basicPass = ds::createRenderPass(rpInfo);
 
-
 	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
 	RID bs_id = ds::createBlendState(blendInfo);
 
@@ -92,7 +90,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID vertexShader = ds::createShader(vsInfo);
 	ds::ShaderInfo psInfo = { 0, Instancing_PS_Main, sizeof(Instancing_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
 	RID pixelShader = ds::createShader(psInfo);
-
+	//
+	// the instance data contains a world matrix for each instance and a color
+	//
 	ds::InstancedInputLayoutDefinition instDecl[] = {
 		{ "WORLD", 0, ds::BufferAttributeType::FLOAT4 },
 		{ "WORLD", 1, ds::BufferAttributeType::FLOAT4 },
@@ -100,7 +100,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		{ "WORLD", 3, ds::BufferAttributeType::FLOAT4 },
 		{ "COLOR", 1, ds::BufferAttributeType::FLOAT4 }
 	};
-
+	//
+	// the input layout of our vertex data
+	//
 	ds::InputLayoutDefinition decl[] = {
 		{ "POSITION", 0, ds::BufferAttributeType::FLOAT3 },
 		{ "TEXCOORD", 0, ds::BufferAttributeType::FLOAT2 },
@@ -110,7 +112,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	LightBuffer lightBuffer;
 	lightBuffer.ambientColor = ds::Color(0.15f, 0.15f, 0.15f, 1.0f);
-	lightBuffer.diffuseColor = ds::Color(64,0,0,255);
+	lightBuffer.diffuseColor = ds::Color(255,255,255,255);
 	lightBuffer.padding = 0.0f;
 	ds::vec3 lightPos = ds::vec3(0.0f, 0.5f, 1.0f);
 	lightBuffer.lightDirection = normalize(lightPos);
@@ -120,7 +122,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer), &lightBuffer);
 	ds::VertexBufferInfo vbInfo = { ds::BufferType::STATIC, num, sizeof(ObjVertex), vertices };
 	RID vbid = ds::createVertexBuffer(vbInfo);
-	ds::VertexBufferInfo ibInfo = { ds::BufferType::DYNAMIC, 512, sizeof(InstanceData) };
+	ds::VertexBufferInfo ibInfo = { ds::BufferType::DYNAMIC, TOTAL, sizeof(InstanceData) };
 	RID idid = ds::createVertexBuffer(ibInfo);
 	RID instanceBuffer = ds::createInstancedBuffer(vbid, idid);
 	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
@@ -133,13 +135,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	FPSCamera fpsCamera(&camera);
 	fpsCamera.setPosition(ds::vec3(1, 3, -14));
 
+	// we use a 14 x 10 hexagon grid 
 	ds::HexGrid<int> grid;
-	grid.resize(20, 20);
+	grid.resize(WIDTH, HEIGHT);
 
 	float t = 0.0f;
 	Layout l(layout_pointy,ds::vec2(0.58f),ds::vec2(-6.0f,-1.0f));
 
-	GridItem items[WIDTH * HEIGHT];
+	GridItem items[TOTAL];
 
 	for (int r = 0; r < HEIGHT; r++) {
 		int q_offset = r >> 1;
@@ -150,7 +153,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			GridItem& item = items[w + r * WIDTH];
 			item.pos = p;
 			item.timer = ds::random(0.0f, ds::PI);
-			item.color = ds::Color(255, 255, 255, 255);
+			item.color = ds::Color(192, 0, 0, 255);
 			++w;
 		}
 	}
@@ -169,7 +172,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID drawItem = ds::compile(drawCmd, stateGroup);
 
 	while (ds::isRunning()) {
+
 		ds::begin();
+
+		// rotate, scale and move every instance
 		for (int y = 0; y < TOTAL; ++y) {
 			GridItem& item = items[y];
 			item.timer += ds::getElapsedSeconds();
@@ -181,14 +187,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			instances[y] = { ds::matTranspose(world), item.color };
 			
 		}
+		// map the instance data
 		ds::mapBufferData(idid, instances, sizeof(InstanceData) * TOTAL);
+		// update camera
 		fpsCamera.update(static_cast<float>(ds::getElapsedSeconds()));
 		ds::matrix vpm = camera.viewProjectionMatrix;
 		constantBuffer.viewprojectionMatrix = ds::matTranspose(vpm);
 		ds::matrix world = ds::matIdentity();
 		constantBuffer.worldMatrix = ds::matTranspose(world);
+		// submit draw item
 		ds::submit(basicPass, drawItem);
+
 		ds::end();
+
 	}
 	ds::shutdown();
 	return 0;
