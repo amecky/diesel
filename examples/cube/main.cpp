@@ -1,4 +1,5 @@
 #define DS_IMPLEMENTATION
+#define DS_MATH_IMPLEMENTATION
 #include "..\..\diesel.h"
 #include "Cube_VS_Main.h"
 #include "Cube_PS_Main.h"

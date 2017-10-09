@@ -1,7 +1,8 @@
 #pragma once
 #include <stdint.h>
 #include <stdio.h>
-
+#include "ds_math.h"
+#include <stdlib.h>
 //
 // Diesel - A DirectX 11 renderer
 //
@@ -39,7 +40,7 @@
 // 0.1 - initial release
 // ------------------------------------------------------------------------------------
 
-//#define DS_IMPLEMENTATION
+#define DS_IMPLEMENTATION
 
 typedef unsigned char BYTE;
 typedef unsigned char byte;
@@ -63,13 +64,29 @@ const uint16_t NO_RID = UINT16_MAX - 1;
 #define RADTODEG( radian ) ((radian) * (180.0f / 3.141592654f))
 #endif
 
-enum LogLevel {
-	LL_DEBUG,
-	LL_INFO,
-	LL_ERROR
-};
+namespace logging {
 
-typedef void(*dsLogHandler)(const LogLevel&, const char* message);
+	enum LogLevel {
+		LL_TRACE, LL_DEBUG, LL_INFO, LL_WARN, LL_ERROR
+	};
+
+	typedef void(*LogHandler)(const LogLevel&, const char* message);
+
+	void writeOutputDebugString(const LogLevel&, const char* message);
+
+	static LogHandler logHandler = writeOutputDebugString;
+
+	static LogLevel currentLevel = LL_DEBUG;
+
+	void log(LogLevel level, const char* file, int line, char* format, ...);
+
+}
+
+#define LOG_TRACE(...) do { logging::log(logging::LogLevel::LL_TRACE,__FILE__,__LINE__,__VA_ARGS__);} while(0)
+#define LOG_DEBUG(...) do { logging::log(logging::LogLevel::LL_DEBUG,__FILE__,__LINE__,__VA_ARGS__);} while(0)
+#define LOG_INFO(...) do { logging::log(logging::LogLevel::LL_INFO,__FILE__,__LINE__,__VA_ARGS__);} while(0)
+#define LOG_WARN(...) do { logging::log(logging::LogLevel::LL_WARN,__FILE__,__LINE__,__VA_ARGS__);} while(0)
+#define LOG_ERROR(...) do { logging::log(logging::LogLevel::LL_ERROR,__FILE__,__LINE__,__VA_ARGS__);} while(0)
 
 namespace ds {
 
@@ -87,548 +104,100 @@ namespace ds {
 		}
 		return hash;
 	}
-	// ----------------------------------------------------------------------
+	
+	// **********************************************************************
 	//
-	// The necessary math
+	// The Event subsystem
 	//
-	// ----------------------------------------------------------------------
+	// **********************************************************************
 
-	// ------------------------------------------------
-	// Vector template
-	// ------------------------------------------------
-	template<int Size, class T>
-	struct Vector {
-
-		typedef T Type;
-
-		T data[Size];
-
+	enum SpecialKeys {
+		DSKEY_Tab,
+		DSKEY_LeftArrow,
+		DSKEY_RightArrow,
+		DSKEY_UpArrow,
+		DSKEY_DownArrow,
+		DSKEY_PageUp,
+		DSKEY_PageDown,
+		DSKEY_Home,
+		DSKEY_End,
+		DSKEY_Delete,
+		DSKEY_Backspace,
+		DSKEY_Enter,
+		DSKEY_F1,
+		DSKEY_F2,
+		DSKEY_F3,
+		DSKEY_F4,
+		DSKEY_F5,
+		DSKEY_F6,
+		DSKEY_F7,
+		DSKEY_F8,
+		DSKEY_F9,
+		DSKEY_F10,
+		DSKEY_F11,
+		DSKEY_F12,
+		DSKEY_ESC,
+		DSKEY_UNKNOWN
 	};
 
-	// ------------------------------------------------
-	// Vector 2
-	// ------------------------------------------------
-	template <class T>
-	struct Vector<2, T> {
+	enum InputKeyType {
+		IKT_SYSTEM,
+		IKT_ASCII
+	};
+
+	struct InputKey {
+		InputKeyType type;
+		char value;
+	};
+
+	enum EventType {
+		ET_MOUSEBUTTON_DOWN,
+		ET_MOUSEBUTTON_UP,
+		ET_MOUSEBUTTON_PRESSED,
+		ET_KEY_DOWN,
+		ET_KEY_UP,
+		ET_KEY_PRESSED,
+		ET_USER,
+		ET_NONE
+	};
+
+	enum ButtonState {
+		PRESSED,
+		RELEASED
+	};
+
+	struct MouseEvent {
+		int button;
+		ButtonState state;
+	};
+
+	struct KeyEvent {
+		InputKeyType keyType;
+		uint8_t key;
+		SpecialKeys specialKey;
+	};
+
+	struct UserEvent {
+		EventType type;
+		int id;
+		void* firstData;
+		void* secondData;
+	};
+
+	struct Event {
+		EventType type;
 		union {
-			T data[2];
-			struct {
-				T x, y;
-			};
+			MouseEvent mouse;
+			KeyEvent key;
+			UserEvent user;
 		};
-		Vector<2, T>() : x(0), y(0) {}
-		explicit Vector<2, T>(T t) : x(t), y(t) {}
-		Vector<2, T>(T xv, T yv) : x(xv), y(yv) {}
-		Vector<2, T>(const Vector<2, int>& other) : x(other.x), y(other.y) {}
-		Vector<2, T>(const T* value) {
-			x = *value;
-			++value;
-			y = *value;
-		}
-		const T& operator[] (int idx) const { return data[idx]; }
-		T& operator[] (int idx) { return data[idx]; }
-		T* operator() () {
-			return &data[0];
-		}
-		Vector<2, T>& operator = (const Vector<2, T>& other) {
-			x = other.x;
-			y = other.y;
-			return *this;
-		}
 	};
 
-	// ------------------------------------------------
-	// Vector 3
-	// ------------------------------------------------
-	template <class T>
-	struct Vector<3, T> {
-		union {
-			T data[3];
-			struct {
-				T x, y, z;
-			};
-		};
+	bool get_event(Event* e);
 
-		Vector<3, T>() : x(0.0f), y(0.0f), z(0.0f) {}
-		explicit Vector<3, T>(T t) : x(t), y(t), z(t) {}
-		Vector<3, T>(T xv, T yv, T zv) : x(xv), y(yv), z(zv) {}
-		Vector<3, T>(const Vector<2, T>& other, T tz) : x(other.x), y(other.y), z(tz) {}
-		Vector<3, T>(const Vector<3, T>& other) : x(other.x), y(other.y), z(other.z) {}
-		Vector<3, T>(const T* value) {
-			x = *value;
-			++value;
-			y = *value;
-			++value;
-			z = *value;
-		}
-		Vector<3, T>(const Vector<2, T>& v) { x = v.x; y = v.y; z = 0.0f; }
-		const T& operator[] (int idx) const { return data[idx]; }
-		T& operator[] (int idx) { return data[idx]; }
-		T* operator() () {
-			return &data[0];
-		}
-		Vector<3, T>& operator = (const Vector<3, T>& other) {
-			x = other.x;
-			y = other.y;
-			z = other.z;
-			return *this;
-		}
-		Vector<2, T> xy() const {
-			return Vector<2, T>(x, y);
-		}
-	};
+	bool has_events();
 
-	// ------------------------------------------------
-	// Vector 4 
-	// ------------------------------------------------
-	template <class T> struct Vector<4, T> {
-		union {
-			T data[4];
-			struct {
-				T x, y, z, w;
-			};
-			struct {
-				T r, g, b, a;
-			};
-		};
-		Vector<4, T>() : x(0), y(0), z(0), w(0) {}
-		explicit Vector<4, T>(T t) : x(t), y(t), z(t), w(t) {}
-		Vector<4, T>(T tx, T ty, T tz, T tw) : x(tx), y(ty), z(tz), w(tw) {}
-		Vector<4, T>(const Vector<4, T>& other) : x(other.x), y(other.y), z(other.z), w(other.w) {}
-		Vector<4, T>(const Vector<3, T>& other, float tw) : x(other.x), y(other.y), z(other.z), w(tw) {}
-		Vector<4, T>(const T* data) {
-			x = *data;
-			++data;
-			y = *data;
-			++data;
-			z = *data;
-			++data;
-			w = *data;
-		}
-		const T* operator() () const {
-			return &data[0];
-		}
-		Vector<4, T>& operator = (const Vector<4, T>& other) {
-			x = other.x;
-			y = other.y;
-			z = other.z;
-			w = other.w;
-			return *this;
-		}
-		Vector<2, T> xy() const {
-			return Vector<2, T>(x, y);
-		}
-		Vector<3, T> xyz() const {
-			return Vector<3, T>(x, y, z);
-		}
-	};
-
-	// ------------------------------------------------
-	// Type definitions
-	// ------------------------------------------------
-	typedef Vector<2, float> vec2;
-	typedef Vector<3, float> vec3;
-	typedef Vector<4, float> vec4;
-
-	const vec2 vec2_RIGHT = vec2(1, 0);
-	const vec2 vec2_LEFT = vec2(-1, 0);
-	const vec2 vec2_UP = vec2(0, 1);
-	const vec2 vec2_DOWN = vec2(0, -1);
-	const vec2 vec2_ZERO = vec2(0, 0);
-	const vec2 vec2_ONE = vec2(1, 1);
-
-	const vec3 vec3_RIGHT = vec3(1, 0, 0);
-	const vec3 vec3_LEFT = vec3(-1, 0, 0);
-	const vec3 vec3_UP = vec3(0, 1, 0);
-	const vec3 vec3_DOWN = vec3(0, -1, 0);
-	const vec3 vec3_FORWARD = vec3(0, 0, -1);
-	const vec3 vec3_BACKWARD = vec3(0, 0, 1);
-	const vec3 vec3_ZERO = vec3(0, 0, 0);
-	const vec3 vec3_ONE = vec3(1, 1, 1);
-
-	// ------------------------------------------------
-	// Matrix
-	// ------------------------------------------------
-	struct matrix {
-
-		union {
-			struct {
-				float        _11, _12, _13, _14;
-				float        _21, _22, _23, _24;
-				float        _31, _32, _33, _34;
-				float        _41, _42, _43, _44;
-
-			};
-			float m[4][4];
-		};
-
-		matrix();
-		matrix(float m11, float m12, float m13, float m14, float m21, float m22, float m23, float m24, float m31, float m32, float m33, float m34, float m41, float m42, float m43, float m44);
-		matrix(const float* other) {
-			for (int y = 0; y < 4; ++y) {
-				for (int x = 0; x < 4; ++x) {
-					m[x][y] = other[x + y * 4];
-				}
-			}
-		}
-		operator float *() const { return (float *)&_11; }
-
-		float& operator () (int a, int b) {
-			return m[a][b];
-		}
-	};
-
-	matrix matIdentity();
-
-	matrix matOrthoLH(float w, float h, float zn, float zf);
-
-	matrix matScale(const vec3& scale);
-
-	matrix matRotationX(float angle);
-
-	matrix matRotationY(float angle);
-
-	matrix matRotationZ(float angle);
-
-	matrix matRotation(const vec3& r);
-
-	matrix matTranspose(const matrix& m);
-
-	matrix matTranslate(const vec3& pos);
-
-	matrix matLookAtLH(const vec3& eye, const vec3& lookAt, const vec3& up);
-
-	matrix matPerspectiveFovLH(float fovy, float aspect, float zn, float zf);
-
-	vec3 matTransformNormal(const vec3& v, const matrix& m);
-
-	matrix matRotation(const vec3& v, float angle);
-
-	matrix matInverse(const matrix& m);
-
-	matrix operator * (const matrix& m1, const matrix& m2);
-
-	vec3 operator * (const matrix& m, const vec3& v);
-
-	vec4 operator * (const matrix& m, const vec4& v);
-
-	template<int Size, class T>
-	bool operator == (const Vector<Size, T>& u, const Vector<Size, T>& v) {
-		for (int i = 0; i < Size; ++i) {
-			if (u.data[i] != v.data[i]) {
-				return false;
-			}
-		}
-		return true;
-	}
-
-	template<int Size, class T>
-	bool operator != (const Vector<Size, T>& u, const Vector<Size, T>& v) {
-		for (int i = 0; i < Size; ++i) {
-			if (u.data[i] != v.data[i]) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	template<int Size, class T>
-	Vector<Size, T> operator - (const Vector<Size, T>& v) {
-		Vector<Size, T> ret;
-		for (int i = 0; i < Size; ++i) {
-			ret.data[i] = -v.data[i];
-		}
-		return ret;
-	}
-
-	template<int Size, class T>
-	Vector<Size, T> operator += (Vector<Size, T>& u, const Vector<Size, T>& v) {
-		for (int i = 0; i < Size; ++i) {
-			u.data[i] += v.data[i];
-		}
-		return u;
-	}
-
-	template<int Size, class T>
-	Vector<Size, T> operator += (const Vector<Size, T>& u, const Vector<Size, T>& v) {
-		Vector<Size, T> r;
-		for (int i = 0; i < Size; ++i) {
-			r.data[i] = u.data[i] + v.data[i];
-		}
-		return r;
-	}
-
-	template<int Size, class T>
-	Vector<Size, T> operator *= (Vector<Size, T>& u, T other) {
-		for (int i = 0; i < Size; ++i) {
-			u.data[i] *= other;
-		}
-		return u;
-	}
-
-	template<int Size, class T>
-	Vector<Size, T>& operator /= (Vector<Size, T>& u, T other) {
-		for (int i = 0; i < Size; ++i) {
-			u.data[i] /= other;
-		}
-		return u;
-	}
-
-	template<int Size, class T>
-	Vector<Size, T>& operator -= (Vector<Size, T>& u, const Vector<Size, T>& v) {
-		for (int i = 0; i < Size; ++i) {
-			u.data[i] -= v.data[i];
-		}
-		return u;
-	}
-
-	template<int Size, class T>
-	Vector<Size, T> operator -= (const Vector<Size, T>& u, const Vector<Size, T>& v) {
-		Vector<Size, T> r;
-		for (int i = 0; i < Size; ++i) {
-			r.data[i] = u.data[i] - v.data[i];
-		}
-		return r;
-	}
-
-	template<int Size, class T>
-	Vector<Size, T> operator + (const Vector<Size, T>& u, const Vector<Size, T>& v) {
-		Vector<Size, T> ret = u;
-		return ret += v;
-	}
-
-	template<int Size, class T>
-	Vector<Size, T> operator - (const Vector<Size, T>& u, const Vector<Size, T>& v) {
-		Vector<Size, T> ret = u;
-		return ret -= v;
-	}
-
-	template<int Size, class T>
-	Vector<Size, T> operator * (const Vector<Size, T>& u, const T& v) {
-		Vector<Size, T> ret = u;
-		return ret *= v;
-	}
-
-	template<int Size, class T>
-	Vector<Size, T> operator * (const T& v, const Vector<Size, T>& u) {
-		Vector<Size, T> ret = u;
-		return ret *= v;
-	}
-
-	template<int Size, class T>
-	Vector<Size, T> operator / (const Vector<Size, T>& u, const T& v) {
-		Vector<Size, T> ret = u;
-		return ret /= v;
-	}
-
-	template<int Size, class T>
-	T dot(const Vector<Size, T>& v, const Vector<Size, T>& u) {
-		T t(0);
-		for (int i = 0; i < Size; ++i) {
-			t += v.data[i] * u.data[i];
-		}
-		return t;
-	}
-
-	template<int Size, class T>
-	T length(const Vector<Size, T>& v) {
-		T t = dot(v, v);
-		float tmp = std::sqrt(static_cast<float>(t));
-		return static_cast<T>(tmp);
-	}
-
-	template<int Size, class T>
-	T sqr_length(const Vector<Size, T>& v) {
-		return dot(v, v);
-	}
-
-	template<int Size, class T>
-	Vector<Size, T> normalize(const Vector<Size, T>& u) {
-		T len = length(u);
-		if (len == 0.0f) {
-			return Vector<Size, T>();
-		}
-		return u / len;
-	}
-
-	template<int Size, class T>
-	Vector<Size, T>* normalize(const Vector<Size, T>& u, Vector<Size, T>* ret) {
-		T len = length(u);
-		for (int i = 0; i < Size; ++i) {
-			ret->data[i] /= len;
-		}
-		return ret;
-	}
-
-	template<int Size, class T>
-	T distance(const Vector<Size, T>& u, const Vector<Size, T>& v) {
-		Vector<Size, T> sub = u - v;
-		return length(sub);
-	}
-
-	template<int Size, class T>
-	T sqr_distance(const Vector<Size, T>& u, const Vector<Size, T>& v) {
-		Vector<Size, T> sub = u - v;
-		return sqr_length(sub);
-	}
-
-	template<class T>
-	Vector<3, T> cross(const Vector<3, T>& u, const Vector<3, T>& v) {
-		T x = u.y * v.z - u.z * v.y;
-		T y = u.z * v.x - u.x * v.z;
-		T z = u.x * v.y - u.y * v.x;
-		return Vector<3, T>(x, y, z);
-	}
-
-	template<class T>
-	Vector<3, T>* cross(const Vector<3, T>& u, const Vector<3, T>& v, Vector<3, T>* ret) {
-		ret->x = u.y * v.z - u.z * v.y;
-		ret->y = u.z * v.x - u.x * v.z;
-		ret->z = u.x * v.y - u.y * v.x;
-		return ret;
-	}
-
-	template<class T>
-	T inline cross(const Vector<2, T>& v1, const Vector<2, T>& vec2) {
-		return v1.x * vec2.y - vec2.x * v1.y;
-	}
-
-	template<int Size>
-	Vector<Size, float>* lerp(const Vector<Size, float>& u, const Vector<Size, float>& v, float time, Vector<Size, float>* ret) {
-		float norm = time;
-		if (norm < 0.0f) {
-			norm = 0.0f;
-		}
-		if (norm > 1.0f) {
-			norm = 1.0f;
-		}
-		for (int i = 0; i < Size; ++i) {
-			ret->data[i] = u.data[i] * (1.0f - norm) + v.data[i] * norm;
-		}
-		return ret;
-	}
-
-	template<int Size>
-	Vector<Size, float> lerp(const Vector<Size, float>& u, const Vector<Size, float>& v, float time) {
-		Vector<Size, float> ret;
-		lerp(u, v, time, &ret);
-		return ret;
-	}
-
-	template<int Size, class T>
-	Vector<Size, T> vec_min(const Vector<Size, T>& u, const Vector<Size, T>& v) {
-		Vector<Size, T> ret;
-		for (int i = 0; i < Size; ++i) {
-			if (u.data[i] <= v.data[i]) {
-				ret.data[i] = u.data[i];
-			}
-			else {
-				ret.data[i] = v.data[i];
-			}
-		}
-		return ret;
-	}
-
-	template<int Size, class T>
-	Vector<Size, T> vec_max(const Vector<Size, T>& u, const Vector<Size, T>& v) {
-		Vector<Size, T> ret;
-		for (int i = 0; i < Size; ++i) {
-			if (u.data[i] >= v.data[i]) {
-				ret.data[i] = u.data[i];
-			}
-			else {
-				ret.data[i] = v.data[i];
-			}
-		}
-		return ret;
-	}
-
-	template<int Size, class T>
-	Vector<Size, T> clamp(const Vector<Size, T>& u, const Vector<Size, T>& min, const Vector<Size, T>& max) {
-		Vector<Size, T> ret;
-		for (int i = 0; i < Size; ++i) {
-			ret.data[i] = u.data[i];
-			if (u.data[i] > max.data[i]) {
-				ret.data[i] = max.data[i];
-			}
-			else if (u.data[i] < min.data[i]) {
-				ret.data[i] = min.data[i];
-			}
-		}
-		return ret;
-	}
-
-	template<int Size, class T>
-	void clamp(Vector<Size, T>* u, const Vector<Size, T>& min, const Vector<Size, T>& max) {
-		for (int i = 0; i < Size; ++i) {
-			if (u->data[i] > max.data[i]) {
-				u->data[i] = max.data[i];
-			}
-			else if (u->data[i] < min.data[i]) {
-				u->data[i] = min.data[i];
-			}
-		}
-	}
-
-	template<int Size>
-	Vector<Size, float> saturate(const Vector<Size, float>& u) {
-		return clamp(u, Vector<Size, float>(0.0f), Vector<Size, float>(1.0f));
-	}
-
-	template<int Size>
-	Vector<Size, int> saturate(const Vector<Size, int>& u) {
-		return clamp(u, Vector<Size, int>(0), Vector<Size, int>(1));
-	}
-
-	template<int Size, class T>
-	void limit(Vector<Size, T>* v, const Vector<Size, T>& u) {
-		for (int i = 0; i < Size; ++i) {
-			if (v->data[i] > u.data[i]) {
-				v->data[i] = u.data[i];
-			}
-			else if (v->data[i] < -u.data[i]) {
-				v->data[i] = -u.data[i];
-			}
-		}
-	}
-
-	template<int Size, class T>
-	Vector<Size, T> reflect(const Vector<Size, T>& u, const Vector<Size, T>& norm) {
-		Vector<Size, T> ret;
-		float dp = dot(u, norm);
-		for (int i = 0; i < Size; ++i) {
-			ret.data[i] = u.data[i] - 2.0f * dp * norm.data[i];
-		}
-		return ret;
-	}
-
-	inline matrix::matrix() {
-		for (int i = 0; i < 4; ++i) {
-			for (int j = 0; j < 4; ++j) {
-				m[i][j] = 0.0f;
-			}
-		}
-	}
-
-	inline matrix::matrix(float m11, float m12, float m13, float m14, float m21, float m22, float m23, float m24, float m31, float m32, float m33, float m34, float m41, float m42, float m43, float m44) {
-		_11 = m11;
-		_12 = m12;
-		_13 = m13;
-		_14 = m14;
-		_21 = m21;
-		_22 = m22;
-		_23 = m23;
-		_24 = m24;
-		_31 = m31;
-		_32 = m32;
-		_33 = m33;
-		_34 = m34;
-		_41 = m41;
-		_42 = m42;
-		_43 = m43;
-		_44 = m44;
-	}
-
+	void push_event(const Event& e);
 	// **********************************************************************
 	//
 	// The rendering API
@@ -639,43 +208,7 @@ namespace ds {
 	const float PI = 3.141592654f;
 	const float TWO_PI = 2.0f * PI;
 
-	typedef struct Color {
-		union {
-			float values[4];
-			struct {
-				float r;
-				float g;
-				float b;
-				float a;
-			};
-		};
-		Color() : r(1.0f), g(1.0f), b(1.0f), a(1.0f) {}
-		Color(float _r, float _g, float _b, float _a) : r(_r), g(_g), b(_b), a(_a) {}
-		Color(float _r, float _g, float _b) : r(_r), g(_g), b(_b), a(1.0f) {}
-		Color(int _r, int _g, int _b, int _a) {
-			r = static_cast<float>(_r) / 255.0f;
-			g = static_cast<float>(_g) / 255.0f;
-			b = static_cast<float>(_b) / 255.0f;
-			a = static_cast<float>(_a) / 255.0f;
-		}
-		operator float* () {
-			return &values[0];
-		}
-
-		operator const float* () const {
-			return &values[0];
-		}
-		/*
-		uint32_t u32() {
-			uint32_t u = r * 255.0f;
-			u = (u << 8) + g * 255.0f;
-			u = (u << 8) + b * 255.0f;
-			u = (u << 8) + a * 255.0f;
-			return u;
-		}
-		*/
-
-	} Color;
+	
 
 
 
@@ -855,7 +388,6 @@ namespace ds {
 		const char* title;
 		bool useGPUProfiling;
 		bool supportDebug;
-		dsLogHandler logHandler;
 
 		RenderSettings() {
 			width = 1024;
@@ -865,7 +397,6 @@ namespace ds {
 			title = "No title";
 			useGPUProfiling = false;
 			supportDebug = true;
-			logHandler = 0;
 		}
 	};
 
@@ -1236,49 +767,9 @@ namespace ds {
 
 	float random(float min, float max);
 
-	const char* getLastError();
-
-	enum SpecialKeys {
-		DSKEY_Tab,
-		DSKEY_LeftArrow,
-		DSKEY_RightArrow,
-		DSKEY_UpArrow,
-		DSKEY_DownArrow,
-		DSKEY_PageUp,
-		DSKEY_PageDown,
-		DSKEY_Home,
-		DSKEY_End,
-		DSKEY_Delete,
-		DSKEY_Backspace,
-		DSKEY_Enter,
-		DSKEY_F1,
-		DSKEY_F2,
-		DSKEY_F3,
-		DSKEY_F4,
-		DSKEY_F5,
-		DSKEY_F6,
-		DSKEY_F7,
-		DSKEY_F8,
-		DSKEY_F9,
-		DSKEY_F10,
-		DSKEY_F11,
-		DSKEY_F12,
-		DSKEY_UNKNOWN
-	};
-
-	enum InputKeyType {
-		IKT_SYSTEM,
-		IKT_ASCII
-	};
-
-	struct InputKey {
-		InputKeyType type;
-		char value;
-	};
-
 	void addInputCharacter(char c);
 
-	void addVirtualKey(uint32_t keyCode);
+	bool addVirtualKey(uint32_t keyCode);
 
 	int getNumInputKeys();
 
@@ -1311,11 +802,62 @@ namespace ds {
 #include <thread>
 #include <chrono>
 
+namespace logging {
+
+	static const char* LEVEL_NAMES[] = { "TRACE", "DEBUG", "INFO", "WARN", "ERROR" };
+
+	void writeOutputDebugString(const LogLevel&, const char* message) {
+		OutputDebugString(message);
+		OutputDebugString("\n");
+	}
+
+	static int fill_time_stamp(char* ret, int max) {
+		char buffer[200];
+		if (GetTimeFormat(LOCALE_USER_DEFAULT, 0, 0, "HH':'mm':'ss", buffer, 200) == 0) {
+			return sprintf_s(ret, max, "00:00:00");
+		}
+		DWORD first = GetTickCount();
+		return sprintf_s(ret, max, "%s.%03ld", buffer, (long)(GetTickCount() - first) % 1000);
+	}
+
+	static const char* extract_file_name(const char* file) {
+		int l = strlen(file);
+		for (int i = l - 1; i >= 0; --i) {
+			if (file[i] == '\\') {
+				return file + i + 1;
+			}
+		}
+		return file;
+	}
+
+	static void log_internal(const char *file, int line, LogLevel level, char* format, va_list args) {
+		char buffer[128];
+		fill_time_stamp(buffer, 128);
+		const char* name = extract_file_name(file);
+		char msg[256];
+		memset(msg, 0, sizeof(msg));
+		int written = vsnprintf_s(msg, sizeof(msg), _TRUNCATE, format, args);
+		char total[512];
+		sprintf_s(total, sizeof(total), "%s [%s] %s:%d : %s", buffer, LEVEL_NAMES[level], name, line, msg);
+		(*logHandler)(level, total);
+	}
+
+
+	void log(LogLevel level, const char* file, int line, char* format, ...) {
+		if (level >= currentLevel) {
+			va_list args;
+			va_start(args, format);
+			log_internal(file, line, level, format, args);
+			va_end(args);
+		}
+	}
+
+}
+
 namespace ds {
 
 	static void assert_fmt(char* expr_str, bool expr, char* format, ...);
 
-	static void log(const LogLevel& level, char* format,...);
 
 	static void assert_result(HRESULT result, const char* msg);
 }
@@ -1324,12 +866,8 @@ namespace ds {
 #define XASSERT(Expr, s, ...) do { ds::assert_fmt(#Expr, Expr,s,__VA_ARGS__); } while(false);
 #endif
 
-#ifndef DBG_LOG
-#define DBG_LOG(s, ...) do { ds::log(LogLevel::LL_DEBUG,s,__VA_ARGS__); } while(false);
-#endif
-
 #ifndef REPORT
-#define REPORT(s, ...) do { ds::log(LogLevel::LL_ERROR,s,__VA_ARGS__); } while(false);
+#define REPORT(s, ...) do { LOG_ERROR(s,__VA_ARGS__); } while(false);
 #endif
 
 namespace ds {
@@ -1624,6 +1162,13 @@ namespace ds {
 		UINT bufferSize;
 	};
 
+	struct PixelShader {
+		ID3D11PixelShader* shader;
+	};
+
+	typedef struct ds_geometry_shader {
+		ID3D11GeometryShader* shader;
+	};
 	// ------------------------------------------------------
 	// internal texture 
 	// ------------------------------------------------------
@@ -1633,6 +1178,7 @@ namespace ds {
 		RID samplerState;
 		ID3D11ShaderResourceView* srv;
 		ID3D11Texture2D* texture;
+		ds::vec2 size;
 	};
 
 	struct RenderTarget {
@@ -1649,6 +1195,119 @@ namespace ds {
 	// Resource management
 	//
 	// ******************************************************
+	// ------------------------------------------------------
+	// ds_constant_buffer_resource
+	// ------------------------------------------------------
+	typedef struct ds_constant_buffer_resource {
+		ID3D11Buffer* data;
+		int _byteWidth;
+		void* _bufferPtr;
+	};
+
+	// ------------------------------------------------------
+	// ds_vertex_buffer_resource
+	// ------------------------------------------------------
+	typedef struct ds_vertex_buffer_resource {
+		ID3D11Buffer* data;
+		int size;
+		BufferType type;
+		unsigned int vertexSize;
+	};
+
+	// ------------------------------------------------------
+	// ds_index_buffer_resource
+	// ------------------------------------------------------
+	typedef struct ds_index_buffer_resource {
+		ID3D11Buffer* buffer;
+		DXGI_FORMAT format;
+		uint32_t numIndices;
+		BufferType type;
+	};
+	// ------------------------------------------------------
+	// ds_input_layout_resource
+	// ------------------------------------------------------
+	typedef struct ds_input_layout_resource {
+		ID3D11InputLayout* data;
+		int size;
+	};
+
+	// ------------------------------------------------------
+	// ds_blend_state_resource
+	// ------------------------------------------------------
+	typedef struct ds_blend_state_resource {
+		ID3D11BlendState* state;
+	};
+
+	// ------------------------------------------------------
+	// ds_sampler_state_resource
+	// ------------------------------------------------------
+	typedef struct ds_sampler_state_resource {
+		ID3D11SamplerState* state;
+	};
+	
+	// ------------------------------------------------------
+	// ds_rasterizer_state_resource
+	// ------------------------------------------------------
+	typedef struct ds_rasterizer_state_resource {
+		ID3D11RasterizerState* state;
+	};
+	
+	typedef struct ds_resource_buffer {
+		char* data;
+		int data_size;
+		int data_capacity;
+		int* indices;
+		ResourceType* types;
+		unsigned int* hashes;
+		int num;		
+		int capacity;
+		char* internal_buffer;
+	};
+
+	static ds_resource_buffer* ds_create_buffer() {
+		ds_resource_buffer* buf = (ds_resource_buffer*)malloc(sizeof(ds_resource_buffer));
+		int size = 128 * (sizeof(int) + sizeof(ResourceType) + sizeof(unsigned int));
+		buf->internal_buffer = (char*)malloc(size);
+		buf->data = (char*)malloc(4096);
+		buf->indices = (int*)(buf->internal_buffer);
+		buf->types = (ResourceType*)(buf->indices + 128);
+		buf->hashes = (unsigned int*)(buf->types + 128);
+		buf->capacity = 128;
+		buf->num = 0;
+		buf->data_size = 0;
+		buf->data_capacity = 4096;
+		return buf;
+	}
+
+	static void* ds_get_resource(ds_resource_buffer* buffer, int id) {
+		return (void*)(buffer->data + buffer->indices[id]);
+	}
+
+	static RID ds_add_to_buffer(ds_resource_buffer* buffer, void* data, unsigned int size, ResourceType type) {
+		if ((buffer->data_size + size) >= buffer->data_capacity) {
+			buffer->data = (char*)realloc(buffer->data, buffer->data_capacity + size * 6);
+			buffer->data_capacity = buffer->data_capacity + size * 6;
+		}
+		char* tmp = buffer->data + buffer->data_size;
+		memcpy(tmp, data, size);
+		if (buffer->num + 1 > buffer->capacity) {
+			// FIXME: reallocate stuff
+		}
+		buffer->indices[buffer->num] = buffer->data_size;
+		buffer->types[buffer->num] = type;
+		// FIXME: add hash
+		buffer->data_size += size;
+		RID ret = buildRID(buffer->num, type, 0, 0);
+		++buffer->num;
+		return ret;
+	}
+
+	static void ds_free_buffer(ds_resource_buffer* buffer) {
+		free(buffer->internal_buffer);
+		free(buffer->data);
+		free(buffer);
+	}
+
 	class BaseResource {
 
 	public:
@@ -1697,91 +1356,6 @@ namespace ds {
 		
 	protected:
 		T _data;
-	};
-
-	// ------------------------------------------------------
-	// ConstantBufferResource
-	// ------------------------------------------------------
-	class ConstantBufferResource : public AbstractResource<ID3D11Buffer*> {
-
-	public:
-		ConstantBufferResource(ID3D11Buffer* t, int byteWidth, void* bufferPtr) : AbstractResource(t) , _byteWidth(byteWidth) , _bufferPtr(bufferPtr) {}
-		virtual ~ConstantBufferResource() {}
-		void release() {
-			if (_data != 0) {
-				_data->Release();
-				_data = 0;
-			}
-		}
-		const ResourceType getType() const {
-			return RT_CONSTANT_BUFFER;
-		}
-		int getByteWidth() const {
-			return _byteWidth;
-		}
-		void* getBufferPtr() const {
-			return _bufferPtr;
-		}
-	private:
-		int _byteWidth;
-		void* _bufferPtr;
-	};
-
-	// ------------------------------------------------------
-	// InputLayoutResource
-	// ------------------------------------------------------
-	class InputLayoutResource : public AbstractResource<ID3D11InputLayout*> {
-
-	public:
-		InputLayoutResource(ID3D11InputLayout* t, int size) : AbstractResource(t), _size(size) {}
-		virtual ~InputLayoutResource() {}
-		void release() {
-			if (_data != 0) {
-				_data->Release();
-				_data = 0;
-			}
-		}
-		int size() const {
-			return _size;
-		}
-		const ResourceType getType() const {
-			return RT_INPUT_LAYOUT;
-		}
-	private:
-		int _size;
-	};
-
-	// ------------------------------------------------------
-	// VertexBufferResource
-	// ------------------------------------------------------
-	class VertexBufferResource : public AbstractResource<ID3D11Buffer*> {
-
-	public:
-		VertexBufferResource(ID3D11Buffer* t, int size, BufferType type, unsigned int vertexSize) : AbstractResource(t), _size(size), _type(type), _vertexSize(vertexSize) {}
-		virtual ~VertexBufferResource() {}
-
-		void release() {
-			if (_data != 0) {
-				_data->Release();
-				_data = 0;
-			}
-		}
-		int size() const {
-			return _size;
-		}
-		const ResourceType getType() const {
-			return RT_VERTEX_BUFFER;
-		}
-		BufferType getBufferType() const {
-			return _type;
-		}
-		unsigned int getVertexSize() const {
-			return _vertexSize;
-		}
-	private:
-		int _size;
-		BufferType _type;
-		unsigned int _vertexSize;
 	};
 
 	// ------------------------------------------------------
@@ -1839,70 +1413,6 @@ namespace ds {
 	};
 
 	// ------------------------------------------------------
-	// IndexBufferResource
-	// ------------------------------------------------------
-	class IndexBufferResource : public AbstractResource<ID3D11Buffer*> {
-
-	public:
-		IndexBufferResource(ID3D11Buffer* t, DXGI_FORMAT format,uint32_t numIndices,BufferType type) 
-			: AbstractResource(t) , _format(format) , _numIndices(numIndices) , _type(type) {}
-		virtual ~IndexBufferResource() {}
-		void release() {
-			if (_data != 0) {
-				_data->Release();
-				_data = 0;
-			}
-		}
-		const ResourceType getType() const {
-			return RT_INDEX_BUFFER;
-		}
-		DXGI_FORMAT getFormat() const {
-			return _format;
-		}
-		uint32_t getNumIndices() const {
-			return _numIndices;
-		}
-		BufferType getBufferType() const {
-			return _type;
-		}
-	private:
-		DXGI_FORMAT _format;
-		uint32_t _numIndices;
-		BufferType _type;
-	};
-
-	// ------------------------------------------------------
-	// ShaderResourceViewResource
-	// ------------------------------------------------------
-	class ShaderResourceViewResource : public AbstractResource<InternalTexture*> {
-
-	public:
-		ShaderResourceViewResource(InternalTexture* t) : AbstractResource(t) {
-			_size = ds::vec2(t->width, t->height);
-		}
-		virtual ~ShaderResourceViewResource() {}
-		void release() {
-			if (_data->srv != 0) {
-				_data->srv->Release();
-			}
-			if (_data->texture != 0) {
-				_data->texture->Release();
-			}
-			delete _data;
-			_data = 0;
-		}
-		const ds::vec2& getSize() const {
-			return _size;
-
-		}
-		const ResourceType getType() const {
-			return RT_SRV;
-		}
-	private:
-		ds::vec2 _size;
-	};
-
-	// ------------------------------------------------------
 	// ShaderResourceViewResource
 	// ------------------------------------------------------
 	class UAResourceViewResource : public AbstractResource<ID3D11UnorderedAccessView*> {
@@ -1920,127 +1430,6 @@ namespace ds {
 		}
 		const ResourceType getType() const {
 			return RT_UA_SRV;
-		}
-	};
-
-	// ------------------------------------------------------
-	// BlendStateResource
-	// ------------------------------------------------------
-	class BlendStateResource : public AbstractResource<ID3D11BlendState*> {
-
-	public:
-		BlendStateResource(ID3D11BlendState* t) : AbstractResource(t) {}
-		virtual ~BlendStateResource() {}
-		void release() {
-			if (_data != 0) {
-				_data->Release();
-				_data = 0;
-			}
-		}
-		const ResourceType getType() const {
-			return RT_BLENDSTATE;
-		}
-	};
-
-	// ------------------------------------------------------
-	// SamplerStateResource
-	// ------------------------------------------------------
-	class SamplerStateResource : public AbstractResource<ID3D11SamplerState*> {
-
-	public:
-		SamplerStateResource(ID3D11SamplerState* t) : AbstractResource(t) {}
-		virtual ~SamplerStateResource() {}
-		void release() {
-			if (_data != 0) {
-				_data->Release();
-				_data = 0;
-			}
-		}
-		const ResourceType getType() const {
-			return RT_SAMPLER_STATE;
-		}
-	};
-
-	// ------------------------------------------------------
-	// RasterizerStateResource
-	// ------------------------------------------------------
-	class RasterizerStateResource : public AbstractResource<ID3D11RasterizerState*> {
-
-	public:
-		RasterizerStateResource(ID3D11RasterizerState* t) : AbstractResource(t) {}
-		virtual ~RasterizerStateResource() {}
-		void release() {
-			if (_data != 0) {
-				_data->Release();
-				_data = 0;
-			}
-		}
-		const ResourceType getType() const {
-			return RT_RASTERIZER_STATE;
-		}
-	};
-
-	// ------------------------------------------------------
-	// VertexShaderResource
-	// ------------------------------------------------------
-	class VertexShaderResource : public AbstractResource<VertexShader*> {
-
-	public:
-		VertexShaderResource(VertexShader* t) : AbstractResource(t) {}
-		virtual ~VertexShaderResource() {}
-		void release() {
-			if (_data != 0) {
-				if (_data->vertexShader != 0) {
-					_data->vertexShader->Release();
-					_data->vertexShader = 0;
-				}
-				if (_data->vertexShaderBuffer != 0) {
-					delete[] _data->vertexShaderBuffer;
-					_data->vertexShaderBuffer = 0;
-				}
-				delete _data;
-			}
-		}
-		const ResourceType getType() const {
-			return RT_VERTEX_SHADER;
-		}
-	};
-
-	// ------------------------------------------------------
-	// GeometryShaderResource
-	// ------------------------------------------------------
-	class GeometryShaderResource : public AbstractResource<ID3D11GeometryShader*> {
-
-	public:
-		GeometryShaderResource(ID3D11GeometryShader* t) : AbstractResource(t) {}
-		virtual ~GeometryShaderResource() {}
-		void release() {
-			if (_data != 0) {				
-				_data->Release();
-				_data = 0;				
-			}
-		}
-		const ResourceType getType() const {
-			return RT_GEOMETRY_SHADER;
-		}
-	};
-
-	// ------------------------------------------------------
-	// PixelShaderResource
-	// ------------------------------------------------------
-	class PixelShaderResource : public AbstractResource<ID3D11PixelShader*> {
-
-	public:
-		PixelShaderResource(ID3D11PixelShader* t) : AbstractResource(t) {}
-		virtual ~PixelShaderResource() {}
-		void release() {
-			if (_data != 0) {
-				_data->Release();
-				_data = 0;
-			}
-		}
-		const ResourceType getType() const {
-			return RT_PIXEL_SHADER;
 		}
 	};
 
@@ -2093,63 +1482,6 @@ namespace ds {
 		}
 		const ResourceType getType() const {
 			return RT_RENDER_TARGET;
-		}
-	};
-
-	// ------------------------------------------------------
-	// RenderPassResource
-	// ------------------------------------------------------
-	class RenderPassResource : public AbstractResource<RenderPass*> {
-
-	public:
-		RenderPassResource(RenderPass* t) : AbstractResource(t) {}
-		virtual ~RenderPassResource() {}
-		void release() {
-			if (_data != 0) {				
-				delete _data;
-			}
-		}
-		const ResourceType getType() const {
-			return RT_RENDER_PASS;
-		}
-	};
-
-	// ------------------------------------------------------
-	// DrawItemResource
-	// ------------------------------------------------------
-	class DrawItemResource : public AbstractResource<DrawItem*> {
-
-	public:
-		DrawItemResource(DrawItem* t) : AbstractResource(t) {}
-		virtual ~DrawItemResource() {}
-		void release() {
-			if (_data != 0) {
-				//for (int i = 0; i < _data->num; ++i) {
-					//delete _data->groups[i];
-				//}
-				delete _data;
-			}
-		}
-		const ResourceType getType() const {
-			return RT_DRAW_ITEM;
-		}
-	};
-
-	// ------------------------------------------------------
-	// StateGroupResource
-	// ------------------------------------------------------
-	class StateGroupResource : public AbstractResource<StateGroup*> {
-
-	public:
-		StateGroupResource(StateGroup* t) : AbstractResource(t) {}
-		virtual ~StateGroupResource() {}
-		void release() {
-			if (_data != 0) {
-				delete _data;
-			}
-		}
-		const ResourceType getType() const {
-			return RT_STATE_GROUP;
 		}
 	};
 
@@ -2230,7 +1562,6 @@ namespace ds {
 		uint16_t screenHeight;
 		Color clearColor;
 		uint8_t multisampling;
-		dsLogHandler logHandler;
 
 		bool running;
 		D3D_DRIVER_TYPE driverType;
@@ -2297,6 +1628,12 @@ namespace ds {
 
 		CharBuffer* charBuffer;
 
+		Event events[32];
+		uint8_t eventWriteIndex;
+		uint8_t eventReadIndex;
+
+		ds_resource_buffer* resource_buffer;
+
 	} InternalContext;
 
 	static InternalContext* _ctx;
@@ -2323,14 +1660,14 @@ namespace ds {
 		RID rid = buildRID(static_cast<uint16_t>(_ctx->_resources.size() - 1), type);
 		res->setRID(rid);		
 		res->setNameIndex(_ctx->charBuffer->append(name), SID(name));
-		DBG_LOG("Resource %s (%s) created - id: %d", name, RESOURCE_NAMES[type], id_mask(rid));
+		LOG_DEBUG("Resource %s (%s) created - id: %d", name, RESOURCE_NAMES[type], id_mask(rid));
 		return rid;
 	}
 
 	uint16_t getResourceIndex(RID rid,ResourceType type) {
 		uint16_t idx = id_mask(rid);
 		if (idx != NO_RID) {			
-			XASSERT(idx < _ctx->_resources.size(), "Invalid resource selected - Out of bounds");
+			//XASSERT(idx < _ctx->_resources.size(), "Invalid resource selected - Out of bounds");
 			int current = type_mask(rid);
 			XASSERT(current == type, "The selected resource %d is not the required type: %s", idx, RESOURCE_NAMES[idx]);
 			return idx;
@@ -2408,32 +1745,15 @@ namespace ds {
 			char buffer[1024];
 			memset(buffer, 0, sizeof(buffer));
 			int written = vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, format, args);		
-			if (_ctx->logHandler != 0) {
-				(*_ctx->logHandler)(LogLevel::LL_ERROR, buffer);
-			}
+			LOG_ERROR(buffer);
 			va_end(args);
 			exit(-1);
 		}
 	}
 
-	// ------------------------------------------------------
-	// assert functions
-	// ------------------------------------------------------
-	static void log(const LogLevel& level,char* format, ...) {
-		va_list args;
-		va_start(args, format);
-		char buffer[1024];
-		memset(buffer, 0, sizeof(buffer));
-		int written = vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, format, args);
-		if (_ctx->logHandler != 0) {
-			(*_ctx->logHandler)(level, buffer);
-		}
-		va_end(args);
-	}
-
 	static void assert_result(HRESULT result, const char* msg) {
 		if (FAILED(result)) {
-			log(LogLevel::LL_ERROR,"%s",msg);
+			LOG_ERROR("%s",msg);
 		}
 		//exit(-1);
 	}
@@ -2495,7 +1815,6 @@ namespace ds {
 		_ctx->clearColor = settings.clearColor;
 		_ctx->multisampling = settings.multisampling;
 		_ctx->supportDebug = settings.supportDebug;
-		_ctx->logHandler = settings.logHandler;
 
 		RECT dimensions;
 		GetClientRect(_ctx->hwnd, &dimensions);
@@ -2692,13 +2011,15 @@ namespace ds {
 		if (_ctx->supportDebug) {
 			dbgInit();
 		}
+		
 		return true;
 	}
 
 	static RenderPass* getRenderPass(RID rid) {
 		int ridx = getResourceIndex(rid, RT_RENDER_PASS);
-		RenderPassResource* res = (RenderPassResource*)_ctx->_resources[ridx];
-		return res->get();
+		//RenderPassResource* res = (RenderPassResource*)_ctx->_resources[ridx];
+		//return res->get();
+		return (RenderPass*)ds_get_resource(_ctx->resource_buffer, ridx);
 	}
 	
 	// ------------------------------------------------------
@@ -2720,6 +2041,7 @@ namespace ds {
 
 				}
 			}
+			/*
 			if (raw->header.dwType == RIM_TYPEMOUSE) {
 				if (raw->data.mouse.ulButtons == 1) {
 					_ctx->mouseButtonState[0] = 1;
@@ -2734,6 +2056,7 @@ namespace ds {
 					_ctx->mouseButtonState[1] = 0;
 				}
 			}
+			*/
 		}
 		return true;
 	}
@@ -2767,7 +2090,7 @@ namespace ds {
 	// is mouse button pressed
 	// ------------------------------------------------------
 	bool isMouseButtonPressed(int button) {
-		return _ctx->mouseButtonState[button] == 80;
+		return _ctx->mouseButtonState[button] == 1;
 	}
 
 	// ------------------------------------------------------
@@ -2786,30 +2109,77 @@ namespace ds {
 			case WM_CHAR: {
 				char ascii = wParam;
 				ds::addInputCharacter(ascii);
+				Event keyPressedEvent;
+				keyPressedEvent.type = ET_KEY_PRESSED;
+				keyPressedEvent.key = { IKT_ASCII, (uint8_t)ascii, DSKEY_UNKNOWN };
+				push_event(keyPressedEvent);
 				return 0;
 			}
 			case WM_KEYDOWN: {
 				char ascii = wParam;
-				ds::addVirtualKey(wParam);
-				_ctx->keyState[ascii] = 80;
+				if (!ds::addVirtualKey(wParam)) {
+					if (_ctx->keyState[ascii] != 80) {
+						Event keyDownEvent;
+						keyDownEvent.type = ET_KEY_DOWN;
+						keyDownEvent.key = { IKT_ASCII, (uint8_t)ascii, DSKEY_UNKNOWN };
+						push_event(keyDownEvent);
+					}
+					_ctx->keyState[ascii] = 80;
+				}
 				return 0;
 			}
 			case WM_KEYUP: {
 				UINT ascii = MapVirtualKey(wParam, MAPVK_VK_TO_CHAR);
+				Event keyUpEvent;
+				keyUpEvent.type = ET_KEY_UP;
+				keyUpEvent.key = { IKT_ASCII, (uint8_t)ascii, DSKEY_UNKNOWN };
+				push_event(keyUpEvent);
 				_ctx->keyState[ascii] = 0;
 				return 0;
 			}
 			case WM_LBUTTONDOWN:
-				_ctx->mouseButtonState[0] = 80;
+				if (_ctx->mouseButtonState[0] != 1) {
+					Event lmButtonDownEvent;
+					lmButtonDownEvent.type = ET_MOUSEBUTTON_DOWN;
+					lmButtonDownEvent.mouse = { 0, ButtonState::PRESSED };
+					push_event(lmButtonDownEvent);
+				}
+				_ctx->mouseButtonState[0] = 1;
 				return 0;
-			case WM_LBUTTONUP:
+			case WM_LBUTTONUP:				
+				if (_ctx->mouseButtonState[0] != 0) {
+					Event lmButtonUpEvent;
+					lmButtonUpEvent.type = ET_MOUSEBUTTON_UP;
+					lmButtonUpEvent.mouse = { 0, ButtonState::RELEASED };
+					push_event(lmButtonUpEvent);
+					Event ne;
+					ne.type = ET_MOUSEBUTTON_PRESSED;
+					ne.mouse = { 0, ButtonState::RELEASED };
+					push_event(ne);
+				}
 				_ctx->mouseButtonState[0] = 0;
 				_ctx->mouseButtonClicked[0] = true;
 				return 0;
 			case WM_RBUTTONDOWN:
-				_ctx->mouseButtonState[1] = 80;
+				if (_ctx->mouseButtonState[1] != 1) {
+					Event rmButtonUpEvent;
+					rmButtonUpEvent.type = ET_MOUSEBUTTON_DOWN;
+					rmButtonUpEvent.mouse = { 1, ButtonState::PRESSED };
+					push_event(rmButtonUpEvent);					
+				}
+				_ctx->mouseButtonState[1] = 1;
 				return 0;
 			case WM_RBUTTONUP:
+				if (_ctx->mouseButtonState[1] != 0) {
+					Event rmButtonUpEvent;
+					rmButtonUpEvent.type = ET_MOUSEBUTTON_UP;
+					rmButtonUpEvent.mouse = { 1, ButtonState::RELEASED };
+					push_event(rmButtonUpEvent);
+					Event ne;
+					ne.type = ET_MOUSEBUTTON_PRESSED;
+					ne.mouse = { 1, ButtonState::RELEASED };
+					push_event(ne);
+				}
 				_ctx->mouseButtonState[1] = 0;
 				_ctx->mouseButtonClicked[1] = true;
 				return 0;
@@ -2902,6 +2272,7 @@ namespace ds {
 
 		QueryPerformanceFrequency(&_ctx->timerFrequency);
 		QueryPerformanceCounter(&_ctx->lastTime);
+		_ctx->resource_buffer = ds_create_buffer();
 		_ctx->charBuffer = new CharBuffer;
 		_ctx->leftOverTicks = 0;
 		_ctx->framesPerSecond = 0;
@@ -2914,6 +2285,8 @@ namespace ds {
 		//for (int i = 0; i < 256; ++i) {
 			//_ctx->errorBuffer[i] = '\0';
 		//}
+		_ctx->eventReadIndex = 0;
+		_ctx->eventWriteIndex = 0;
 		return initializeDevice(settings);
 	}
 
@@ -2924,6 +2297,64 @@ namespace ds {
 		if (_ctx != 0) {
 			//delete _ctx->pipelineState;
 			gpu::shutdown();
+			for (int i = 0; i < _ctx->resource_buffer->num; ++i) {
+				ResourceType type = _ctx->resource_buffer->types[i];
+				if (type == RT_VERTEX_BUFFER) {
+					ds_vertex_buffer_resource* res = (ds_vertex_buffer_resource*)ds_get_resource(_ctx->resource_buffer, i);
+					res->data->Release();
+				}
+				else if (type == RT_CONSTANT_BUFFER) {
+					ds_constant_buffer_resource* res = (ds_constant_buffer_resource*)ds_get_resource(_ctx->resource_buffer, i);
+					res->data->Release();
+				}
+				else if (type == RT_INPUT_LAYOUT) {
+					ds_input_layout_resource* res = (ds_input_layout_resource*)ds_get_resource(_ctx->resource_buffer, i);
+					res->data->Release();
+				}
+				else if (type == RT_VERTEX_SHADER) {
+					VertexShader* vs = (VertexShader*)ds_get_resource(_ctx->resource_buffer, i);
+					if (vs->vertexShader != 0) {
+						vs->vertexShader->Release();
+					}
+					if (vs->vertexShaderBuffer != 0) {
+						free(vs->vertexShaderBuffer);
+					}
+				}
+				else if (type == RT_PIXEL_SHADER) {
+					PixelShader* s = (PixelShader*)ds_get_resource(_ctx->resource_buffer, i);
+					s->shader->Release();
+				}
+				else if (type == RT_GEOMETRY_SHADER) {
+					ds_geometry_shader* s = (ds_geometry_shader*)ds_get_resource(_ctx->resource_buffer, i);
+					s->shader->Release();
+				}
+				else if (type == RT_BLENDSTATE) {
+					ds_blend_state_resource* s = (ds_blend_state_resource*)ds_get_resource(_ctx->resource_buffer, i);
+					s->state->Release();
+				}
+				else if (type == RT_RASTERIZER_STATE) {
+					ds_rasterizer_state_resource* s = (ds_rasterizer_state_resource*)ds_get_resource(_ctx->resource_buffer, i);
+					s->state->Release();
+				}
+				else if (type == RT_SAMPLER_STATE) {
+					ds_sampler_state_resource* s = (ds_sampler_state_resource*)ds_get_resource(_ctx->resource_buffer, i);
+					s->state->Release();
+				}
+				else if (type == RT_INDEX_BUFFER) {
+					ds_index_buffer_resource* s = (ds_index_buffer_resource*)ds_get_resource(_ctx->resource_buffer, i);
+					s->buffer->Release();
+				}
+				else if (type == RT_STATE_GROUP) {
+					StateGroup* s = (StateGroup*)ds_get_resource(_ctx->resource_buffer, i);
+					free(s->items);
+				}
+				else if (type == RT_SRV) {
+					InternalTexture* s = (InternalTexture*)ds_get_resource(_ctx->resource_buffer, i);
+					s->srv->Release();
+					s->texture->Release();
+				}
+			}
+			ds_free_buffer(_ctx->resource_buffer);
 			for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
 				_ctx->_resources[i]->release();
 				delete _ctx->_resources[i];
@@ -3023,13 +2454,16 @@ namespace ds {
 			index += formatType.bytes;
 		}		
 		uint16_t sidx = getResourceIndex(info.vertexShaderId, RT_VERTEX_SHADER);
-		VertexShaderResource* sres = (VertexShaderResource*)_ctx->_resources[sidx];
-		VertexShader* s = sres->get();
+		//VertexShaderResource* sres = (VertexShaderResource*)_ctx->_resources[sidx];
+		//VertexShader* s = sres->get();
+		VertexShader* s = (VertexShader*)ds_get_resource(_ctx->resource_buffer, sidx);
 		ID3D11InputLayout* layout = 0;
 		assert_result(_ctx->d3dDevice->CreateInputLayout(descriptors, info.numDeclarations, s->vertexShaderBuffer, s->bufferSize, &layout), "Failed to create input layout");
-		InputLayoutResource* res = new InputLayoutResource(layout, index);
+		ds_input_layout_resource res = { layout,index };
+		//InputLayoutResource* res = new InputLayoutResource(layout, index);
 		delete[] descriptors;
-		return addResource(res, RT_INPUT_LAYOUT, name);
+		//return addResource(res, RT_INPUT_LAYOUT, name);
+		return ds_add_to_buffer(_ctx->resource_buffer, &res, sizeof(ds_input_layout_resource), RT_INPUT_LAYOUT);
 	}
 
 	RID createInstancedInputLayout(const InstancedInputLayoutInfo& info, const char* name) {
@@ -3075,13 +2509,16 @@ namespace ds {
 			index += formatType.bytes;
 		}
 		uint16_t sidx = getResourceIndex(info.shaderId, RT_VERTEX_SHADER);
-		VertexShaderResource* sres = (VertexShaderResource*)_ctx->_resources[sidx];
-		VertexShader* s = sres->get();
+		//VertexShaderResource* sres = (VertexShaderResource*)_ctx->_resources[sidx];
+		//VertexShader* s = sres->get();
+		VertexShader* s = (VertexShader*)ds_get_resource(_ctx->resource_buffer, sidx);
 		ID3D11InputLayout* layout = 0;
 		assert_result(_ctx->d3dDevice->CreateInputLayout(descriptors, total, s->vertexShaderBuffer, s->bufferSize, &layout), "Failed to create input layout");
-		InputLayoutResource* res = new InputLayoutResource(layout, index);
+		//InputLayoutResource* res = new InputLayoutResource(layout, index);
+		ds_input_layout_resource res = { layout, index };
 		delete[] descriptors;
-		return addResource(res, RT_INPUT_LAYOUT, name);
+		//return addResource(res, RT_INPUT_LAYOUT, name);
+		return ds_add_to_buffer(_ctx->resource_buffer, &res, sizeof(ds_input_layout_resource), RT_INPUT_LAYOUT);
 	}
 
 	// ------------------------------------------------------
@@ -3093,8 +2530,10 @@ namespace ds {
 			_ctx->d3dContext->IASetInputLayout(NULL);
 		}
 		else {				
-			InputLayoutResource* res = (InputLayoutResource*)_ctx->_resources[ridx];
-			_ctx->d3dContext->IASetInputLayout(res->get());
+			//InputLayoutResource* res = (InputLayoutResource*)_ctx->_resources[ridx];
+			ds_input_layout_resource* res = (ds_input_layout_resource*)ds_get_resource(_ctx->resource_buffer, ridx);
+			_ctx->d3dContext->IASetInputLayout(res->data);
+			//_ctx->d3dContext->IASetInputLayout(res->get());
 		}
 	}
 
@@ -3111,7 +2550,9 @@ namespace ds {
 		constDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		ID3D11Buffer* buffer = 0;
 		assert_result(_ctx->d3dDevice->CreateBuffer(&constDesc, 0, &buffer), "Failed to create constant buffer");	
-		ConstantBufferResource* res = new ConstantBufferResource(buffer, byteWidth, data);
+		ds_constant_buffer_resource res = { buffer, byteWidth, data };
+
+		//ConstantBufferResource* res = new ConstantBufferResource(buffer, byteWidth, data);
 		if (data != 0) {
 			D3D11_MAPPED_SUBRESOURCE resource;
 			assert_result(_ctx->d3dContext->Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource), "Failed to update constant buffer");
@@ -3119,7 +2560,8 @@ namespace ds {
 			memcpy(ptr, data, byteWidth);
 			_ctx->d3dContext->Unmap(buffer, 0);
 		}
-		return addResource(res, RT_CONSTANT_BUFFER, name);
+		return ds_add_to_buffer(_ctx->resource_buffer, &res, sizeof(ds_constant_buffer_resource), RT_CONSTANT_BUFFER);
+		//return addResource(res, RT_CONSTANT_BUFFER, name);
 	}
 
 	// ------------------------------------------------------
@@ -3128,13 +2570,17 @@ namespace ds {
 	static void updateConstantBuffer(RID rid) {
 		uint16_t ridx = getResourceIndex(rid, RT_CONSTANT_BUFFER);
 		if ( ridx != NO_RID) {
-			ConstantBufferResource* cbr = (ConstantBufferResource*)_ctx->_resources[ridx];
-			if (cbr->getBufferPtr() != 0) {
-				ID3D11Buffer* buffer = cbr->get();
+			//ConstantBufferResource* cbr = (ConstantBufferResource*)_ctx->_resources[ridx];
+			ds_constant_buffer_resource* cbr = (ds_constant_buffer_resource*)ds_get_resource(_ctx->resource_buffer, ridx);
+			//if (cbr->getBufferPtr() != 0) {
+			if (cbr->_bufferPtr != 0) {
+				//ID3D11Buffer* buffer = cbr->get();
+				ID3D11Buffer* buffer = cbr->data;
 				D3D11_MAPPED_SUBRESOURCE resource;
 				assert_result(_ctx->d3dContext->Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource), "Failed to update constant buffer");
 				void* ptr = resource.pData;
-				memcpy(ptr, cbr->getBufferPtr(), cbr->getByteWidth());
+				//memcpy(ptr, cbr->getBufferPtr(), cbr->getByteWidth());
+				memcpy(ptr, cbr->_bufferPtr, cbr->_byteWidth);
 				_ctx->d3dContext->Unmap(buffer, 0);
 			}
 		}
@@ -3148,11 +2594,14 @@ namespace ds {
 		int slot = slot_mask(rid);
 		uint16_t ridx = getResourceIndex(rid, RT_CONSTANT_BUFFER);
 		if (ridx != NO_RID) {
-			ConstantBufferResource* cbr = (ConstantBufferResource*)_ctx->_resources[ridx];
-			if (cbr->getBufferPtr() != 0) {
+			//ConstantBufferResource* cbr = (ConstantBufferResource*)_ctx->_resources[ridx];
+			ds_constant_buffer_resource* cbr = (ds_constant_buffer_resource*)ds_get_resource(_ctx->resource_buffer, ridx);
+			//if (cbr->getBufferPtr() != 0) {
+			if (cbr->_bufferPtr != 0) {
 				updateConstantBuffer(rid);
 			}
-			ID3D11Buffer* buffer = cbr->get();
+			//ID3D11Buffer* buffer = cbr->get();
+			ID3D11Buffer* buffer = cbr->data;
 			switch (stage) {
 				case PLS_VS_RES: _ctx->d3dContext->VSSetConstantBuffers(slot, 1, &buffer); break;
 				case PLS_PS_RES: _ctx->d3dContext->PSSetConstantBuffers(slot, 1, &buffer); break;
@@ -3231,8 +2680,9 @@ namespace ds {
 		InitData.SysMemSlicePitch = 0;
 		ID3D11Buffer* buffer = 0;
 		assert_result(_ctx->d3dDevice->CreateBuffer(&bufferDesc, info.data ? &InitData : NULL, &buffer), "Failed to create index buffer");
-		IndexBufferResource* res = new IndexBufferResource(buffer, INDEX_BUFFER_FORMATS[info.indexType], info.numIndices, info.type);
-		return addResource(res, RT_INDEX_BUFFER, name);
+		ds_index_buffer_resource res = { buffer, INDEX_BUFFER_FORMATS[info.indexType], info.numIndices, info.type };
+		//return addResource(res, RT_INDEX_BUFFER, name);
+		return ds_add_to_buffer(_ctx->resource_buffer, &res, sizeof(ds_index_buffer_resource), RT_INDEX_BUFFER);
 	}
 	// ------------------------------------------------------
 	// set index buffer
@@ -3240,8 +2690,9 @@ namespace ds {
 	static void setIndexBuffer(RID rid) {
 		uint16_t ridx = getResourceIndex(rid, RT_INDEX_BUFFER);
 		if (ridx != NO_RID) {
-			IndexBufferResource* res = (IndexBufferResource*)_ctx->_resources[ridx];
-			_ctx->d3dContext->IASetIndexBuffer(res->get(), res->getFormat(), 0);
+			//IndexBufferResource* res = (IndexBufferResource*)_ctx->_resources[ridx];
+			ds_index_buffer_resource* res = (ds_index_buffer_resource*)ds_get_resource(_ctx->resource_buffer,ridx);
+			_ctx->d3dContext->IASetIndexBuffer(res->buffer, res->format, 0);
 		}
 		else {
 			_ctx->d3dContext->IASetIndexBuffer(NULL, DXGI_FORMAT_UNKNOWN, 0);
@@ -3322,8 +2773,10 @@ namespace ds {
 		else {
 			assert_result(_ctx->d3dDevice->CreateBuffer(&bufferDesciption, 0, &buffer), "Failed to create vertex buffer");
 		}
-		VertexBufferResource* res = new VertexBufferResource(buffer, size, info.type, info.vertexSize);
-		return addResource(res, RT_VERTEX_BUFFER, name);
+		//VertexBufferResource* res = new VertexBufferResource(buffer, size, info.type, info.vertexSize);
+		ds_vertex_buffer_resource res = { buffer, size, info.type, info.vertexSize };
+		return ds_add_to_buffer(_ctx->resource_buffer, &res, sizeof(ds_vertex_buffer_resource), RT_VERTEX_BUFFER);
+		//return addResource(res, RT_VERTEX_BUFFER, name);
 	}
 
 	RID createInstancedBuffer(RID vertexBuffer, RID instanceBuffer, const char* name) {
@@ -3420,8 +2873,8 @@ namespace ds {
 			uavDesc.Buffer.NumElements = info.numElements;
 			if (info.textureID != NO_RID) {
 				uint16_t ridx = getResourceIndex(info.textureID, RT_SRV);
-				ShaderResourceViewResource* bufferRes = (ShaderResourceViewResource*)_ctx->_resources[ridx];
-				InternalTexture* tex = bufferRes->get();
+				//ShaderResourceViewResource* bufferRes = (ShaderResourceViewResource*)_ctx->_resources[ridx];
+				InternalTexture* tex = (InternalTexture*)ds_get_resource(_ctx->resource_buffer, ridx);
 				uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
 				assert_result(_ctx->d3dDevice->CreateUnorderedAccessView(tex->texture, &uavDesc, &sb->uav), "Cannot create unordered access view");
 			}
@@ -3456,10 +2909,13 @@ namespace ds {
 			_ctx->d3dContext->IASetVertexBuffers(0, 0, NULL, NULL, NULL);
 		}
 		else {
-			VertexBufferResource* res = (VertexBufferResource*)_ctx->_resources[ridx];
-			unsigned int stride = res->getVertexSize();
+			//VertexBufferResource* res = (VertexBufferResource*)_ctx->_resources[ridx];
+			ds_vertex_buffer_resource* res = (ds_vertex_buffer_resource*)ds_get_resource(_ctx->resource_buffer, ridx);
+			//unsigned int stride = res->getVertexSize();
+			unsigned int stride = res->vertexSize;
 			unsigned int offset = 0;
-			ID3D11Buffer* buffer = res->get();
+			//ID3D11Buffer* buffer = res->get();
+			ID3D11Buffer* buffer = res->data;
 			_ctx->d3dContext->IASetVertexBuffers(0, 1, &buffer, &stride, &offset);
 		}
 	}
@@ -3471,13 +2927,15 @@ namespace ds {
 		uint16_t ridx = getResourceIndex(rid, RT_INSTANCED_VERTEX_BUFFER);
 		InstancedVertexBufferResource* ibr = (InstancedVertexBufferResource*)_ctx->_resources[ridx];
 		InstancedBindData* data = ibr->get();
-		VertexBufferResource* fr = (VertexBufferResource*)_ctx->_resources[id_mask(data->rid)];
-		VertexBufferResource* sr = (VertexBufferResource*)_ctx->_resources[id_mask(data->instanceBuffer)];
-		unsigned int strides[2] = { fr->getVertexSize(),sr->getVertexSize() };
+		//VertexBufferResource* fr = (VertexBufferResource*)_ctx->_resources[id_mask(data->rid)];
+		//VertexBufferResource* sr = (VertexBufferResource*)_ctx->_resources[id_mask(data->instanceBuffer)];
+		ds_vertex_buffer_resource* fr = (ds_vertex_buffer_resource*)ds_get_resource(_ctx->resource_buffer,id_mask(data->rid));
+		ds_vertex_buffer_resource* sr = (ds_vertex_buffer_resource*)ds_get_resource(_ctx->resource_buffer, id_mask(data->instanceBuffer));
+		unsigned int strides[2] = { fr->vertexSize,sr->vertexSize };
 		unsigned int offsets[2] = { 0 };
 		ID3D11Buffer* bufferPointers[2];
-		bufferPointers[0] = fr->get();
-		bufferPointers[1] = sr->get();
+		bufferPointers[0] = fr->data;
+		bufferPointers[1] = sr->data;
 		_ctx->d3dContext->IASetVertexBuffers(0, 2, bufferPointers, strides, offsets);
 	}
 
@@ -3489,12 +2947,15 @@ namespace ds {
 		if (type == RT_VERTEX_BUFFER) {
 			uint16_t ridx = getResourceIndex(rid, RT_VERTEX_BUFFER);
 			if (ridx != NO_RID) {
-				ConstantBufferResource* cbr = (ConstantBufferResource*)_ctx->_resources[ridx];
+				//ConstantBufferResource* cbr = (ConstantBufferResource*)_ctx->_resources[ridx];
+				ds_vertex_buffer_resource* cbr = (ds_vertex_buffer_resource*)ds_get_resource(_ctx->resource_buffer, ridx);
 				D3D11_MAPPED_SUBRESOURCE resource;
-				assert_result(_ctx->d3dContext->Map(cbr->get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &resource), "Failed to map data");
+				//assert_result(_ctx->d3dContext->Map(cbr->get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &resource), "Failed to map data");
+				assert_result(_ctx->d3dContext->Map(cbr->data, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource), "Failed to map data");
 				void* ptr = resource.pData;
 				memcpy(ptr, data, size);
-				_ctx->d3dContext->Unmap(cbr->get(), 0);
+				//_ctx->d3dContext->Unmap(cbr->get(), 0);
+				_ctx->d3dContext->Unmap(cbr->data, 0);
 			}
 		}
 		else if (type == RT_STRUCTURED_BUFFER) {
@@ -3545,8 +3006,8 @@ namespace ds {
 		
 		ID3D11SamplerState* sampler;
 		assert_result(_ctx->d3dDevice->CreateSamplerState(&colorMapDesc, &sampler), "Failed to create SamplerState");
-		SamplerStateResource* res = new SamplerStateResource(sampler);
-		return addResource(res, RT_SAMPLER_STATE, name);
+		ds_sampler_state_resource res = { sampler };
+		return ds_add_to_buffer(_ctx->resource_buffer,&res, sizeof(ds_sampler_state_resource),RT_SAMPLER_STATE);
 	}
 
 	// ------------------------------------------------------
@@ -3556,8 +3017,8 @@ namespace ds {
 		int stage = stage_mask(rid);
 		uint16_t ridx = getResourceIndex(rid, RT_SAMPLER_STATE);
 		if (ridx != NO_RID) {
-			SamplerStateResource* res = (SamplerStateResource*)_ctx->_resources[ridx];
-			ID3D11SamplerState* state = res->get();
+			ds_sampler_state_resource* res = (ds_sampler_state_resource*)ds_get_resource(_ctx->resource_buffer,ridx);
+			ID3D11SamplerState* state = res->state;
 			if (stage == PLS_PS_RES) {
 				_ctx->d3dContext->PSSetSamplers(0, 1, &state);
 			}
@@ -3616,8 +3077,10 @@ namespace ds {
 
 		ID3D11BlendState* state;
 		assert_result(_ctx->d3dDevice->CreateBlendState(&blendDesc, &state), "Failed to create blendstate");
-		BlendStateResource* res = new BlendStateResource(state);
-		return addResource(res, RT_BLENDSTATE, name);
+		//BlendStateResource* res = new BlendStateResource(state);
+		ds_blend_state_resource res = { state };
+		//return addResource(res, RT_BLENDSTATE, name);
+		return ds_add_to_buffer(_ctx->resource_buffer, &res, sizeof(ds_blend_state_resource), RT_BLENDSTATE);
 	}
 
 	// ------------------------------------------------------
@@ -3626,9 +3089,10 @@ namespace ds {
 	static void setBlendState(RID rid) {
 		uint16_t ridx = getResourceIndex(rid, RT_BLENDSTATE);
 		if (ridx != NO_RID) {
-			BlendStateResource* res = (BlendStateResource*)_ctx->_resources[ridx];
+			//BlendStateResource* res = (BlendStateResource*)_ctx->_resources[ridx];
+			ds_blend_state_resource* res = (ds_blend_state_resource*)ds_get_resource(_ctx->resource_buffer, ridx);
 			float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-			_ctx->d3dContext->OMSetBlendState(res->get(), blendFactor, 0xFFFFFFFF);
+			_ctx->d3dContext->OMSetBlendState(res->state, blendFactor, 0xFFFFFFFF);
 		}
 	}
 
@@ -3638,9 +3102,9 @@ namespace ds {
 	void setBlendState(RID rid, float* blendFactor,uint32_t mask) {
 		uint16_t ridx = getResourceIndex(rid, RT_BLENDSTATE);
 		if (ridx != NO_RID) {
-			BlendStateResource* res = (BlendStateResource*)_ctx->_resources[ridx];
+			ds_blend_state_resource* res = (ds_blend_state_resource*)ds_get_resource(_ctx->resource_buffer, ridx);
 			float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-			_ctx->d3dContext->OMSetBlendState(res->get(), blendFactor, mask);
+			_ctx->d3dContext->OMSetBlendState(res->state, blendFactor, mask);
 		}
 	}
 
@@ -3663,13 +3127,15 @@ namespace ds {
 	// create vertex shader
 	// ------------------------------------------------------
 	RID createVertexShader(const void* data, int size, const char* name) {
-		VertexShader* s = new VertexShader;
-		assert_result(_ctx->d3dDevice->CreateVertexShader(data,size,nullptr,&s->vertexShader), "Failed to create vertex shader");
-		s->vertexShaderBuffer = new char[size];
-		memcpy(s->vertexShaderBuffer, data, size);
-		s->bufferSize = size;
-		VertexShaderResource* res = new VertexShaderResource(s);
-		return addResource(res, RT_VERTEX_SHADER, name);
+		VertexShader s;// = new VertexShader;
+		assert_result(_ctx->d3dDevice->CreateVertexShader(data,size,nullptr,&s.vertexShader), "Failed to create vertex shader");
+		//s.vertexShaderBuffer = new char[size];
+		s.vertexShaderBuffer = (char*)malloc(size);
+		memcpy(s.vertexShaderBuffer, data, size);
+		s.bufferSize = size;
+		//VertexShaderResource* res = new VertexShaderResource(s);
+		//return addResource(res, RT_VERTEX_SHADER, name);
+		return ds_add_to_buffer(_ctx->resource_buffer, &s, sizeof(VertexShader), RT_VERTEX_SHADER);
 	}
 
 	// ------------------------------------------------------
@@ -3678,18 +3144,20 @@ namespace ds {
 	RID createGeometryShader(const void* data, int size, const char* name) {
 		ID3D11GeometryShader* s;
 		assert_result(_ctx->d3dDevice->CreateGeometryShader(data,size,nullptr,&s), "Failed to create geometry shader");
-		GeometryShaderResource* res = new GeometryShaderResource(s);
-		return addResource(res, RT_GEOMETRY_SHADER, name);
+		ds_geometry_shader res = { s };
+		//return addResource(res, RT_GEOMETRY_SHADER, name);
+		return ds_add_to_buffer(_ctx->resource_buffer, &res, sizeof(ds_geometry_shader), RT_GEOMETRY_SHADER);
 	}
 
 	// ------------------------------------------------------
 	// create pixel shader
 	// ------------------------------------------------------
 	RID createPixelShader(const void* data, int size, const char* name) {
-		ID3D11PixelShader* s;
-		assert_result(_ctx->d3dDevice->CreatePixelShader(data, size, nullptr, &s), "Failed to create pixel shader");
-		PixelShaderResource* res = new PixelShaderResource(s);
-		return addResource(res, RT_PIXEL_SHADER, name);
+		PixelShader s;
+		assert_result(_ctx->d3dDevice->CreatePixelShader(data, size, nullptr, &s.shader), "Failed to create pixel shader");
+		//PixelShaderResource* res = new PixelShaderResource(s);
+		return ds_add_to_buffer(_ctx->resource_buffer, &s, sizeof(ID3D11PixelShader), RT_PIXEL_SHADER);
+		//return addResource(res, RT_PIXEL_SHADER, name);
 	}
 
 	// ------------------------------------------------------
@@ -3742,8 +3210,9 @@ namespace ds {
 		memcpy(s->vertexShaderBuffer, file.data, file.size);
 		s->bufferSize = file.size;
 		delete[] file.data;
-		VertexShaderResource* res = new VertexShaderResource(s);
-		return addResource(res, RT_VERTEX_SHADER, name);
+		//VertexShaderResource* res = new VertexShaderResource(s);
+		//return addResource(res, RT_VERTEX_SHADER, name);
+		return ds_add_to_buffer(_ctx->resource_buffer, s, sizeof(VertexShader), RT_VERTEX_SHADER);
 	}
 
 	// ------------------------------------------------------
@@ -3752,15 +3221,17 @@ namespace ds {
 	RID loadPixelShader(const char* csoName, const char* name) {
 		DataFile file = read_data(csoName);
 		XASSERT(file.size != -1, "Cannot load pixel shader file: '%s'", csoName);
-		ID3D11PixelShader* s;
+		//ID3D11PixelShader* s;
+		PixelShader s;
 		assert_result(_ctx->d3dDevice->CreatePixelShader(
 			file.data,
 			file.size,
 			nullptr,
-			&s), "Failed to create pixel shader");
+			&s.shader), "Failed to create pixel shader");
 		delete[] file.data;
-		PixelShaderResource* res = new PixelShaderResource(s);
-		return addResource(res, RT_PIXEL_SHADER, name);
+		//PixelShaderResource* res = new PixelShaderResource(s);
+		//return addResource(res, RT_PIXEL_SHADER, name);
+		return ds_add_to_buffer(_ctx->resource_buffer, &s, sizeof(ID3D11PixelShader), RT_PIXEL_SHADER);
 	}
 
 	// ------------------------------------------------------
@@ -3793,8 +3264,9 @@ namespace ds {
 			nullptr,
 			&s), "Failed to create pixel shader");
 		delete[] file.data;
-		GeometryShaderResource* res = new GeometryShaderResource(s);
-		return addResource(res, RT_GEOMETRY_SHADER, name);
+		ds_geometry_shader res = { s };
+		//return addResource(res, RT_GEOMETRY_SHADER, name);
+		return ds_add_to_buffer(_ctx->resource_buffer, &res, sizeof(ds_geometry_shader), RT_GEOMETRY_SHADER);
 	}
 
 	RID createShader(const ShaderInfo& info, const char* name) {
@@ -3838,9 +3310,10 @@ namespace ds {
 			_ctx->d3dContext->VSSetShader(NULL, NULL, 0);
 		}
 		else {
-			PixelShaderResource* res = (PixelShaderResource*)_ctx->_resources[ridx];
-			if (res->get() != 0) {
-				_ctx->d3dContext->PSSetShader(res->get(), 0, 0);
+			//PixelShaderResource* res = (PixelShaderResource*)_ctx->_resources[ridx];
+			PixelShader* res = (PixelShader*)ds_get_resource(_ctx->resource_buffer, ridx);
+			if (res->shader != 0) {
+				_ctx->d3dContext->PSSetShader(res->shader, 0, 0);
 			}
 			else {
 				_ctx->d3dContext->PSSetShader(NULL, NULL, 0);
@@ -3857,9 +3330,10 @@ namespace ds {
 			_ctx->d3dContext->GSSetShader(NULL, NULL, 0);
 		}
 		else {
-			GeometryShaderResource* res = (GeometryShaderResource*)_ctx->_resources[ridx];
-			if (res->get() != 0) {
-				_ctx->d3dContext->GSSetShader(res->get(), 0, 0);
+			//GeometryShaderResource* res = (GeometryShaderResource*)_ctx->_resources[ridx];
+			ds_geometry_shader* res = (ds_geometry_shader*)ds_get_resource(_ctx->resource_buffer,ridx);
+			if (res->shader != 0) {
+				_ctx->d3dContext->GSSetShader(res->shader, 0, 0);
 			}
 			else {
 				_ctx->d3dContext->GSSetShader(NULL, NULL, 0);
@@ -3876,8 +3350,9 @@ namespace ds {
 			_ctx->d3dContext->VSSetShader(NULL, NULL, 0);
 		}
 		else {
-			VertexShaderResource* res = (VertexShaderResource*)_ctx->_resources[ridx];
-			VertexShader* s = res->get();
+			//VertexShaderResource* res = (VertexShaderResource*)_ctx->_resources[ridx];
+			//VertexShader* s = res->get();
+			VertexShader* s = (VertexShader*)ds_get_resource(_ctx->resource_buffer, ridx);
 			if (s->vertexShader != 0) {
 				_ctx->d3dContext->VSSetShader(s->vertexShader, 0, 0);
 			}
@@ -3899,10 +3374,10 @@ namespace ds {
 	// ------------------------------------------------------	
 	RID createTexture(const TextureInfo& info, const char* name) {
 
-		InternalTexture* tex = new InternalTexture;
-		tex->width = info.width;
-		tex->height = info.height;
-
+		InternalTexture tex;// = new InternalTexture;
+		tex.width = info.width;
+		tex.height = info.height;
+		tex.size = ds::vec2(tex.width , tex.height );
 		D3D11_TEXTURE2D_DESC desc;
 		desc.Width = info.width;
 		desc.Height = info.height;
@@ -3936,10 +3411,10 @@ namespace ds {
 			subres.SysMemPitch = info.width * info.channels;
 			subres.SysMemSlicePitch = 0;
 
-			assert_result(_ctx->d3dDevice->CreateTexture2D(&desc, &subres, &tex->texture), "Failed to create Texture2D");
+			assert_result(_ctx->d3dDevice->CreateTexture2D(&desc, &subres, &tex.texture), "Failed to create Texture2D");
 		}
 		else {
-			assert_result(_ctx->d3dDevice->CreateTexture2D(&desc, NULL, &tex->texture), "Failed to create Texture2D");
+			assert_result(_ctx->d3dDevice->CreateTexture2D(&desc, NULL, &tex.texture), "Failed to create Texture2D");
 		}
 
 		ID3D11ShaderResourceView* srv = 0;
@@ -3953,18 +3428,20 @@ namespace ds {
 		srvDesc.Texture2D.MostDetailedMip = 0;
 		srvDesc.Texture2D.MipLevels = 1;
 		srvDesc.Format = TEXTURE_FOMATS[info.format];
-		assert_result(_ctx->d3dDevice->CreateShaderResourceView(tex->texture, &srvDesc, &tex->srv), "Failed to create resource view");
-		ShaderResourceViewResource* res = new ShaderResourceViewResource(tex);
-		return addResource(res, RT_SRV, name);
+		assert_result(_ctx->d3dDevice->CreateShaderResourceView(tex.texture, &srvDesc, &tex.srv), "Failed to create resource view");
+		//ShaderResourceViewResource* res = new ShaderResourceViewResource(tex);
+		//return addResource(res, RT_SRV, name);
+		return ds_add_to_buffer(_ctx->resource_buffer, &tex, sizeof(InternalTexture), RT_SRV);
 	}
-
+	
 	ds::vec2 getTextureSize(RID rid) {
 		uint16_t ridx = getResourceIndex(rid, RT_SRV);
 		XASSERT(ridx != NO_RID, "Invalid texture selected");
-		ShaderResourceViewResource* res = (ShaderResourceViewResource*)_ctx->_resources[ridx];
-		return res->getSize();
+		//ShaderResourceViewResource* res = (ShaderResourceViewResource*)_ctx->_resources[ridx];
+		InternalTexture* tex = (InternalTexture*)ds_get_resource(_ctx->resource_buffer, ridx);
+		return tex->size;
 	}
-
+	
 	RID createShaderResourceView(RID bufferID, const char* name) {
 		uint16_t ridx = getResourceIndex(bufferID, RT_STRUCTURED_BUFFER);
 		BufferResource* bufferRes = (BufferResource*)_ctx->_resources[ridx];
@@ -3982,13 +3459,13 @@ namespace ds {
 		descView.BufferEx.NumElements = descBuf.ByteWidth / descBuf.StructureByteStride;
 		ID3D11ShaderResourceView* srv;
 		assert_result(_ctx->d3dDevice->CreateShaderResourceView(sb->buffer, &descView, &srv), "Failed to create resource view");
-		InternalTexture* tex = new InternalTexture;
+		InternalTexture tex;// = new InternalTexture;
 		// FIXME: get size!!
-		tex->width = 0;
-		tex->height = 0;
-		tex->srv = srv;
-		ShaderResourceViewResource* res = new ShaderResourceViewResource(tex);
-		return addResource(res, RT_SRV, name);
+		tex.width = 0;
+		tex.height = 0;
+		tex.srv = srv;
+		tex.size = ds::vec2(0.0f,0.0f);
+		return ds_add_to_buffer(_ctx->resource_buffer, &tex, sizeof(InternalTexture), RT_SRV);
 	}
 
 	RID createUnorderedAccessView(RID bufferID, const char* name) {
@@ -4014,8 +3491,7 @@ namespace ds {
 
 	RID createUnorderedAccessView(RID textureID, int numElements, const char* name) {
 		uint16_t ridx = getResourceIndex(textureID, RT_SRV);
-		ShaderResourceViewResource* bufferRes = (ShaderResourceViewResource*)_ctx->_resources[ridx];
-		InternalTexture* tex = bufferRes->get();
+		InternalTexture* tex = (InternalTexture*)ds_get_resource(_ctx->resource_buffer,ridx);
 		D3D11_SHADER_RESOURCE_VIEW_DESC descBuf;
 		ZeroMemory(&descBuf, sizeof(descBuf));
 		tex->srv->GetDesc(&descBuf);
@@ -4041,8 +3517,8 @@ namespace ds {
 		int slot = slot_mask(rid);
 		ID3D11ShaderResourceView* srv = 0;
 		if (ridx != NO_RID) {
-			ShaderResourceViewResource* res = (ShaderResourceViewResource*)_ctx->_resources[ridx];
-			srv = res->get()->srv;
+			InternalTexture* tex = (InternalTexture*)ds_get_resource(_ctx->resource_buffer, ridx);
+			srv = tex->srv;
 		}
 		if (stage == PLS_PS_RES) {
 			_ctx->d3dContext->PSSetShaderResources(slot, 1, &srv);
@@ -4088,8 +3564,10 @@ namespace ds {
 		desc.ScissorEnable = (BOOL)info.scissor;
 		ID3D11RasterizerState* state = 0;
 		assert_result(_ctx->d3dDevice->CreateRasterizerState(&desc, &state), "Failed to create rasterizer state");
-		RasterizerStateResource* res = new RasterizerStateResource(state);
-		return addResource(res, RT_RASTERIZER_STATE, name);
+		//RasterizerStateResource* res = new RasterizerStateResource(state);
+		ds_rasterizer_state_resource res = { state };
+		//return addResource(res, RT_RASTERIZER_STATE, name);
+		return ds_add_to_buffer(_ctx->resource_buffer, &res, sizeof(ds_rasterizer_state_resource), RT_RASTERIZER_STATE);
 	}
 
 	// ------------------------------------------------------
@@ -4098,8 +3576,9 @@ namespace ds {
 	void setRasterizerState(RID rid) {
 		uint16_t ridx = getResourceIndex(rid, RT_RASTERIZER_STATE);
 		if ( ridx != NO_RID) {
-			RasterizerStateResource* res = (RasterizerStateResource*)_ctx->_resources[ridx];
-			_ctx->d3dContext->RSSetState(res->get());
+			//RasterizerStateResource* res = (RasterizerStateResource*)_ctx->_resources[ridx];
+			ds_rasterizer_state_resource* res = (ds_rasterizer_state_resource*)ds_get_resource(_ctx->resource_buffer, ridx);
+			_ctx->d3dContext->RSSetState(res->state);
 		}
 	}
 
@@ -4250,30 +3729,32 @@ namespace ds {
 	// compile with array of StateGroups
 	// -----------------------------------------------------------------
 	RID compile(const DrawCommand cmd, RID* groups, int num, const char* name) {
-		DrawItem* item = new DrawItem;
-		item->command = cmd;
-		item->groups = new RID[num + 1];
+		DrawItem item;// = new DrawItem;
+		item.command = cmd;
+		item.groups = new RID[num + 1];
 		for (int i = 0; i < num; ++i) {
-			item->groups[i] = groups[i];
+			item.groups[i] = groups[i];
 		}
-		item->groups[num] = _ctx->defaultStateGroup;
-		item->num = num + 1;
-		item->nameIndex = _ctx->charBuffer->append(name);
-		return addResource(new DrawItemResource(item), RT_DRAW_ITEM, name);
+		item.groups[num] = _ctx->defaultStateGroup;
+		item.num = num + 1;
+		item.nameIndex = _ctx->charBuffer->append(name);
+		//return addResource(new DrawItemResource(item), RT_DRAW_ITEM, name);
+		return ds_add_to_buffer(_ctx->resource_buffer, &item, sizeof(DrawItem), RT_DRAW_ITEM);
 	}
 
 	// -----------------------------------------------------------------
 	// compile with only one StateGroup
 	// -----------------------------------------------------------------
 	RID compile(const DrawCommand cmd, RID group, const char* name) {
-		DrawItem* item = new DrawItem;
-		item->command = cmd;
-		item->groups = new RID[2];
-		item->groups[0] = group;
-		item->groups[1] = _ctx->defaultStateGroup;
-		item->num = 2;
-		item->nameIndex = _ctx->charBuffer->append(name);
-		return addResource(new DrawItemResource(item), RT_DRAW_ITEM, name);
+		DrawItem item;// = new DrawItem;
+		item.command = cmd;
+		item.groups = new RID[2];
+		item.groups[0] = group;
+		item.groups[1] = _ctx->defaultStateGroup;
+		item.num = 2;
+		item.nameIndex = _ctx->charBuffer->append(name);
+		//return addResource(new DrawItemResource(item), RT_DRAW_ITEM, name);
+		return ds_add_to_buffer(_ctx->resource_buffer, &item, sizeof(DrawItem), RT_DRAW_ITEM);
 	}
 	
 	void assertResourceType(RID rid, ResourceType type) {
@@ -4428,13 +3909,13 @@ namespace ds {
 	}
 
 	RID StateGroupBuilder::build(const char* name) {
-		StateGroup* group = new StateGroup();
+		StateGroup group;// = new StateGroup();
 		quickSort(_items, 0, _num - 1);
-		group->num = _num;
-		group->items = new RID[_num];
-		memcpy(group->items, _items, _num * sizeof(RID));
-		RID rid = addResource(new StateGroupResource(group),RT_STATE_GROUP, name);
-		group->rid = rid;
+		group.num = _num;
+		group.items = (RID*)malloc(_num * sizeof(RID));;
+		memcpy(group.items, _items, _num * sizeof(RID));
+		RID rid = ds_add_to_buffer(_ctx->resource_buffer, &group, sizeof(StateGroup), RT_STATE_GROUP);////addResource(new StateGroupResource(group),RT_STATE_GROUP, name);
+		group.rid = rid;
 		return rid;
 	}
 
@@ -4545,8 +4026,8 @@ namespace ds {
 			}
 			else if (type == RT_SRV) {
 				uint16_t sridx = getResourceIndex(current, RT_SRV);
-				ShaderResourceViewResource* srvRes = (ShaderResourceViewResource*)_ctx->_resources[sridx];
-				InternalTexture* tex = srvRes->get();
+				//ShaderResourceViewResource* srvRes = (ShaderResourceViewResource*)_ctx->_resources[sridx];
+				InternalTexture* tex = (InternalTexture*)ds_get_resource(_ctx->resource_buffer, sridx);
 				int slot = slot_mask(current);
 				_ctx->d3dContext->CSSetShaderResources(slot, 1, &tex->srv);
 			}
@@ -4559,9 +4040,11 @@ namespace ds {
 			}
 			else if (type == RT_CONSTANT_BUFFER) {
 				uint16_t cbidx = getResourceIndex(current, RT_CONSTANT_BUFFER);
-				ConstantBufferResource* res = (ConstantBufferResource*)_ctx->_resources[cbidx];
+				//ConstantBufferResource* res = (ConstantBufferResource*)_ctx->_resources[cbidx];
+				ds_constant_buffer_resource* res = (ds_constant_buffer_resource*)ds_get_resource(_ctx->resource_buffer,cbidx);
 				int slot = slot_mask(current);
-				ID3D11Buffer* buffer = res->get();
+				//ID3D11Buffer* buffer = res->get();
+				ID3D11Buffer* buffer = res->data;
 				_ctx->d3dContext->CSSetConstantBuffers(slot, 1, &buffer);
 			}
 		}
@@ -4628,8 +4111,9 @@ namespace ds {
 	// ------------------------------------------------------
 	void submit(RID renderPass, RID drawItemID, int numElements) {
 		uint16_t pidx = getResourceIndex(renderPass, RT_RENDER_PASS);
-		RenderPassResource* rpRes = (RenderPassResource*)_ctx->_resources[pidx];
-		RenderPass* pass = rpRes->get();
+		//RenderPassResource* rpRes = (RenderPassResource*)_ctx->_resources[pidx];
+		//RenderPass* pass = rpRes->get();
+		RenderPass* pass = (RenderPass*)ds_get_resource(_ctx->resource_buffer, pidx);
 		if (pass->numRenderTargets > 0) {
 			for (int i = 0; i < pass->numRenderTargets; ++i) {
 				setRenderTarget(pass->rts[i]);
@@ -4645,8 +4129,9 @@ namespace ds {
 		// FIXME: how to handle world matrix???
 		setDepthBufferState(pass->depthState);
 		uint16_t ridx = getResourceIndex(drawItemID, RT_DRAW_ITEM);
-		DrawItemResource* res = (DrawItemResource*)_ctx->_resources[ridx];
-		const DrawItem* item = res->get();
+		//DrawItemResource* res = (DrawItemResource*)_ctx->_resources[ridx];
+		//const DrawItem* item = res->get();
+		DrawItem* item = (DrawItem*)ds_get_resource(_ctx->resource_buffer, ridx);
 		_ctx->pipelineStates[_ctx->currentDrawCall].reset();
 		_ctx->drawCalls[_ctx->currentDrawCall] = drawItemID;
 		for (int i = 0; i < item->num; ++i) {
@@ -4685,8 +4170,9 @@ namespace ds {
 	}
 
 	static void apply(PipelineState* pipelineState, RID groupID) {
-		StateGroupResource* res = (StateGroupResource*)_ctx->_resources[id_mask(groupID)];
-		StateGroup* group = res->get();
+		//StateGroupResource* res = (StateGroupResource*)_ctx->_resources[id_mask(groupID)];
+		//StateGroup* group = res->get();
+		StateGroup* group = (StateGroup*)ds_get_resource(_ctx->resource_buffer, id_mask(groupID));
 		for (int i = 0; i < group->num; ++i) {
 			RID current = group->items[i];
 			int type = type_mask(current);
@@ -4701,330 +4187,22 @@ namespace ds {
 	// Render pass
 	// ******************************************************
 	RID createRenderPass(const RenderPassInfo& info, const char* name) {
-		RenderPass* rp = new RenderPass();
-		rp->camera = info.camera;
+		RenderPass rp;// = new RenderPass();
+		rp.camera = info.camera;
 		int nr = info.numRenderTargets;
 		if (nr > 4) {
 			nr = 4;
 		}
-		rp->numRenderTargets = nr;
+		rp.numRenderTargets = nr;
 		for (int i = 0; i < nr; ++i) {
-			rp->rts[i] = info.renderTargets[i];
+			rp.rts[i] = info.renderTargets[i];
 		}
-		rp->depthState = info.depthBufferState;
-		RenderPassResource* res = new RenderPassResource(rp);
-		return addResource(res, RT_RENDER_PASS, name);
+		rp.depthState = info.depthBufferState;
+		//RenderPassResource* res = new RenderPassResource(rp);
+		//return addResource(res, RT_RENDER_PASS, name);
+		return ds_add_to_buffer(_ctx->resource_buffer, &rp, sizeof(RenderPass), RT_RENDER_PASS);
 	}
 
-
-	// ******************************************************
-	//
-	// Math
-	//
-	// ******************************************************
-	matrix matIdentity() {
-		matrix m(
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f
-		);
-		return m;
-	}
-
-	matrix matOrthoLH(float w, float h, float zn, float zf) {
-		// msdn.microsoft.com/de-de/library/windows/desktop/bb204940(v=vs.85).aspx
-		matrix tmp = matIdentity();
-		tmp._11 = 2.0f / w;
-		tmp._22 = 2.0f / h;
-		tmp._33 = 1.0f / (zf - zn);
-		tmp._43 = zn / (zn - zf);
-		return tmp;
-	}
-
-	matrix operator * (const matrix& m1, const matrix& m2) {
-		matrix tmp;
-		tmp._11 = m1._11 * m2._11 + m1._12 * m2._21 + m1._13 * m2._31 + m1._14 * m2._41;
-		tmp._12 = m1._11 * m2._12 + m1._12 * m2._22 + m1._13 * m2._32 + m1._14 * m2._42;
-		tmp._13 = m1._11 * m2._13 + m1._12 * m2._23 + m1._13 * m2._33 + m1._14 * m2._43;
-		tmp._14 = m1._11 * m2._14 + m1._12 * m2._24 + m1._13 * m2._34 + m1._14 * m2._44;
-
-		tmp._21 = m1._21 * m2._11 + m1._22 * m2._21 + m1._23 * m2._31 + m1._24 * m2._41;
-		tmp._22 = m1._21 * m2._12 + m1._22 * m2._22 + m1._23 * m2._32 + m1._24 * m2._42;
-		tmp._23 = m1._21 * m2._13 + m1._22 * m2._23 + m1._23 * m2._33 + m1._24 * m2._43;
-		tmp._24 = m1._21 * m2._14 + m1._22 * m2._24 + m1._23 * m2._34 + m1._24 * m2._44;
-
-		tmp._31 = m1._31 * m2._11 + m1._32 * m2._21 + m1._33 * m2._31 + m1._34 * m2._41;
-		tmp._32 = m1._31 * m2._12 + m1._32 * m2._22 + m1._33 * m2._32 + m1._34 * m2._42;
-		tmp._33 = m1._31 * m2._13 + m1._32 * m2._23 + m1._33 * m2._33 + m1._34 * m2._43;
-		tmp._34 = m1._31 * m2._14 + m1._32 * m2._24 + m1._33 * m2._34 + m1._34 * m2._44;
-
-		tmp._41 = m1._41 * m2._11 + m1._42 * m2._21 + m1._43 * m2._31 + m1._44 * m2._41;
-		tmp._42 = m1._41 * m2._12 + m1._42 * m2._22 + m1._43 * m2._32 + m1._44 * m2._42;
-		tmp._43 = m1._41 * m2._13 + m1._42 * m2._23 + m1._43 * m2._33 + m1._44 * m2._43;
-		tmp._44 = m1._41 * m2._14 + m1._42 * m2._24 + m1._43 * m2._34 + m1._44 * m2._44;
-
-		return tmp;
-	}
-
-	// -------------------------------------------------------
-	// Scale matrix
-	// -------------------------------------------------------
-	matrix matScale(const vec3& scale) {
-		matrix sm(
-			scale.x, 0.0f, 0.0f, 0.0f,
-			0.0f, scale.y, 0.0f, 0.0f,
-			0.0f, 0.0f, scale.z, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f
-		);
-		return sm;
-	}
-
-	// http://www.cprogramming.com/tutorial/3d/rotationMatrices.html
-	// left hand sided
-	matrix matRotationX(float angle) {
-		matrix sm(
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, cos(angle), -sin(angle), 0.0f,
-			0.0f, sin(angle), cos(angle), 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f
-		);
-		return sm;
-	}
-
-	matrix matRotationY(float angle) {
-		matrix sm(
-			cos(angle), 0.0f, sin(angle), 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			-sin(angle), 0.0f, cos(angle), 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f
-		);
-		return sm;
-	}
-	// FIXME: wrong direction!!!!
-	matrix matRotationZ(float angle) {
-		matrix sm(
-			cos(angle), -sin(angle), 0.0f, 0.0f,
-			sin(angle), cos(angle), 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f
-		);
-		return sm;
-	}
-
-	matrix matRotation(const vec3& r) {
-		return matRotationZ(r.z) * matRotationY(r.y) * matRotationX(r.x);
-	}
-
-	// -------------------------------------------------------
-	// Transpose matrix
-	// -------------------------------------------------------
-	matrix matTranspose(const matrix& m) {
-		matrix current = m;
-		matrix tmp;
-		for (int i = 0; i < 4; i++) {
-			for (int j = 0; j < 4; j++) {
-				tmp.m[i][j] = current.m[j][i];
-			}
-		}
-		return tmp;
-	}
-
-	// -------------------------------------------------------
-	// Translation matrix
-	// -------------------------------------------------------
-	matrix matTranslate(const vec3& pos) {
-		matrix tm(
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			pos.x, pos.y, pos.z, 1.0f
-		);
-		return tm;
-	}
-
-	matrix matLookAtLH(const vec3& eye, const vec3& lookAt, const vec3& up) {
-		// see msdn.microsoft.com/de-de/library/windows/desktop/bb205342(v=vs.85).aspx
-		vec3 zAxis = normalize(lookAt - eye);
-		vec3 xAxis = normalize(cross(up, zAxis));
-		vec3 yAxis = cross(zAxis, xAxis);
-		float dox = -dot(xAxis, eye);
-		float doy = -dot(yAxis, eye);
-		float doz = -dot(zAxis, eye);
-		matrix tmp(
-			xAxis.x, yAxis.x, zAxis.x, 0.0f,
-			xAxis.y, yAxis.y, zAxis.y, 0.0f,
-			xAxis.z, yAxis.z, zAxis.z, 0.0f,
-			dox, doy, doz, 1.0f
-		);
-		return tmp;
-	}
-
-	matrix matPerspectiveFovLH(float fovy, float aspect, float zn, float zf) {
-		// msdn.microsoft.com/de-de/library/windows/desktop/bb205350(v=vs.85).aspx
-		float yScale = 1.0f / tan(fovy / 2.0f);
-		float xScale = yScale / aspect;
-
-		matrix tmp(
-			xScale, 0.0f, 0.0f, 0.0f,
-			0.0f, yScale, 0.0f, 0.0f,
-			0.0f, 0.0f, zf / (zf - zn), 1.0f,
-			0.0f, 0.0f, -zn*zf / (zf - zn), 0.0f
-		);
-		return tmp;
-	}
-
-	vec3 matTransformNormal(const vec3& v, const matrix& m) {
-		vec3 result =
-			vec3(v.x * m._11 + v.y * m._21 + v.z * m._31,
-				v.x * m._12 + v.y * m._22 + v.z * m._32,
-				v.x * m._13 + v.y * m._23 + v.z * m._33);
-		return result;
-	}
-
-	matrix matRotation(const vec3& v, float angle) {
-		float L = (v.x * v.x + v.y * v.y + v.z * v.z);
-		float u2 = v.x * v.x;
-		float vec2 = v.y * v.y;
-		float w2 = v.z * v.z;
-		matrix tmp = matIdentity();
-		tmp._11 = (u2 + (vec2 + w2) * cos(angle)) / L;
-		tmp._12 = (v.x * v.y * (1 - cos(angle)) - v.z * sqrt(L) * sin(angle)) / L;
-		tmp._13 = (v.x * v.z * (1 - cos(angle)) + v.y * sqrt(L) * sin(angle)) / L;
-		tmp._14 = 0.0f;
-
-		tmp._21 = (v.x * v.y * (1 - cos(angle)) + v.z * sqrt(L) * sin(angle)) / L;
-		tmp._22 = (vec2 + (u2 + w2) * cos(angle)) / L;
-		tmp._23 = (v.y * v.z * (1 - cos(angle)) - v.x * sqrt(L) * sin(angle)) / L;
-		tmp._24 = 0.0f;
-
-		tmp._31 = (v.x * v.z * (1 - cos(angle)) - v.y * sqrt(L) * sin(angle)) / L;
-		tmp._32 = (v.y * v.z * (1 - cos(angle)) + v.x * sqrt(L) * sin(angle)) / L;
-		tmp._33 = (w2 + (u2 + vec2) * cos(angle)) / L;
-		tmp._34 = 0.0f;
-
-		return tmp;
-	}
-
-	matrix matInverse(const matrix& m) {
-		matrix ret;
-		float tmp[12]; /* temp array for pairs */
-		float src[16]; /* array of transpose source matrix */
-		float det; /* determinant */
-		float* dst = ret;
-		float* mat = m;
-
-		for (int i = 0; i < 4; ++i) {
-			for (int j = 0; j < 4; ++j) {
-				src[i * 4 + j] = m.m[i][j];
-			}
-		}
-		/* transpose matrix */
-		for (int i = 0; i < 4; i++) {
-			src[i] = mat[i * 4];
-			src[i + 4] = mat[i * 4 + 1];
-			src[i + 8] = mat[i * 4 + 2];
-			src[i + 12] = mat[i * 4 + 3];
-		}
-		/* calculate pairs for first 8 elements (cofactors) */
-		tmp[0] = src[10] * src[15];
-		tmp[1] = src[11] * src[14];
-		tmp[2] = src[9] * src[15];
-		tmp[3] = src[11] * src[13];
-		tmp[4] = src[9] * src[14];
-		tmp[5] = src[10] * src[13];
-		tmp[6] = src[8] * src[15];
-		tmp[7] = src[11] * src[12];
-		tmp[8] = src[8] * src[14];
-		tmp[9] = src[10] * src[12];
-		tmp[10] = src[8] * src[13];
-		tmp[11] = src[9] * src[12];
-		/* calculate first 8 elements (cofactors) */
-		dst[0] = tmp[0] * src[5] + tmp[3] * src[6] + tmp[4] * src[7];
-		dst[0] -= tmp[1] * src[5] + tmp[2] * src[6] + tmp[5] * src[7];
-		dst[1] = tmp[1] * src[4] + tmp[6] * src[6] + tmp[9] * src[7];
-		dst[1] -= tmp[0] * src[4] + tmp[7] * src[6] + tmp[8] * src[7];
-		dst[2] = tmp[2] * src[4] + tmp[7] * src[5] + tmp[10] * src[7];
-		dst[2] -= tmp[3] * src[4] + tmp[6] * src[5] + tmp[11] * src[7];
-		dst[3] = tmp[5] * src[4] + tmp[8] * src[5] + tmp[11] * src[6];
-		dst[3] -= tmp[4] * src[4] + tmp[9] * src[5] + tmp[10] * src[6];
-		dst[4] = tmp[1] * src[1] + tmp[2] * src[2] + tmp[5] * src[3];
-		dst[4] -= tmp[0] * src[1] + tmp[3] * src[2] + tmp[4] * src[3];
-		dst[5] = tmp[0] * src[0] + tmp[7] * src[2] + tmp[8] * src[3];
-		dst[5] -= tmp[1] * src[0] + tmp[6] * src[2] + tmp[9] * src[3];
-		dst[6] = tmp[3] * src[0] + tmp[6] * src[1] + tmp[11] * src[3];
-		dst[6] -= tmp[2] * src[0] + tmp[7] * src[1] + tmp[10] * src[3];
-		dst[7] = tmp[4] * src[0] + tmp[9] * src[1] + tmp[10] * src[2];
-		dst[7] -= tmp[5] * src[0] + tmp[8] * src[1] + tmp[11] * src[2];
-		/* calculate pairs for second 8 elements (cofactors) */
-		tmp[0] = src[2] * src[7];
-		tmp[1] = src[3] * src[6];
-		tmp[2] = src[1] * src[7];
-		tmp[3] = src[3] * src[5];
-		tmp[4] = src[1] * src[6];
-		tmp[5] = src[2] * src[5];
-		tmp[6] = src[0] * src[7];
-		tmp[7] = src[3] * src[4];
-		tmp[8] = src[0] * src[6];
-		tmp[9] = src[2] * src[4];
-		tmp[10] = src[0] * src[5];
-		tmp[11] = src[1] * src[4];
-		/* calculate second 8 elements (cofactors) */
-		dst[8] = tmp[0] * src[13] + tmp[3] * src[14] + tmp[4] * src[15];
-		dst[8] -= tmp[1] * src[13] + tmp[2] * src[14] + tmp[5] * src[15];
-		dst[9] = tmp[1] * src[12] + tmp[6] * src[14] + tmp[9] * src[15];
-		dst[9] -= tmp[0] * src[12] + tmp[7] * src[14] + tmp[8] * src[15];
-		dst[10] = tmp[2] * src[12] + tmp[7] * src[13] + tmp[10] * src[15];
-		dst[10] -= tmp[3] * src[12] + tmp[6] * src[13] + tmp[11] * src[15];
-		dst[11] = tmp[5] * src[12] + tmp[8] * src[13] + tmp[11] * src[14];
-		dst[11] -= tmp[4] * src[12] + tmp[9] * src[13] + tmp[10] * src[14];
-		dst[12] = tmp[2] * src[10] + tmp[5] * src[11] + tmp[1] * src[9];
-		dst[12] -= tmp[4] * src[11] + tmp[0] * src[9] + tmp[3] * src[10];
-		dst[13] = tmp[8] * src[11] + tmp[0] * src[8] + tmp[7] * src[10];
-		dst[13] -= tmp[6] * src[10] + tmp[9] * src[11] + tmp[1] * src[8];
-		dst[14] = tmp[6] * src[9] + tmp[11] * src[11] + tmp[3] * src[8];
-		dst[14] -= tmp[10] * src[11] + tmp[2] * src[8] + tmp[7] * src[9];
-		dst[15] = tmp[10] * src[10] + tmp[4] * src[8] + tmp[9] * src[9];
-		dst[15] -= tmp[8] * src[9] + tmp[11] * src[10] + tmp[5] * src[8];
-		/* calculate determinant */
-		det = src[0] * dst[0] + src[1] * dst[1] + src[2] * dst[2] + src[3] * dst[3];
-		/* calculate matrix inverse */
-		det = 1 / det;
-		for (int j = 0; j < 16; j++) {
-			dst[j] *= det;
-		}
-		for (int i = 0; i < 4; ++i) {
-			for (int j = 0; j < 4; ++j) {
-				ret.m[i][j] = dst[i * 4 + j];
-			}
-		}
-		return ret;
-	}
-
-	vec4 operator * (const matrix& m, const vec4& v) {
-		// column mode
-		/*
-		Vector4f tmp;
-		tmp.x = m._11 * v.x + m._12 * v.y + m._13 * v.z + m._14 * v.w;
-		tmp.y = m._21 * v.x + m._22 * v.y + m._23 * v.z + m._24 * v.w;
-		tmp.z = m._31 * v.x + m._32 * v.y + m._33 * v.z + m._34 * v.w;
-		tmp.w = m._41 * v.x + m._42 * v.y + m._43 * v.z + m._44 * v.w;
-		return tmp;
-		*/
-		// row mode
-		vec4 tmp;
-		tmp.x = m._11 * v.x + m._21 * v.y + m._31 * v.z + m._41 * v.w;
-		tmp.y = m._12 * v.x + m._22 * v.y + m._32 * v.z + m._42 * v.w;
-		tmp.z = m._13 * v.x + m._23 * v.y + m._33 * v.z + m._43 * v.w;
-		tmp.w = m._14 * v.x + m._24 * v.y + m._34 * v.z + m._44 * v.w;
-		return tmp;
-	}
-
-	vec3 operator * (const matrix& m, const vec3& v) {
-		vec4 nv(v.x, v.y, v.z, 1.0f);
-		vec4 tmp = m * nv;
-		return vec3(tmp.x, tmp.y, tmp.z);
-	}
 
 	// ******************************************************
 	//
@@ -5039,8 +4217,8 @@ namespace ds {
 		}
 	}
 
-	void addVirtualKey(uint32_t keyCode) {
-		int value = SpecialKeys::DSKEY_UNKNOWN;
+	bool addVirtualKey(uint32_t keyCode) {
+		SpecialKeys value = SpecialKeys::DSKEY_UNKNOWN;
 		switch (keyCode) {
 			case VK_TAB: value = SpecialKeys::DSKEY_Tab; break;
 			case VK_BACK: value = SpecialKeys::DSKEY_Backspace; break;					
@@ -5052,6 +4230,7 @@ namespace ds {
 			case VK_END: value = SpecialKeys::DSKEY_End; break;
 			case VK_DELETE: value = SpecialKeys::DSKEY_Delete; break;
 			case VK_RETURN: value = SpecialKeys::DSKEY_Enter; break;
+			case VK_ESCAPE: value = SpecialKeys::DSKEY_ESC; break;
 			case VK_F1: value = SpecialKeys::DSKEY_F1; break;
 			case VK_F2: value = SpecialKeys::DSKEY_F2; break;
 			case VK_F3: value = SpecialKeys::DSKEY_F3; break;
@@ -5069,10 +4248,14 @@ namespace ds {
 			InputKey& k = _ctx->inputKeys[_ctx->numInputKeys++];
 			k.type = IKT_SYSTEM;
 			k.value = value;
+
+			Event keyDownEvent;
+			keyDownEvent.type = ET_KEY_DOWN;
+			keyDownEvent.key = { IKT_SYSTEM, 0, value};
+			push_event(keyDownEvent);
+			return true;
 		}
-		//else {
-			//printf("unknown: %d\n", keyCode);
-		//}
+		return false;		
 	}
 
 	int getNumInputKeys() {
@@ -5101,6 +4284,7 @@ namespace ds {
 			fprintf(fp, "\n");
 			for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
 				const BaseResource* br = _ctx->_resources[i];
+				/*
 				if (br->getType() == RT_DRAW_ITEM) {
 					const DrawItemResource* dir = (DrawItemResource*)_ctx->_resources[i];
 					const DrawItem* item = dir->get();
@@ -5124,45 +4308,48 @@ namespace ds {
 						}
 					}
 				}
+				*/
 			}
 			fclose(fp);
 		}
 	}
 
 	void logResources() {
-		DBG_LOG(" index | resource type       | Name");
-		DBG_LOG("--------------------------------------------------------------");
+		LOG_DEBUG(" index | resource type       | Name");
+		LOG_DEBUG("--------------------------------------------------------------");
 		for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
 			const BaseResource* res = _ctx->_resources[i];
 			RID rid = res->getRID();
-			DBG_LOG(" %3d  | %-20s | %s", id_mask(rid), RESOURCE_NAMES[type_mask(rid)], _ctx->charBuffer->get(res->getNameIndex()));
+			LOG_DEBUG(" %3d  | %-20s | %s", id_mask(rid), RESOURCE_NAMES[type_mask(rid)], _ctx->charBuffer->get(res->getNameIndex()));
 		}
-		DBG_LOG("\n");
+		LOG_DEBUG("\n");
 		for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
 			const BaseResource* br = _ctx->_resources[i];
+			/*
 			if (br->getType() == RT_DRAW_ITEM) {
 				const DrawItemResource* dir = (DrawItemResource*)_ctx->_resources[i];
 				const DrawItem* item = dir->get();
-				DBG_LOG("DrawItem %d (%s) - groups: %d", id_mask(br->getRID()), _ctx->charBuffer->get(item->nameIndex), item->num);
+				LOG_DEBUG("DrawItem %d (%s) - groups: %d", id_mask(br->getRID()), _ctx->charBuffer->get(item->nameIndex), item->num);
 				for (int j = 0; j < item->num; ++j) {
 					RID groupID = item->groups[j];
 					StateGroupResource* res = (StateGroupResource*)_ctx->_resources[id_mask(groupID)];
 					StateGroup* group = res->get();
-					DBG_LOG("Group: %d (%s)", id_mask(group->rid), _ctx->charBuffer->get(res->getNameIndex()));
-					DBG_LOG("resource type        | id    | stage    | slot | Name");
-					DBG_LOG("------------------------------------------------------------------------------------------");
+					LOG_DEBUG("Group: %d (%s)", id_mask(group->rid), _ctx->charBuffer->get(res->getNameIndex()));
+					LOG_DEBUG("resource type        | id    | stage    | slot | Name");
+					LOG_DEBUG("------------------------------------------------------------------------------------------");
 					for (int k = 0; k < group->num; ++k) {
 						RID current = group->items[k];
 						if (id_mask(current) != NO_RID) {
 							BaseResource* res = _ctx->_resources[id_mask(current)];
-							DBG_LOG("%-20s | %5d | %-8s | %2d   | %s", RESOURCE_NAMES[type_mask(current)], id_mask(current), PIPELINE_STAGE_NAMES[stage_mask(current)], slot_mask(current), _ctx->charBuffer->get(res->getNameIndex()));
+							LOG_DEBUG("%-20s | %5d | %-8s | %2d   | %s", RESOURCE_NAMES[type_mask(current)], id_mask(current), PIPELINE_STAGE_NAMES[stage_mask(current)], slot_mask(current), _ctx->charBuffer->get(res->getNameIndex()));
 						}
 						else {
-							DBG_LOG("%-20s | %5d | %-8s | %2d   | NO_RID", RESOURCE_NAMES[type_mask(current)], id_mask(current), PIPELINE_STAGE_NAMES[stage_mask(current)], slot_mask(current));
+							LOG_DEBUG("%-20s | %5d | %-8s | %2d   | NO_RID", RESOURCE_NAMES[type_mask(current)], id_mask(current), PIPELINE_STAGE_NAMES[stage_mask(current)], slot_mask(current));
 						}
 					}
 				}
 			}
+			*/
 		}
 	}
 
@@ -5343,7 +4530,36 @@ namespace ds {
 	}
 
 	// -----------------------------------------------------
+	//
+	// Events
+	//
+	// -----------------------------------------------------
+	bool get_event(Event* e) {
+		if (_ctx->eventReadIndex != _ctx->eventWriteIndex) {
+			*e = _ctx->events[_ctx->eventReadIndex++];
+			if (_ctx->eventReadIndex >= 32) {
+				_ctx->eventReadIndex = 0;
+			}
+			return true;
+		}
+		return false;
+	}
+
+	bool has_events() {
+		return _ctx->eventReadIndex != _ctx->eventWriteIndex;
+	}
+
+	void push_event(const Event& e) {		
+		_ctx->events[_ctx->eventWriteIndex++] = e;
+		if (_ctx->eventWriteIndex >= 32) {
+			_ctx->eventWriteIndex = 0;
+		}
+	}
+
+	// -----------------------------------------------------
+	//
 	// CharBuffer
+	//
 	// -----------------------------------------------------
 	CharBuffer::CharBuffer() : data(nullptr), size(0), capacity(0), num(0) {}
 	

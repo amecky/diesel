@@ -1,4 +1,5 @@
 #define DS_IMPLEMENTATION
+#define DS_MATH_IMPLEMENTATION
 #include "..\..\diesel.h"
 #include "Triangle_VS_Main.h"
 #include "Triangle_PS_Main.h"
