@@ -1,5 +1,7 @@
 #pragma once
-//#include <stdint.h>
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <stdint.h>
 //#include <stdio.h>
 #include <stdlib.h>
 //
@@ -424,7 +426,7 @@ uint32_t fnv1a(const char* text, uint32_t hash) {
 		RID rid;
 	};
 
-	static void apply(PipelineState* state, RID groupID);
+	static void apply(ds_pipeline_state* state, RID groupID);
 	// ---------------------------------------------------
 	// State group
 	// ---------------------------------------------------	
@@ -780,8 +782,6 @@ uint32_t fnv1a(const char* text, uint32_t hash) {
 #endif
 
 #ifdef DS_IMPLEMENTATION
-
-#include <Windows.h>
 #include <crtdbg.h>  
 #include <d3d11.h>
 #include <vector>
