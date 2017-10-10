@@ -1,4 +1,5 @@
 #define DS_IMPLEMENTATION
+#define DS_MATH_IMPLEMENTATION
 #include "..\..\diesel.h"
 #include "..\common\WaveFrontReader.h"
 #include "..\common\Camera.h"
@@ -32,11 +33,12 @@ struct InstanceData {
 	ds::matrix worldMatrix;
 	ds::Color color;
 };
-
-void log(const LogLevel&, const char* message) {
+/*
+void log(const ds::LogLevel&, const char* message) {
 	OutputDebugString(message);
 	OutputDebugString("\n");
 }
+*/
 // ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------
@@ -61,7 +63,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.title = "Instancing example - 140 Hexagons";
 	rs.clearColor = ds::Color(0.1f, 0.1f, 0.1f, 1.0f);
 	rs.multisampling = 4;
-	rs.logHandler = &log;
+	//rs.logHandler = &log;
 	ds::init(rs);
 
 	InstanceData instances[TOTAL];

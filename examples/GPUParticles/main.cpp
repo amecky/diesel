@@ -1,6 +1,7 @@
 //#include "..\..\diesel.h"
 #include <Windows.h>
 #define STB_IMAGE_IMPLEMENTATION
+#define DS_MATH_IMPLEMENTATION
 #include "..\common\stb_image.h"
 #define DS_IMPLEMENTATION
 #include "Particlesystem.h"

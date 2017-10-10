@@ -1,4 +1,5 @@
 #define DS_IMPLEMENTATION
+#define DS_MATH_IMPLEMENTATION
 #include "..\..\diesel.h"
 #include "..\common\Camera.h"
 #define STB_IMAGE_IMPLEMENTATION

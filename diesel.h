@@ -1,7 +1,6 @@
 #pragma once
-#include <stdint.h>
-#include <stdio.h>
-#include "ds_math.h"
+//#include <stdint.h>
+//#include <stdio.h>
 #include <stdlib.h>
 //
 // Diesel - A DirectX 11 renderer
@@ -42,6 +41,9 @@
 
 #define DS_IMPLEMENTATION
 
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
 typedef unsigned char BYTE;
 typedef unsigned char byte;
 // ----------------------------------------------------
@@ -64,23 +66,19 @@ const uint16_t NO_RID = UINT16_MAX - 1;
 #define RADTODEG( radian ) ((radian) * (180.0f / 3.141592654f))
 #endif
 
-namespace logging {
 
-	enum LogLevel {
-		LL_TRACE, LL_DEBUG, LL_INFO, LL_WARN, LL_ERROR
-	};
+typedef enum {LL_TRACE, LL_DEBUG, LL_INFO, LL_WARN, LL_ERROR} LogLevel;
 
-	typedef void(*LogHandler)(const LogLevel&, const char* message);
+typedef void(*LogHandler)(LogLevel, const char*);
 
-	void writeOutputDebugString(const LogLevel&, const char* message);
+void writeOutputDebugString(LogLevel, const char*);
 
-	static LogHandler logHandler = writeOutputDebugString;
+static LogHandler logHandler = writeOutputDebugString;
 
-	static LogLevel currentLevel = LL_DEBUG;
+static LogLevel currentLevel = LL_DEBUG;
 
-	void log(LogLevel level, const char* file, int line, char* format, ...);
+void log(LogLevel level, const char* file, int line, char* format, ...);
 
-}
 
 #define LOG_TRACE(...) do { logging::log(logging::LogLevel::LL_TRACE,__FILE__,__LINE__,__VA_ARGS__);} while(0)
 #define LOG_DEBUG(...) do { logging::log(logging::LogLevel::LL_DEBUG,__FILE__,__LINE__,__VA_ARGS__);} while(0)
@@ -88,22 +86,21 @@ namespace logging {
 #define LOG_WARN(...) do { logging::log(logging::LogLevel::LL_WARN,__FILE__,__LINE__,__VA_ARGS__);} while(0)
 #define LOG_ERROR(...) do { logging::log(logging::LogLevel::LL_ERROR,__FILE__,__LINE__,__VA_ARGS__);} while(0)
 
-namespace ds {
 
 #ifndef DS_VERSION
 	#define VERSION "0.1"
 #endif
 
-	const uint32_t FNV_Prime = 0x01000193; //   16777619
-	const uint32_t FNV_Seed = 0x811C9DC5; // 2166136261
+const uint32_t FNV_Prime = 0x01000193; //   16777619
+const uint32_t FNV_Seed = 0x811C9DC5; // 2166136261
 
-	inline uint32_t fnv1a(const char* text, uint32_t hash = FNV_Seed) {
-		const unsigned char* ptr = (const unsigned char*)text;
-		while (*ptr) {
-			hash = (*ptr++ ^ hash) * FNV_Prime;
-		}
-		return hash;
+uint32_t fnv1a(const char* text, uint32_t hash) {
+	const unsigned char* ptr = (const unsigned char*)text;
+	while (*ptr) {
+		hash = (*ptr++ ^ hash) * FNV_Prime;
 	}
+	return hash;
+}
 	
 	// **********************************************************************
 	//
@@ -111,7 +108,7 @@ namespace ds {
 	//
 	// **********************************************************************
 
-	enum SpecialKeys {
+	typedef enum {
 		DSKEY_Tab,
 		DSKEY_LeftArrow,
 		DSKEY_RightArrow,
@@ -138,19 +135,16 @@ namespace ds {
 		DSKEY_F12,
 		DSKEY_ESC,
 		DSKEY_UNKNOWN
-	};
+	} ds_special_keys;
 
-	enum InputKeyType {
-		IKT_SYSTEM,
-		IKT_ASCII
-	};
+	typedef enum {IKT_SYSTEM,IKT_ASCII} InputKeyType;
 
-	struct InputKey {
+	typedef struct ds_input_key_t {
 		InputKeyType type;
 		char value;
-	};
+	} ds_input_key;
 
-	enum EventType {
+	typedef enum {
 		ET_MOUSEBUTTON_DOWN,
 		ET_MOUSEBUTTON_UP,
 		ET_MOUSEBUTTON_PRESSED,
@@ -159,45 +153,42 @@ namespace ds {
 		ET_KEY_PRESSED,
 		ET_USER,
 		ET_NONE
-	};
+	} ds_event_type;
 
-	enum ButtonState {
-		PRESSED,
-		RELEASED
-	};
+	typedef enum {PRESSED,	RELEASED} ButtonState;
 
-	struct MouseEvent {
+	typedef struct ds_mouse_event_t {
 		int button;
 		ButtonState state;
-	};
+	} ds_mouse_event;
 
-	struct KeyEvent {
+	typedef struct ds_key_event_t {
 		InputKeyType keyType;
 		uint8_t key;
-		SpecialKeys specialKey;
-	};
+		ds_special_keys specialKey;
+	} ds_key_event;
 
-	struct UserEvent {
-		EventType type;
+	typedef struct ds_user_event_t {
+		ds_event_type type;
 		int id;
 		void* firstData;
 		void* secondData;
-	};
+	} ds_user_event;
 
-	struct Event {
-		EventType type;
+	typedef struct ds_event_t {
+		ds_event_type type;
 		union {
-			MouseEvent mouse;
-			KeyEvent key;
-			UserEvent user;
+			ds_mouse_event mouse;
+			ds_key_event key;
+			ds_user_event user;
 		};
-	};
+	} ds_event;
 
-	bool get_event(Event* e);
+	int get_event(ds_event* e);
 
-	bool has_events();
+	int has_events();
 
-	void push_event(const Event& e);
+	void push_event(ds_event e);
 	// **********************************************************************
 	//
 	// The rendering API
@@ -206,55 +197,51 @@ namespace ds {
 
 
 	const float PI = 3.141592654f;
-	const float TWO_PI = 2.0f * PI;
+	const float TWO_PI = 2.0f * 3.141592654f;
 
-	
-
-
-
-	enum BufferAttribute {
+	typedef enum {
 		POSITION,
 		COLOR,
 		TEXCOORD,
 		NORMAL,
 		TANGENT,
 		BINORMAL
-	};
+	} BufferAttribute;
 
-	enum BufferAttributeType {
+	typedef enum {
 		FLOAT,
 		UINT_8,
 		FLOAT2,
 		FLOAT3,
 		FLOAT4,
 		MATRIX
-	};
+	} BufferAttributeType;
 
-	enum BufferType {
+	typedef enum  {
 		STATIC,
 		DYNAMIC
-	};
+	} BufferType;
 
-	enum TextureAddressModes {
+	typedef enum {
 		WRAP,
 		MIRROR,
 		CLAMP,
 		BORDER,
 		MIRROR_ONCE
-	};
+	} TextureAddressModes;
 
-	enum TextureFilters {
+	typedef enum {
 		POINT,
 		LINEAR,
 		ANISOTROPIC
-	};
+	} TextureFilters;
 
-	enum PrimitiveTypes {
+	typedef enum {
 		POINT_LIST,
 		TRIANGLE_LIST,
 		TRIANGLE_STRIP,
 		LINE_LIST
-	};
+	} PrimitiveTypes;
 
 	struct InputLayoutDefinition {
 		const char* name;
@@ -268,7 +255,7 @@ namespace ds {
 		BufferAttributeType type;
 	};
 
-	enum BlendStates {
+	typedef enum {
 		ZERO,
 		ONE,
 		SRC_COLOR,
@@ -286,15 +273,15 @@ namespace ds {
 		INV_SRC1_COLOR,
 		SRC1_ALPHA,
 		INV_SRC1_ALPHA
-	};
+	} BlendStates;
 
 	// ---------------------------------------------------
 	// The depth buffer state
 	// ---------------------------------------------------
-	enum DepthBufferState {
+	typedef enum {
 		ENABLED,
 		DISABLED
-	};
+	} DepthBufferState;
 
 	// ---------------------------------------------------
 	// Supported texture formats
@@ -383,12 +370,12 @@ namespace ds {
 	struct RenderSettings  {
 		uint16_t width;
 		uint16_t height;
-		Color clearColor;
+		float clearColor[4];
 		uint8_t multisampling;
 		const char* title;
-		bool useGPUProfiling;
-		bool supportDebug;
-
+		int useGPUProfiling;
+		int supportDebug;
+		/*
 		RenderSettings() {
 			width = 1024;
 			height = 768;
@@ -398,6 +385,7 @@ namespace ds {
 			useGPUProfiling = false;
 			supportDebug = true;
 		}
+		*/
 	};
 
 	struct Camera {
@@ -424,7 +412,6 @@ namespace ds {
 		uint32_t instances;
 	};
 
-	class PipelineState;
 	enum ResourceType;
 	enum PipelineStage;
 
@@ -544,13 +531,13 @@ namespace ds {
 		int numRenderTargets;
 	};
 	
-	RID createRenderPass(const RenderPassInfo& info, const char* name = "RenderPass");
+	RID createRenderPass(RenderPassInfo info, const char* name);
 
 	RID compile(const DrawCommand cmd, RID* groups, int num, const char* name = "UNKNOWN");
 	
 	RID compile(const DrawCommand cmd, RID group, const char* name = "UNKNOWN");
 
-	void submit(RID renderPass, RID drawItemID, int numElements = -1);
+	void submit(RID renderPass, RID drawItemID, int numElements);
 	
 	bool init(const RenderSettings& settings);
 
@@ -1064,95 +1051,74 @@ namespace ds {
 	// track which resources have already been binded.
 	//
 	// ******************************************************
-	class PipelineState {
+	typedef struct ds_pipeline_state_t {
+		uint16_t entries[64];
+		uint16_t index;
+	} ds_pipeline_state;
 
-	public:
-		PipelineState() : _entries(0), _index(0), _capacity(0) {}
-		~PipelineState() {
-			if (_entries != 0) {
-				delete[] _entries;
+	static ds_pipeline_state* ds_create_pipeline_state() {
+		ds_pipeline_state* ret = (ds_pipeline_state*)malloc(sizeof(ds_pipeline_state));
+		ret->index = 0;
+		return ret;
+	}
+
+	static void ds_free_pipeline_state(ds_pipeline_state* pipeline) {
+		free(pipeline);
+	}
+
+	static uint16_t ds_convert(RID rid) {
+		uint8_t type = type_mask(rid);
+		if (type == RT_TEXTURE_FROM_RT) {
+			type = RT_SRV;
+			rid = buildRID(0, type, stage_mask(rid), slot_mask(rid));
+		}
+		uint16_t mask = (rid >> 16);
+		return mask;
+	}
+
+	static int ds_is_used_in_pipeline_state(ds_pipeline_state* pipeline, RID rid) {
+		uint16_t mask = ds_convert(rid);
+		for (int i = 0; i < pipeline->index; ++i) {
+			if (mask == pipeline->entries[i]) {
+				return 1;
 			}
 		}
-		void reset() {
-			_index = 0;
-		}
-		bool isUsed(RID rid) {
-			uint16_t mask = convert(rid);
-			for (int i = 0; i < _index; ++i) {
-				if ( mask == _entries[i]) {
-					return true;
-				}
-			}
-			return false;
-		}
+		return 0;
+	}
 
-		void add(RID rid) {
-			if (!isUsed(rid)) {
-				if ((_index + 1) > _capacity) {
-					alloc(_capacity * 2);
-				}
-				uint16_t mask = convert(rid);
-				_entries[_index++] = mask;
-			}
-		}
+	static void ds_reset_pipeline_state(ds_pipeline_state* pipeline) {
+		pipeline->index = 0;
+	}
 
-		uint16_t size() const {
-			return _index;
-		}
-
-		uint16_t get(uint16_t idx) const {
-			return _entries[idx];
-		}
-
-		uint16_t* getPtr() const {
-			return &_entries[0];
-		}
-
-		int diff(const PipelineState& other, uint16_t* entries, int max) {
-			int num = 0;
-			for (uint16_t i = 0; i < other.size(); ++i) {
-				uint16_t current = other.get(i);
-				bool found = false;
-				for (uint16_t j = 0; j < _index; ++j) {
-					if (!found && _entries[j] == current) {
-						found = true;
-					}
-				}
-				if (!found && num < max ) {
-					entries[num++] = current;
-				}
-			}
-			return num;
-		}
-	private:
-		uint16_t convert(RID rid) {
+	static void ds_add_to_pipeline_state(ds_pipeline_state* pipeline,RID rid) {
+		if (!ds_is_used_in_pipeline_state(pipeline,rid)) {
 			uint8_t type = type_mask(rid);
 			if (type == RT_TEXTURE_FROM_RT) {
 				type = RT_SRV;
 				rid = buildRID(0, type, stage_mask(rid), slot_mask(rid));
 			}
 			uint16_t mask = (rid >> 16);
-			return mask;
+			pipeline->entries[pipeline->index++] = mask;
 		}
-		void alloc(uint16_t newCapacity) {
-			if (_entries == 0) {
-				_capacity = 16;
-				_entries = new uint16_t[_capacity];
-				_index = 0;
+	}
+	
+	static int ds_diff_pipeline_states(ds_pipeline_state* f,ds_pipeline_state* other, uint16_t* entries, int max) {
+		int num = 0;
+		for (uint16_t i = 0; i < other->index; ++i) {
+			uint16_t current = other->entries[i];
+			bool found = false;
+			for (uint16_t j = 0; j < f->index; ++j) {
+				if (!found && f->entries[j] == current) {
+					found = true;
+				}
 			}
-			else {
-				uint16_t* tmp = new uint16_t[newCapacity];
-				memcpy(tmp, _entries, _index*sizeof(uint16_t));
-				delete[] _entries;
-				_entries = tmp;
-				_capacity = newCapacity;
+			if (!found && num < max) {
+				entries[num++] = current;
 			}
 		}
-		uint16_t* _entries;
-		uint16_t _capacity;
-		uint16_t _index;
-	};
-
+		return num;
+	}
+	
 	// ------------------------------------------------------
 	// Shader
 	// ------------------------------------------------------
@@ -1166,13 +1132,20 @@ namespace ds {
 		ID3D11PixelShader* shader;
 	};
 
-	typedef struct ds_geometry_shader {
+	typedef struct ds_geometry_shader_t {
 		ID3D11GeometryShader* shader;
-	};
+	} ds_geometry_shader;
+
+	// ******************************************************
+	//
+	// Resource management
+	//
+	// ******************************************************
+
 	// ------------------------------------------------------
 	// internal texture 
 	// ------------------------------------------------------
-	struct InternalTexture {
+	struct ds_texture {
 		int width;
 		int height;
 		RID samplerState;
@@ -1190,69 +1163,84 @@ namespace ds {
 		ds::Color clearColor;
 	};
 
-	// ******************************************************
-	//
-	// Resource management
-	//
-	// ******************************************************
+	
 	// ------------------------------------------------------
 	// ds_constant_buffer_resource
 	// ------------------------------------------------------
-	typedef struct ds_constant_buffer_resource {
+	typedef struct ds_constant_buffer_resource_t {
 		ID3D11Buffer* data;
 		int _byteWidth;
 		void* _bufferPtr;
-	};
+	} ds_constant_buffer_resource;
 
 	// ------------------------------------------------------
 	// ds_vertex_buffer_resource
 	// ------------------------------------------------------
-	typedef struct ds_vertex_buffer_resource {
+	typedef struct ds_vertex_buffer_resource_t {
 		ID3D11Buffer* data;
 		int size;
 		BufferType type;
 		unsigned int vertexSize;
-	};
+	} ds_vertex_buffer_resource;
 
 	// ------------------------------------------------------
 	// ds_index_buffer_resource
 	// ------------------------------------------------------
-	typedef struct ds_index_buffer_resource {
+	typedef struct ds_index_buffer_resource_t {
 		ID3D11Buffer* buffer;
 		DXGI_FORMAT format;
 		uint32_t numIndices;
 		BufferType type;
-	};
+	} ds_index_buffer_resource;
 	// ------------------------------------------------------
 	// ds_input_layout_resource
 	// ------------------------------------------------------
-	typedef struct ds_input_layout_resource {
+	typedef struct ds_input_layout_resource_t {
 		ID3D11InputLayout* data;
 		int size;
-	};
+	} ds_input_layout_resource;
 
 	// ------------------------------------------------------
 	// ds_blend_state_resource
 	// ------------------------------------------------------
-	typedef struct ds_blend_state_resource {
+	typedef struct ds_blend_state_resource_t {
 		ID3D11BlendState* state;
-	};
+	} ds_blend_state_resource;
 
 	// ------------------------------------------------------
 	// ds_sampler_state_resource
 	// ------------------------------------------------------
-	typedef struct ds_sampler_state_resource {
+	typedef struct ds_sampler_state_resource_t {
 		ID3D11SamplerState* state;
-	};
+	} ds_sampler_state_resource;
 	
 	// ------------------------------------------------------
 	// ds_rasterizer_state_resource
 	// ------------------------------------------------------
-	typedef struct ds_rasterizer_state_resource {
+	typedef struct ds_rasterizer_state_resource_t {
 		ID3D11RasterizerState* state;
+	} ds_rasterizer_state_resource;
+
+	// ------------------------------------------------------
+	// InstancedVertexBufferResource
+	// ------------------------------------------------------
+	struct InstancedBindData {
+		RID rid;
+		RID instanceBuffer;
 	};
 	
-	typedef struct ds_resource_buffer {
+	typedef struct ds_uav_resource_t {
+		ID3D11UnorderedAccessView* view;
+	} ds_uav_resource;
+
+	// ------------------------------------------------------
+	// ComputeShaderResource
+	// ------------------------------------------------------
+	typedef struct ds_computer_shader_resource_t {
+		ID3D11ComputeShader* shader;
+	} ds_computer_shader_resource;
+	
+	typedef struct ds_resource_buffer_t {
 		char* data;
 		int data_size;
 		int data_capacity;
@@ -1262,7 +1250,7 @@ namespace ds {
 		int num;		
 		int capacity;
 		char* internal_buffer;
-	};
+	} ds_resource_buffer;
 
 	static ds_resource_buffer* ds_create_buffer() {
 		ds_resource_buffer* buf = (ds_resource_buffer*)malloc(sizeof(ds_resource_buffer));
@@ -1308,200 +1296,78 @@ namespace ds {
 		free(buffer);
 	}
 
-	class BaseResource {
+	// -----------------------------------------------------
+	//
+	// CharBuffer
+	//
+	// -----------------------------------------------------
+	typedef struct ds_char_buffer_t {
+		char* data;
+		int size;
+		int capacity;
+		int num;
+	} ds_char_buffer;
 
-	public:
-		BaseResource() : _nameIndex(-1) , _rid(NO_RID), _hash("NO_HASH") {}
-		virtual ~BaseResource() {}
-		virtual void release() = 0;
-		virtual const ResourceType getType() const = 0;
-		void setRID(RID rid) {
-			_rid = rid;
-		}
-		const RID& getRID() const {
-			return _rid;
-		}
-		const int getNameIndex() const {
-			return _nameIndex;
-		}
-		const StaticHash& getHash() const {
-			return _hash;
-		}
-		void setNameIndex(int idx, const StaticHash& hash) {
-			_nameIndex = idx;
-			_hash = hash;
-		}
-	private:
-		int _nameIndex;
-		RID _rid;
-		StaticHash _hash;
-	};
+	static ds_char_buffer* ds_create_char_buffer() {
+		ds_char_buffer* cb = (ds_char_buffer*)malloc(sizeof(ds_char_buffer));
+		cb->data = 0;
+		cb->num = 0;
+		cb->capacity = 0;
+		cb->size = 0;
+		return cb;
+	}
 
-	// ------------------------------------------------------
-	// Abstract resource
-	// ------------------------------------------------------
-	template<class T>
-	class AbstractResource : public BaseResource {
-
-	public:
-		AbstractResource(T t) : _data(t) {}
-		virtual ~AbstractResource() {}
-		virtual void release() = 0;
-		T get() {
-			return _data;
+	static void ds_free_char_buffer(ds_char_buffer* cb) {
+		if (cb->data != 0) {
+			free(cb->data);
 		}
-		const T get() const {
-			return _data;
-		}
-		
-	protected:
-		T _data;
-	};
+		free(cb);
+	}
 
-	// ------------------------------------------------------
-	// VertexBufferResource
-	// ------------------------------------------------------
-	class BufferResource : public AbstractResource<StructuredBuffer*> {
-
-	public:
-		BufferResource(StructuredBuffer* t) : AbstractResource(t) {}
-		virtual ~BufferResource() {}
-
-		void release() {
-			if (_data != 0) {
-				if (_data->buffer != 0) {
-					_data->buffer->Release();
-				}
-				if (_data->srv != 0) {
-					_data->srv->Release();
-				}
-				if (_data->uav != 0) {
-					_data->uav->Release();
-				}
-				delete _data;
-				_data = 0;
+	static void ds_resize_char_buffer(ds_char_buffer* buffer, int newCap) {
+		if (newCap > buffer->capacity) {
+			char* tmp = (char*)malloc(newCap);
+			if (buffer->data != 0) {
+				memcpy(tmp, buffer->data, buffer->size);
+				free(buffer->data);
 			}
+			buffer->capacity = newCap;
+			buffer->data = tmp;
 		}
-		const ResourceType getType() const {
-			return RT_STRUCTURED_BUFFER;
-		}
-	};
+	}
 
-	// ------------------------------------------------------
-	// InstancedVertexBufferResource
-	// ------------------------------------------------------
-	struct InstancedBindData {
-		RID rid;
-		RID instanceBuffer;
-	};
-	
-	class InstancedVertexBufferResource : public AbstractResource<InstancedBindData*> {
+	static const char* ds_get_string_char_buffer(ds_char_buffer* buffer, int index) {
+		return buffer->data + index;
+	}
 
-	public:
-		InstancedVertexBufferResource(InstancedBindData* t) : AbstractResource(t) {}
-		virtual ~InstancedVertexBufferResource() {}
+	static int ds_append_fixed_char_buffer(ds_char_buffer* buffer, const char* s, int len) {
+		if (buffer->size + len + 1 > buffer->capacity) {
+			ds_resize_char_buffer(buffer, buffer->capacity + len + 1 + 8);
+		}
+		const char* t = s;
+		int ret = buffer->size;
+		for (int i = 0; i < len; ++i) {
+			buffer->data[buffer->size++] = *t;
+			++t;
+		}
+		buffer->data[buffer->size++] = '\0';
+		return ret;
+	}
 
-		void release() {
-			if (_data != 0) {
-				delete _data;
-				_data = 0;
-			}
-		}
-		const ResourceType getType() const {
-			return RT_INSTANCED_VERTEX_BUFFER;
-		}
-	};
+	static int ds_append_char_buffer(ds_char_buffer* cb, const char* s) {
+		int len = strlen(s);
+		return ds_append_fixed_char_buffer(cb, s, len);
+	}
 
-	// ------------------------------------------------------
-	// ShaderResourceViewResource
-	// ------------------------------------------------------
-	class UAResourceViewResource : public AbstractResource<ID3D11UnorderedAccessView*> {
-
-	public:
-		UAResourceViewResource(ID3D11UnorderedAccessView* t) : AbstractResource(t) {
+	static int ds_append_single_char_buffer(ds_char_buffer* cb, char s) {
+		if (cb->size + 1 > cb->capacity) {
+			ds_resize_char_buffer(cb, cb->capacity + 9);
 		}
-		virtual ~UAResourceViewResource() {}
-		void release() {
-			if (_data != 0) {
-				_data->Release();
-				delete _data;
-				_data = 0;
-			}
-		}
-		const ResourceType getType() const {
-			return RT_UA_SRV;
-		}
-	};
-
-	// ------------------------------------------------------
-	// ComputeShaderResource
-	// ------------------------------------------------------
-	class ComputeShaderResource : public AbstractResource<ID3D11ComputeShader*> {
-
-	public:
-		ComputeShaderResource(ID3D11ComputeShader* t) : AbstractResource(t) {}
-		virtual ~ComputeShaderResource() {}
-		void release() {
-			if (_data != 0) {
-				_data->Release();
-				_data = 0;
-			}
-		}
-		const ResourceType getType() const {
-			return RT_COMPUTE_SHADER;
-		}
-	};
-
-	// ------------------------------------------------------
-	// RenderTargetResource
-	// ------------------------------------------------------
-	class RenderTargetResource : public AbstractResource<RenderTarget*> {
-
-	public:
-		RenderTargetResource(RenderTarget* t) : AbstractResource(t) {}
-		virtual ~RenderTargetResource() {}
-		void release() {
-			if (_data != 0) {
-				if (_data->texture != 0) {
-					_data->texture->Release();
-				}
-				if (_data->view != 0) {
-					_data->view->Release();
-				}
-				if (_data->srv != 0) {
-					_data->srv->Release();
-				}
-				if (_data->depthTexture != 0) {
-					_data->depthTexture->Release();
-				}
-				if (_data->depthStencilView != 0) {
-					_data->depthStencilView->Release();
-				}
-				delete _data;
-			}
-		}
-		const ResourceType getType() const {
-			return RT_RENDER_TARGET;
-		}
-	};
-
-	// ------------------------------------------------------
-	// ComputeShaderResource
-	// ------------------------------------------------------
-	class ComputeShaderGroupResource : public AbstractResource<ComputeShaderGroup*> {
-
-	public:
-		ComputeShaderGroupResource(ComputeShaderGroup* t) : AbstractResource(t) {}
-		virtual ~ComputeShaderGroupResource() {}
-		void release() {
-			if (_data != 0) {
-				delete _data;
-			}
-		}
-		const ResourceType getType() const {
-			return RT_CS_GROUP;
-		}
-	};
+		int ret = cb->size;
+		cb->data[cb->size++] = s;
+		cb->data[cb->size++] = '\0';
+		return ret;
+	}
 
 	class GPUProfiler;
 
@@ -1535,26 +1401,7 @@ namespace ds {
 	};
 
 	const int MAX_DBG_TXT_VERTICES = 2048;
-
-	struct CharBuffer {
-
-		char* data;
-		int size;
-		int capacity;
-		int num;
-
-		CharBuffer();
-		~CharBuffer();
-
-		void* alloc(int sz);
-		void resize(int newCap);
-		int append(const char* s, int len);
-		int append(const char* s);
-		int append(char s);
-		const char* get(int index) const;
-
-	};
-
+	
 	typedef struct {
 		HWND hwnd;
 		HINSTANCE instance;
@@ -1581,7 +1428,6 @@ namespace ds {
 		BasicConstantBuffer basicConstantBuffer;
 		RID basicConstantBufferID;
 
-		std::vector<BaseResource*> _resources;
 		std::vector<StateGroup*> _groups;
 		std::vector<ComputeShaderGroup*> _computeShaderGroups;
 
@@ -1609,7 +1455,7 @@ namespace ds {
 		InputKey inputKeys[256];
 		int numInputKeys;
 
-		PipelineState pipelineStates[2];
+		ds_pipeline_state* pipelineStates[2];
 		int currentDrawCall;
 		int lastDrawCall;
 		RID drawCalls[2];
@@ -1626,7 +1472,7 @@ namespace ds {
 		RID debugVertexBufferID;
 		int debugItemCount;
 
-		CharBuffer* charBuffer;
+		ds_char_buffer* charBuffer;
 
 		Event events[32];
 		uint8_t eventWriteIndex;
@@ -1654,36 +1500,16 @@ namespace ds {
 		XASSERT(type_mask(rid) == type,"The selected resource %d is not the required type %s", rid, RESOURCE_NAMES[type]);
 	}
 
-	static RID addResource(BaseResource* res, ResourceType type, const char* name) {
-		XASSERT((_ctx->_resources.size() + 1) < NO_RID, "The maximum number of resources reached");
-		_ctx->_resources.push_back(res);
-		RID rid = buildRID(static_cast<uint16_t>(_ctx->_resources.size() - 1), type);
-		res->setRID(rid);		
-		res->setNameIndex(_ctx->charBuffer->append(name), SID(name));
-		LOG_DEBUG("Resource %s (%s) created - id: %d", name, RESOURCE_NAMES[type], id_mask(rid));
-		return rid;
-	}
-
 	uint16_t getResourceIndex(RID rid,ResourceType type) {
 		uint16_t idx = id_mask(rid);
 		if (idx != NO_RID) {			
-			//XASSERT(idx < _ctx->_resources.size(), "Invalid resource selected - Out of bounds");
 			int current = type_mask(rid);
 			XASSERT(current == type, "The selected resource %d is not the required type: %s", idx, RESOURCE_NAMES[idx]);
 			return idx;
 		}
 		return NO_RID;
 	}
-
-	RID findResource(const StaticHash& hash, ResourceType type) {
-		for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
-			const BaseResource* res = _ctx->_resources[i];
-			if (res->getHash().get() == hash.get() && res->getType() == type) {
-				return res->getRID();
-			}
-		}
-		return buildRID(NO_RID, type);
-	}
+	
 	// -------------------------------------------------------
 	// random
 	// -------------------------------------------------------
@@ -2017,8 +1843,6 @@ namespace ds {
 
 	static RenderPass* getRenderPass(RID rid) {
 		int ridx = getResourceIndex(rid, RT_RENDER_PASS);
-		//RenderPassResource* res = (RenderPassResource*)_ctx->_resources[ridx];
-		//return res->get();
 		return (RenderPass*)ds_get_resource(_ctx->resource_buffer, ridx);
 	}
 	
@@ -2273,7 +2097,9 @@ namespace ds {
 		QueryPerformanceFrequency(&_ctx->timerFrequency);
 		QueryPerformanceCounter(&_ctx->lastTime);
 		_ctx->resource_buffer = ds_create_buffer();
-		_ctx->charBuffer = new CharBuffer;
+		_ctx->charBuffer = ds_create_char_buffer();
+		_ctx->pipelineStates[0] = ds_create_pipeline_state();
+		_ctx->pipelineStates[1] = ds_create_pipeline_state();
 		_ctx->leftOverTicks = 0;
 		_ctx->framesPerSecond = 0;
 		_ctx->framesThisSecond = 0;
@@ -2282,9 +2108,6 @@ namespace ds {
 		_ctx->totalTicks = 0;
 		_ctx->maxDelta = _ctx->timerFrequency.QuadPart / 10;
 		_ctx->running = true;
-		//for (int i = 0; i < 256; ++i) {
-			//_ctx->errorBuffer[i] = '\0';
-		//}
 		_ctx->eventReadIndex = 0;
 		_ctx->eventWriteIndex = 0;
 		return initializeDevice(settings);
@@ -2349,20 +2172,48 @@ namespace ds {
 					free(s->items);
 				}
 				else if (type == RT_SRV) {
-					InternalTexture* s = (InternalTexture*)ds_get_resource(_ctx->resource_buffer, i);
+					ds_texture* s = (ds_texture*)ds_get_resource(_ctx->resource_buffer, i);
 					s->srv->Release();
 					s->texture->Release();
 				}
+				else if (type == RT_STRUCTURED_BUFFER) {
+					StructuredBuffer* cbr = (StructuredBuffer*)ds_get_resource(_ctx->resource_buffer, i);
+					if (cbr->buffer != 0) {
+						cbr->buffer->Release();
+					}
+					if (cbr->srv != 0) {
+						cbr->srv->Release();
+					}
+					if (cbr->uav != 0) {
+						cbr->uav->Release();
+					}
+				}
+				else if (type == RT_RENDER_TARGET) {
+					RenderTarget* rt = (RenderTarget*)ds_get_resource(_ctx->resource_buffer, i);
+					if (rt->srv != 0) {
+						rt->srv->Release();
+					}
+					if (rt->texture != 0) {
+						rt->texture->Release();
+					}
+					if (rt->view != 0) {
+						rt->view->Release();
+					}
+					if (rt->depthTexture != 0) {
+						rt->depthTexture->Release();
+					}
+					if (rt->depthStencilView != 0) {
+						rt->depthStencilView->Release();
+					}
+				}
 			}
-			ds_free_buffer(_ctx->resource_buffer);
-			for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
-				_ctx->_resources[i]->release();
-				delete _ctx->_resources[i];
-			}			
+			ds_free_buffer(_ctx->resource_buffer);				
 			for (size_t i = 0; i < _ctx->_groups.size(); ++i) {				
 				delete _ctx->_groups[i];
 			}
-			delete _ctx->charBuffer;
+			ds_free_char_buffer(_ctx->charBuffer);
+			ds_free_pipeline_state(_ctx->pipelineStates[0]);
+			ds_free_pipeline_state(_ctx->pipelineStates[1]);
 			if (_ctx->backBufferTarget) _ctx->backBufferTarget->Release();
 			if (_ctx->swapChain) _ctx->swapChain->Release();
 			if (_ctx->d3dContext) _ctx->d3dContext->Release();
@@ -2454,15 +2305,11 @@ namespace ds {
 			index += formatType.bytes;
 		}		
 		uint16_t sidx = getResourceIndex(info.vertexShaderId, RT_VERTEX_SHADER);
-		//VertexShaderResource* sres = (VertexShaderResource*)_ctx->_resources[sidx];
-		//VertexShader* s = sres->get();
 		VertexShader* s = (VertexShader*)ds_get_resource(_ctx->resource_buffer, sidx);
 		ID3D11InputLayout* layout = 0;
 		assert_result(_ctx->d3dDevice->CreateInputLayout(descriptors, info.numDeclarations, s->vertexShaderBuffer, s->bufferSize, &layout), "Failed to create input layout");
 		ds_input_layout_resource res = { layout,index };
-		//InputLayoutResource* res = new InputLayoutResource(layout, index);
 		delete[] descriptors;
-		//return addResource(res, RT_INPUT_LAYOUT, name);
 		return ds_add_to_buffer(_ctx->resource_buffer, &res, sizeof(ds_input_layout_resource), RT_INPUT_LAYOUT);
 	}
 
@@ -2509,15 +2356,11 @@ namespace ds {
 			index += formatType.bytes;
 		}
 		uint16_t sidx = getResourceIndex(info.shaderId, RT_VERTEX_SHADER);
-		//VertexShaderResource* sres = (VertexShaderResource*)_ctx->_resources[sidx];
-		//VertexShader* s = sres->get();
 		VertexShader* s = (VertexShader*)ds_get_resource(_ctx->resource_buffer, sidx);
 		ID3D11InputLayout* layout = 0;
 		assert_result(_ctx->d3dDevice->CreateInputLayout(descriptors, total, s->vertexShaderBuffer, s->bufferSize, &layout), "Failed to create input layout");
-		//InputLayoutResource* res = new InputLayoutResource(layout, index);
 		ds_input_layout_resource res = { layout, index };
 		delete[] descriptors;
-		//return addResource(res, RT_INPUT_LAYOUT, name);
 		return ds_add_to_buffer(_ctx->resource_buffer, &res, sizeof(ds_input_layout_resource), RT_INPUT_LAYOUT);
 	}
 
@@ -2530,10 +2373,8 @@ namespace ds {
 			_ctx->d3dContext->IASetInputLayout(NULL);
 		}
 		else {				
-			//InputLayoutResource* res = (InputLayoutResource*)_ctx->_resources[ridx];
 			ds_input_layout_resource* res = (ds_input_layout_resource*)ds_get_resource(_ctx->resource_buffer, ridx);
 			_ctx->d3dContext->IASetInputLayout(res->data);
-			//_ctx->d3dContext->IASetInputLayout(res->get());
 		}
 	}
 
@@ -2551,8 +2392,6 @@ namespace ds {
 		ID3D11Buffer* buffer = 0;
 		assert_result(_ctx->d3dDevice->CreateBuffer(&constDesc, 0, &buffer), "Failed to create constant buffer");	
 		ds_constant_buffer_resource res = { buffer, byteWidth, data };
-
-		//ConstantBufferResource* res = new ConstantBufferResource(buffer, byteWidth, data);
 		if (data != 0) {
 			D3D11_MAPPED_SUBRESOURCE resource;
 			assert_result(_ctx->d3dContext->Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource), "Failed to update constant buffer");
@@ -2561,7 +2400,6 @@ namespace ds {
 			_ctx->d3dContext->Unmap(buffer, 0);
 		}
 		return ds_add_to_buffer(_ctx->resource_buffer, &res, sizeof(ds_constant_buffer_resource), RT_CONSTANT_BUFFER);
-		//return addResource(res, RT_CONSTANT_BUFFER, name);
 	}
 
 	// ------------------------------------------------------
@@ -2570,16 +2408,12 @@ namespace ds {
 	static void updateConstantBuffer(RID rid) {
 		uint16_t ridx = getResourceIndex(rid, RT_CONSTANT_BUFFER);
 		if ( ridx != NO_RID) {
-			//ConstantBufferResource* cbr = (ConstantBufferResource*)_ctx->_resources[ridx];
 			ds_constant_buffer_resource* cbr = (ds_constant_buffer_resource*)ds_get_resource(_ctx->resource_buffer, ridx);
-			//if (cbr->getBufferPtr() != 0) {
 			if (cbr->_bufferPtr != 0) {
-				//ID3D11Buffer* buffer = cbr->get();
 				ID3D11Buffer* buffer = cbr->data;
 				D3D11_MAPPED_SUBRESOURCE resource;
 				assert_result(_ctx->d3dContext->Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource), "Failed to update constant buffer");
 				void* ptr = resource.pData;
-				//memcpy(ptr, cbr->getBufferPtr(), cbr->getByteWidth());
 				memcpy(ptr, cbr->_bufferPtr, cbr->_byteWidth);
 				_ctx->d3dContext->Unmap(buffer, 0);
 			}
@@ -2594,13 +2428,10 @@ namespace ds {
 		int slot = slot_mask(rid);
 		uint16_t ridx = getResourceIndex(rid, RT_CONSTANT_BUFFER);
 		if (ridx != NO_RID) {
-			//ConstantBufferResource* cbr = (ConstantBufferResource*)_ctx->_resources[ridx];
 			ds_constant_buffer_resource* cbr = (ds_constant_buffer_resource*)ds_get_resource(_ctx->resource_buffer, ridx);
-			//if (cbr->getBufferPtr() != 0) {
 			if (cbr->_bufferPtr != 0) {
 				updateConstantBuffer(rid);
 			}
-			//ID3D11Buffer* buffer = cbr->get();
 			ID3D11Buffer* buffer = cbr->data;
 			switch (stage) {
 				case PLS_VS_RES: _ctx->d3dContext->VSSetConstantBuffers(slot, 1, &buffer); break;
@@ -2626,8 +2457,7 @@ namespace ds {
 		int slot = slot_mask(rid);
 		uint16_t ridx = getResourceIndex(rid, RT_STRUCTURED_BUFFER);
 		if (ridx != NO_RID) {
-			BufferResource* cbr = (BufferResource*)_ctx->_resources[ridx];
-			StructuredBuffer* sb = cbr->get();
+			StructuredBuffer* sb = (StructuredBuffer*)ds_get_resource(_ctx->resource_buffer, ridx);
 			//if (buffer->buffer != 0) {
 				//updateConstantBuffer(rid);
 			//}
@@ -2681,7 +2511,6 @@ namespace ds {
 		ID3D11Buffer* buffer = 0;
 		assert_result(_ctx->d3dDevice->CreateBuffer(&bufferDesc, info.data ? &InitData : NULL, &buffer), "Failed to create index buffer");
 		ds_index_buffer_resource res = { buffer, INDEX_BUFFER_FORMATS[info.indexType], info.numIndices, info.type };
-		//return addResource(res, RT_INDEX_BUFFER, name);
 		return ds_add_to_buffer(_ctx->resource_buffer, &res, sizeof(ds_index_buffer_resource), RT_INDEX_BUFFER);
 	}
 	// ------------------------------------------------------
@@ -2690,7 +2519,6 @@ namespace ds {
 	static void setIndexBuffer(RID rid) {
 		uint16_t ridx = getResourceIndex(rid, RT_INDEX_BUFFER);
 		if (ridx != NO_RID) {
-			//IndexBufferResource* res = (IndexBufferResource*)_ctx->_resources[ridx];
 			ds_index_buffer_resource* res = (ds_index_buffer_resource*)ds_get_resource(_ctx->resource_buffer,ridx);
 			_ctx->d3dContext->IASetIndexBuffer(res->buffer, res->format, 0);
 		}
@@ -2773,18 +2601,15 @@ namespace ds {
 		else {
 			assert_result(_ctx->d3dDevice->CreateBuffer(&bufferDesciption, 0, &buffer), "Failed to create vertex buffer");
 		}
-		//VertexBufferResource* res = new VertexBufferResource(buffer, size, info.type, info.vertexSize);
 		ds_vertex_buffer_resource res = { buffer, size, info.type, info.vertexSize };
 		return ds_add_to_buffer(_ctx->resource_buffer, &res, sizeof(ds_vertex_buffer_resource), RT_VERTEX_BUFFER);
-		//return addResource(res, RT_VERTEX_BUFFER, name);
 	}
 
 	RID createInstancedBuffer(RID vertexBuffer, RID instanceBuffer, const char* name) {
-		InstancedBindData* data = new InstancedBindData;
-		data->rid = vertexBuffer;
-		data->instanceBuffer = instanceBuffer;
-		InstancedVertexBufferResource* res = new InstancedVertexBufferResource(data);
-		return addResource(res, RT_INSTANCED_VERTEX_BUFFER, name);
+		InstancedBindData data;
+		data.rid = vertexBuffer;
+		data.instanceBuffer = instanceBuffer;		
+		return ds_add_to_buffer(_ctx->resource_buffer, &data, sizeof(InstancedBindData), RT_INSTANCED_VERTEX_BUFFER);
 	}
 
 	RID createBuffer(int numElements, int byteStride, void* data, const char* name) {
@@ -2795,22 +2620,21 @@ namespace ds {
 		descGPUBuffer.ByteWidth = numElements;
 		descGPUBuffer.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 		descGPUBuffer.StructureByteStride = byteStride;	
-		StructuredBuffer* sb = new StructuredBuffer;
-		sb->buffer = 0;
-		sb->uav = 0;
-		sb->numElements = numElements;
-		sb->elementSize = byteStride;
-		sb->srv = 0;
+		StructuredBuffer sb;
+		sb.buffer = 0;
+		sb.uav = 0;
+		sb.numElements = numElements;
+		sb.elementSize = byteStride;
+		sb.srv = 0;
 		if (data != 0) {
 			D3D11_SUBRESOURCE_DATA InitData;
 			InitData.pSysMem = data;			
-			_ctx->d3dDevice->CreateBuffer(&descGPUBuffer, &InitData, &sb->buffer);
+			_ctx->d3dDevice->CreateBuffer(&descGPUBuffer, &InitData, &sb.buffer);
 		}
 		else {
-			_ctx->d3dDevice->CreateBuffer(&descGPUBuffer, NULL, &sb->buffer);
+			_ctx->d3dDevice->CreateBuffer(&descGPUBuffer, NULL, &sb.buffer);
 		}
-		BufferResource* res = new BufferResource(sb);
-		return addResource(res, RT_STRUCTURED_BUFFER, name);
+		return ds_add_to_buffer(_ctx->resource_buffer, &sb, sizeof(StructuredBuffer), RT_STRUCTURED_BUFFER);
 
 	}
 
@@ -2819,12 +2643,12 @@ namespace ds {
 	// ------------------------------------------------------
 	// FIXME: do we need to add a paramter to info like SRV/UAV buffer?
 	RID createStructuredBuffer(const StructuredBufferInfo& info, const char* name) {
-		StructuredBuffer* sb = new StructuredBuffer;
-		sb->buffer = 0;
-		sb->uav = 0;
-		sb->numElements = info.numElements;
-		sb->elementSize = info.elementSize;
-		sb->srv = 0;
+		StructuredBuffer sb;
+		sb.buffer = 0;
+		sb.uav = 0;
+		sb.numElements = info.numElements;
+		sb.elementSize = info.elementSize;
+		sb.srv = 0;
 		D3D11_BUFFER_DESC bufferDesc;
 		ZeroMemory(&bufferDesc, sizeof(bufferDesc));
 		bufferDesc.ByteWidth = info.numElements * info.elementSize;
@@ -2850,10 +2674,10 @@ namespace ds {
 			D3D11_SUBRESOURCE_DATA bufferInitData;
 			ZeroMemory(&bufferInitData, sizeof(bufferInitData));
 			bufferInitData.pSysMem = info.data;
-			assert_result(_ctx->d3dDevice->CreateBuffer(&bufferDesc, &bufferInitData, &sb->buffer), "Cannot create buffer");
+			assert_result(_ctx->d3dDevice->CreateBuffer(&bufferDesc, &bufferInitData, &sb.buffer), "Cannot create buffer");
 		}
 		else {
-			assert_result(_ctx->d3dDevice->CreateBuffer(&bufferDesc, NULL, &sb->buffer), "Cannot create buffer");
+			assert_result(_ctx->d3dDevice->CreateBuffer(&bufferDesc, NULL, &sb.buffer), "Cannot create buffer");
 		}
 		// FIXME: correct?
 		if (info.cpuWritable) {
@@ -2863,7 +2687,7 @@ namespace ds {
 			srvDesc.BufferEx.FirstElement = 0;
 			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
 			srvDesc.BufferEx.NumElements = info.numElements;
-			assert_result(_ctx->d3dDevice->CreateShaderResourceView(sb->buffer, &srvDesc, &sb->srv), "Cannot create shader resource view");
+			assert_result(_ctx->d3dDevice->CreateShaderResourceView(sb.buffer, &srvDesc, &sb.srv), "Cannot create shader resource view");
 		}
 		if (info.gpuWritable) {
 			D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc;
@@ -2873,20 +2697,18 @@ namespace ds {
 			uavDesc.Buffer.NumElements = info.numElements;
 			if (info.textureID != NO_RID) {
 				uint16_t ridx = getResourceIndex(info.textureID, RT_SRV);
-				//ShaderResourceViewResource* bufferRes = (ShaderResourceViewResource*)_ctx->_resources[ridx];
-				InternalTexture* tex = (InternalTexture*)ds_get_resource(_ctx->resource_buffer, ridx);
+				ds_texture* tex = (ds_texture*)ds_get_resource(_ctx->resource_buffer, ridx);
 				uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
-				assert_result(_ctx->d3dDevice->CreateUnorderedAccessView(tex->texture, &uavDesc, &sb->uav), "Cannot create unordered access view");
+				assert_result(_ctx->d3dDevice->CreateUnorderedAccessView(tex->texture, &uavDesc, &sb.uav), "Cannot create unordered access view");
 			}
 			else if (info.renderTarget != NO_RID) {
 
 			}
 			else {
-				assert_result(_ctx->d3dDevice->CreateUnorderedAccessView(sb->buffer, &uavDesc, &sb->uav), "Cannot create unordered access view");
+				assert_result(_ctx->d3dDevice->CreateUnorderedAccessView(sb.buffer, &uavDesc, &sb.uav), "Cannot create unordered access view");
 			}
 		}
-		BufferResource* res = new BufferResource(sb);
-		return addResource(res, RT_STRUCTURED_BUFFER, name);
+		return ds_add_to_buffer(_ctx->resource_buffer, &sb, sizeof(StructuredBuffer), RT_STRUCTURED_BUFFER);
 
 	}
 
@@ -2909,12 +2731,9 @@ namespace ds {
 			_ctx->d3dContext->IASetVertexBuffers(0, 0, NULL, NULL, NULL);
 		}
 		else {
-			//VertexBufferResource* res = (VertexBufferResource*)_ctx->_resources[ridx];
 			ds_vertex_buffer_resource* res = (ds_vertex_buffer_resource*)ds_get_resource(_ctx->resource_buffer, ridx);
-			//unsigned int stride = res->getVertexSize();
 			unsigned int stride = res->vertexSize;
 			unsigned int offset = 0;
-			//ID3D11Buffer* buffer = res->get();
 			ID3D11Buffer* buffer = res->data;
 			_ctx->d3dContext->IASetVertexBuffers(0, 1, &buffer, &stride, &offset);
 		}
@@ -2925,10 +2744,7 @@ namespace ds {
 	// ------------------------------------------------------
 	static void setInstancedVertexBuffer(RID rid) {
 		uint16_t ridx = getResourceIndex(rid, RT_INSTANCED_VERTEX_BUFFER);
-		InstancedVertexBufferResource* ibr = (InstancedVertexBufferResource*)_ctx->_resources[ridx];
-		InstancedBindData* data = ibr->get();
-		//VertexBufferResource* fr = (VertexBufferResource*)_ctx->_resources[id_mask(data->rid)];
-		//VertexBufferResource* sr = (VertexBufferResource*)_ctx->_resources[id_mask(data->instanceBuffer)];
+		InstancedBindData* data = (InstancedBindData*)ds_get_resource(_ctx->resource_buffer, ridx);
 		ds_vertex_buffer_resource* fr = (ds_vertex_buffer_resource*)ds_get_resource(_ctx->resource_buffer,id_mask(data->rid));
 		ds_vertex_buffer_resource* sr = (ds_vertex_buffer_resource*)ds_get_resource(_ctx->resource_buffer, id_mask(data->instanceBuffer));
 		unsigned int strides[2] = { fr->vertexSize,sr->vertexSize };
@@ -2947,10 +2763,8 @@ namespace ds {
 		if (type == RT_VERTEX_BUFFER) {
 			uint16_t ridx = getResourceIndex(rid, RT_VERTEX_BUFFER);
 			if (ridx != NO_RID) {
-				//ConstantBufferResource* cbr = (ConstantBufferResource*)_ctx->_resources[ridx];
 				ds_vertex_buffer_resource* cbr = (ds_vertex_buffer_resource*)ds_get_resource(_ctx->resource_buffer, ridx);
 				D3D11_MAPPED_SUBRESOURCE resource;
-				//assert_result(_ctx->d3dContext->Map(cbr->get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &resource), "Failed to map data");
 				assert_result(_ctx->d3dContext->Map(cbr->data, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource), "Failed to map data");
 				void* ptr = resource.pData;
 				memcpy(ptr, data, size);
@@ -2961,13 +2775,12 @@ namespace ds {
 		else if (type == RT_STRUCTURED_BUFFER) {
 			uint16_t ridx = getResourceIndex(rid, RT_STRUCTURED_BUFFER);
 			if (ridx != NO_RID) {
-				BufferResource* cbr = (BufferResource*)_ctx->_resources[ridx];
+				StructuredBuffer* cbr = (StructuredBuffer*)ds_get_resource(_ctx->resource_buffer, ridx);
 				D3D11_MAPPED_SUBRESOURCE resource;
-				StructuredBuffer* buffer = cbr->get();
-				assert_result(_ctx->d3dContext->Map(buffer->buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource), "Failed to map data");
+				assert_result(_ctx->d3dContext->Map(cbr->buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource), "Failed to map data");
 				void* ptr = resource.pData;
 				memcpy(ptr, data, size);
-				_ctx->d3dContext->Unmap(buffer->buffer, 0);
+				_ctx->d3dContext->Unmap(cbr->buffer, 0);
 			}
 		}
 	}
@@ -3127,14 +2940,11 @@ namespace ds {
 	// create vertex shader
 	// ------------------------------------------------------
 	RID createVertexShader(const void* data, int size, const char* name) {
-		VertexShader s;// = new VertexShader;
+		VertexShader s;
 		assert_result(_ctx->d3dDevice->CreateVertexShader(data,size,nullptr,&s.vertexShader), "Failed to create vertex shader");
-		//s.vertexShaderBuffer = new char[size];
 		s.vertexShaderBuffer = (char*)malloc(size);
 		memcpy(s.vertexShaderBuffer, data, size);
 		s.bufferSize = size;
-		//VertexShaderResource* res = new VertexShaderResource(s);
-		//return addResource(res, RT_VERTEX_SHADER, name);
 		return ds_add_to_buffer(_ctx->resource_buffer, &s, sizeof(VertexShader), RT_VERTEX_SHADER);
 	}
 
@@ -3145,7 +2955,6 @@ namespace ds {
 		ID3D11GeometryShader* s;
 		assert_result(_ctx->d3dDevice->CreateGeometryShader(data,size,nullptr,&s), "Failed to create geometry shader");
 		ds_geometry_shader res = { s };
-		//return addResource(res, RT_GEOMETRY_SHADER, name);
 		return ds_add_to_buffer(_ctx->resource_buffer, &res, sizeof(ds_geometry_shader), RT_GEOMETRY_SHADER);
 	}
 
@@ -3155,9 +2964,7 @@ namespace ds {
 	RID createPixelShader(const void* data, int size, const char* name) {
 		PixelShader s;
 		assert_result(_ctx->d3dDevice->CreatePixelShader(data, size, nullptr, &s.shader), "Failed to create pixel shader");
-		//PixelShaderResource* res = new PixelShaderResource(s);
 		return ds_add_to_buffer(_ctx->resource_buffer, &s, sizeof(ID3D11PixelShader), RT_PIXEL_SHADER);
-		//return addResource(res, RT_PIXEL_SHADER, name);
 	}
 
 	// ------------------------------------------------------
@@ -3166,8 +2973,8 @@ namespace ds {
 	RID createComputeShader(const void* data, int size, const char* name) {
 		ID3D11ComputeShader* s;
 		assert_result(_ctx->d3dDevice->CreateComputeShader(data, size, nullptr, &s), "Failed to create compute shader");
-		ComputeShaderResource* res = new ComputeShaderResource(s);
-		return addResource(res, RT_COMPUTE_SHADER, name);
+		ds_computer_shader_resource res = { s };
+		return ds_add_to_buffer(_ctx->resource_buffer,&res,sizeof(ds_computer_shader_resource),RT_COMPUTE_SHADER);
 	}
 
 	struct DataFile {
@@ -3210,8 +3017,6 @@ namespace ds {
 		memcpy(s->vertexShaderBuffer, file.data, file.size);
 		s->bufferSize = file.size;
 		delete[] file.data;
-		//VertexShaderResource* res = new VertexShaderResource(s);
-		//return addResource(res, RT_VERTEX_SHADER, name);
 		return ds_add_to_buffer(_ctx->resource_buffer, s, sizeof(VertexShader), RT_VERTEX_SHADER);
 	}
 
@@ -3221,7 +3026,6 @@ namespace ds {
 	RID loadPixelShader(const char* csoName, const char* name) {
 		DataFile file = read_data(csoName);
 		XASSERT(file.size != -1, "Cannot load pixel shader file: '%s'", csoName);
-		//ID3D11PixelShader* s;
 		PixelShader s;
 		assert_result(_ctx->d3dDevice->CreatePixelShader(
 			file.data,
@@ -3229,8 +3033,6 @@ namespace ds {
 			nullptr,
 			&s.shader), "Failed to create pixel shader");
 		delete[] file.data;
-		//PixelShaderResource* res = new PixelShaderResource(s);
-		//return addResource(res, RT_PIXEL_SHADER, name);
 		return ds_add_to_buffer(_ctx->resource_buffer, &s, sizeof(ID3D11PixelShader), RT_PIXEL_SHADER);
 	}
 
@@ -3247,8 +3049,8 @@ namespace ds {
 			nullptr,
 			&s), "Failed to create compute shader");
 		delete[] file.data;
-		ComputeShaderResource* res = new ComputeShaderResource(s);
-		return addResource(res, RT_COMPUTE_SHADER, name);
+		ds_computer_shader_resource res = { s };
+		return ds_add_to_buffer(_ctx->resource_buffer, &res,sizeof(ds_computer_shader_resource),RT_COMPUTE_SHADER);
 	}
 
 	// ------------------------------------------------------
@@ -3265,7 +3067,6 @@ namespace ds {
 			&s), "Failed to create pixel shader");
 		delete[] file.data;
 		ds_geometry_shader res = { s };
-		//return addResource(res, RT_GEOMETRY_SHADER, name);
 		return ds_add_to_buffer(_ctx->resource_buffer, &res, sizeof(ds_geometry_shader), RT_GEOMETRY_SHADER);
 	}
 
@@ -3310,7 +3111,6 @@ namespace ds {
 			_ctx->d3dContext->VSSetShader(NULL, NULL, 0);
 		}
 		else {
-			//PixelShaderResource* res = (PixelShaderResource*)_ctx->_resources[ridx];
 			PixelShader* res = (PixelShader*)ds_get_resource(_ctx->resource_buffer, ridx);
 			if (res->shader != 0) {
 				_ctx->d3dContext->PSSetShader(res->shader, 0, 0);
@@ -3330,7 +3130,6 @@ namespace ds {
 			_ctx->d3dContext->GSSetShader(NULL, NULL, 0);
 		}
 		else {
-			//GeometryShaderResource* res = (GeometryShaderResource*)_ctx->_resources[ridx];
 			ds_geometry_shader* res = (ds_geometry_shader*)ds_get_resource(_ctx->resource_buffer,ridx);
 			if (res->shader != 0) {
 				_ctx->d3dContext->GSSetShader(res->shader, 0, 0);
@@ -3350,8 +3149,6 @@ namespace ds {
 			_ctx->d3dContext->VSSetShader(NULL, NULL, 0);
 		}
 		else {
-			//VertexShaderResource* res = (VertexShaderResource*)_ctx->_resources[ridx];
-			//VertexShader* s = res->get();
 			VertexShader* s = (VertexShader*)ds_get_resource(_ctx->resource_buffer, ridx);
 			if (s->vertexShader != 0) {
 				_ctx->d3dContext->VSSetShader(s->vertexShader, 0, 0);
@@ -3374,7 +3171,7 @@ namespace ds {
 	// ------------------------------------------------------	
 	RID createTexture(const TextureInfo& info, const char* name) {
 
-		InternalTexture tex;// = new InternalTexture;
+		ds_texture tex;
 		tex.width = info.width;
 		tex.height = info.height;
 		tex.size = ds::vec2(tex.width , tex.height );
@@ -3389,20 +3186,7 @@ namespace ds {
 		desc.BindFlags = info.bindFlags;
 		desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		desc.MiscFlags = 0;
-		//ID3D11Texture2D *texture2D = 0;
-		/*
-		if (_ctx->multisampling > 1) {
-			desc.Usage = D3D11_USAGE_DEFAULT;
-			ASSERT_RESULT(_ctx->d3dDevice->CreateTexture2D(&desc, 0, &texture2D), "Failed to create Texture2D");
-			D3D11_MAPPED_SUBRESOURCE resource;
-			ASSERT_RESULT(_ctx->d3dContext->Map(texture2D, 0, D3D11_MAP_WRITE, 0, &resource), "Failed to map data");
-			void* ptr = resource.pData;
-			memcpy(ptr, data, width * height * channels);
-			_ctx->d3dContext->Unmap(texture2D, 0);
-		}
-		else {
-		*/
-			//desc.Usage = D3D11_USAGE_IMMUTABLE;
+		//desc.Usage = D3D11_USAGE_IMMUTABLE;
 		//desc.Usage = D3D11_USAGE_DEFAULT;// D3D11_USAGE_DYNAMIC;
 		desc.Usage = D3D11_USAGE_DYNAMIC;
 		if (info.data != 0) {
@@ -3419,33 +3203,25 @@ namespace ds {
 
 		ID3D11ShaderResourceView* srv = 0;
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
-		//if (_ctx->multisampling > 1) {
-			//srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
-		//}
-		//else {
 		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-		//}
 		srvDesc.Texture2D.MostDetailedMip = 0;
 		srvDesc.Texture2D.MipLevels = 1;
 		srvDesc.Format = TEXTURE_FOMATS[info.format];
 		assert_result(_ctx->d3dDevice->CreateShaderResourceView(tex.texture, &srvDesc, &tex.srv), "Failed to create resource view");
-		//ShaderResourceViewResource* res = new ShaderResourceViewResource(tex);
-		//return addResource(res, RT_SRV, name);
-		return ds_add_to_buffer(_ctx->resource_buffer, &tex, sizeof(InternalTexture), RT_SRV);
+		return ds_add_to_buffer(_ctx->resource_buffer, &tex, sizeof(ds_texture), RT_SRV);
 	}
 	
 	ds::vec2 getTextureSize(RID rid) {
 		uint16_t ridx = getResourceIndex(rid, RT_SRV);
 		XASSERT(ridx != NO_RID, "Invalid texture selected");
 		//ShaderResourceViewResource* res = (ShaderResourceViewResource*)_ctx->_resources[ridx];
-		InternalTexture* tex = (InternalTexture*)ds_get_resource(_ctx->resource_buffer, ridx);
+		ds_texture* tex = (ds_texture*)ds_get_resource(_ctx->resource_buffer, ridx);
 		return tex->size;
 	}
 	
 	RID createShaderResourceView(RID bufferID, const char* name) {
 		uint16_t ridx = getResourceIndex(bufferID, RT_STRUCTURED_BUFFER);
-		BufferResource* bufferRes = (BufferResource*)_ctx->_resources[ridx];
-		StructuredBuffer* sb = bufferRes->get();
+		StructuredBuffer* sb = (StructuredBuffer*)ds_get_resource(_ctx->resource_buffer, ridx);
 		D3D11_BUFFER_DESC descBuf;
 		ZeroMemory(&descBuf, sizeof(descBuf));
 		sb->buffer->GetDesc(&descBuf);
@@ -3459,19 +3235,18 @@ namespace ds {
 		descView.BufferEx.NumElements = descBuf.ByteWidth / descBuf.StructureByteStride;
 		ID3D11ShaderResourceView* srv;
 		assert_result(_ctx->d3dDevice->CreateShaderResourceView(sb->buffer, &descView, &srv), "Failed to create resource view");
-		InternalTexture tex;// = new InternalTexture;
+		ds_texture tex;// = new ds_texture;
 		// FIXME: get size!!
 		tex.width = 0;
 		tex.height = 0;
 		tex.srv = srv;
 		tex.size = ds::vec2(0.0f,0.0f);
-		return ds_add_to_buffer(_ctx->resource_buffer, &tex, sizeof(InternalTexture), RT_SRV);
+		return ds_add_to_buffer(_ctx->resource_buffer, &tex, sizeof(ds_texture), RT_SRV);
 	}
 
 	RID createUnorderedAccessView(RID bufferID, const char* name) {
 		uint16_t ridx = getResourceIndex(bufferID, RT_STRUCTURED_BUFFER);
-		BufferResource* bufferRes = (BufferResource*)_ctx->_resources[ridx];
-		StructuredBuffer* sb = bufferRes->get();
+		StructuredBuffer* sb = (StructuredBuffer*)ds_get_resource(_ctx->resource_buffer, ridx);
 		D3D11_BUFFER_DESC descBuf;
 		ZeroMemory(&descBuf, sizeof(descBuf));
 		sb->buffer->GetDesc(&descBuf);
@@ -3485,13 +3260,13 @@ namespace ds {
 		descView.Buffer.NumElements = descBuf.ByteWidth / descBuf.StructureByteStride;
 		ID3D11UnorderedAccessView* srv;
 		assert_result(_ctx->d3dDevice->CreateUnorderedAccessView(sb->buffer, &descView, &srv), "Failed to create uav resource view");
-		UAResourceViewResource* res = new UAResourceViewResource(srv);
-		return addResource(res, RT_UA_SRV, name);
+		ds_uav_resource res = { srv };
+		return ds_add_to_buffer(_ctx->resource_buffer, &res, sizeof(ds_uav_resource), RT_UA_SRV);
 	}
 
 	RID createUnorderedAccessView(RID textureID, int numElements, const char* name) {
 		uint16_t ridx = getResourceIndex(textureID, RT_SRV);
-		InternalTexture* tex = (InternalTexture*)ds_get_resource(_ctx->resource_buffer,ridx);
+		ds_texture* tex = (ds_texture*)ds_get_resource(_ctx->resource_buffer,ridx);
 		D3D11_SHADER_RESOURCE_VIEW_DESC descBuf;
 		ZeroMemory(&descBuf, sizeof(descBuf));
 		tex->srv->GetDesc(&descBuf);
@@ -3504,8 +3279,8 @@ namespace ds {
 		descView.Buffer.NumElements = numElements;
 		ID3D11UnorderedAccessView* srv;
 		assert_result(_ctx->d3dDevice->CreateUnorderedAccessView(tex->texture, &descView, &srv), "Failed to create uav resource view");
-		UAResourceViewResource* res = new UAResourceViewResource(srv);
-		return addResource(res, RT_UA_SRV, name);
+		ds_uav_resource res = { srv };
+		return ds_add_to_buffer(_ctx->resource_buffer, &res, sizeof(ds_uav_resource), RT_UA_SRV);
 	}
 
 	// ------------------------------------------------------
@@ -3517,7 +3292,7 @@ namespace ds {
 		int slot = slot_mask(rid);
 		ID3D11ShaderResourceView* srv = 0;
 		if (ridx != NO_RID) {
-			InternalTexture* tex = (InternalTexture*)ds_get_resource(_ctx->resource_buffer, ridx);
+			ds_texture* tex = (ds_texture*)ds_get_resource(_ctx->resource_buffer, ridx);
 			srv = tex->srv;
 		}
 		if (stage == PLS_PS_RES) {
@@ -3533,17 +3308,17 @@ namespace ds {
 
 	void setTextureFromRenderTarget(RID rtID) {
 		uint16_t ridx = getResourceIndex(rtID, RT_TEXTURE_FROM_RT);
-		RenderTargetResource* res = (RenderTargetResource*)_ctx->_resources[ridx];
+		RenderTarget* res = (RenderTarget*)ds_get_resource(_ctx->resource_buffer, ridx);
 		int stage = stage_mask(rtID);
 		int slot = slot_mask(rtID);
 		if (stage == PLS_PS_RES) {
-			_ctx->d3dContext->PSSetShaderResources(slot, 1, &res->get()->srv);
+			_ctx->d3dContext->PSSetShaderResources(slot, 1, &res->srv);
 		}
 		else if (stage == PLS_VS_RES) {
-			_ctx->d3dContext->VSSetShaderResources(slot, 1, &res->get()->srv);
+			_ctx->d3dContext->VSSetShaderResources(slot, 1, &res->srv);
 		}
 		else if (stage == PLS_GS_RES) {
-			_ctx->d3dContext->GSSetShaderResources(slot, 1, &res->get()->srv);
+			_ctx->d3dContext->GSSetShaderResources(slot, 1, &res->srv);
 		}
 	}
 
@@ -3564,9 +3339,7 @@ namespace ds {
 		desc.ScissorEnable = (BOOL)info.scissor;
 		ID3D11RasterizerState* state = 0;
 		assert_result(_ctx->d3dDevice->CreateRasterizerState(&desc, &state), "Failed to create rasterizer state");
-		//RasterizerStateResource* res = new RasterizerStateResource(state);
 		ds_rasterizer_state_resource res = { state };
-		//return addResource(res, RT_RASTERIZER_STATE, name);
 		return ds_add_to_buffer(_ctx->resource_buffer, &res, sizeof(ds_rasterizer_state_resource), RT_RASTERIZER_STATE);
 	}
 
@@ -3576,7 +3349,6 @@ namespace ds {
 	void setRasterizerState(RID rid) {
 		uint16_t ridx = getResourceIndex(rid, RT_RASTERIZER_STATE);
 		if ( ridx != NO_RID) {
-			//RasterizerStateResource* res = (RasterizerStateResource*)_ctx->_resources[ridx];
 			ds_rasterizer_state_resource* res = (ds_rasterizer_state_resource*)ds_get_resource(_ctx->resource_buffer, ridx);
 			_ctx->d3dContext->RSSetState(res->state);
 		}
@@ -3586,8 +3358,8 @@ namespace ds {
 	// create render target
 	// ------------------------------------------------------
 	RID createRenderTarget(const RenderTargetInfo& info, const char* name) {
-		RenderTarget* rt = new RenderTarget;
-		rt->clearColor = info.clearColor;
+		RenderTarget rt;
+		rt.clearColor = info.clearColor;
 		// Initialize the render target texture description.
 		D3D11_TEXTURE2D_DESC textureDesc;
 		ZeroMemory(&textureDesc, sizeof(textureDesc));
@@ -3606,14 +3378,14 @@ namespace ds {
 		textureDesc.MiscFlags = 0;
 
 		// Create the render target texture.
-		assert_result(_ctx->d3dDevice->CreateTexture2D(&textureDesc, NULL, &rt->texture), "Failed to create texture for rendertarget");
+		assert_result(_ctx->d3dDevice->CreateTexture2D(&textureDesc, NULL, &rt.texture), "Failed to create texture for rendertarget");
 		// Setup the description of the render target view.
 		D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
 		renderTargetViewDesc.Format = textureDesc.Format;
 		renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 		renderTargetViewDesc.Texture2D.MipSlice = 0;
 		// Create the render target view.
-		assert_result(_ctx->d3dDevice->CreateRenderTargetView(rt->texture, &renderTargetViewDesc, &rt->view),"Failed to create render target view");
+		assert_result(_ctx->d3dDevice->CreateRenderTargetView(rt.texture, &renderTargetViewDesc, &rt.view),"Failed to create render target view");
 		// Setup the description of the shader resource view.
 		D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
 		shaderResourceViewDesc.Format = textureDesc.Format;
@@ -3622,7 +3394,7 @@ namespace ds {
 		shaderResourceViewDesc.Texture2D.MipLevels = 1;
 
 		// Create the shader resource view.
-		assert_result(_ctx->d3dDevice->CreateShaderResourceView(rt->texture, &shaderResourceViewDesc, &rt->srv),"Failed to create shader resource view");
+		assert_result(_ctx->d3dDevice->CreateShaderResourceView(rt.texture, &shaderResourceViewDesc, &rt.srv),"Failed to create shader resource view");
 
 		D3D11_TEXTURE2D_DESC depthTexDesc;
 		ZeroMemory(&depthTexDesc, sizeof(depthTexDesc));
@@ -3638,7 +3410,7 @@ namespace ds {
 		depthTexDesc.CPUAccessFlags = 0;
 		depthTexDesc.MiscFlags = 0;
 
-		assert_result(_ctx->d3dDevice->CreateTexture2D(&depthTexDesc, 0, &rt->depthTexture),"Failed to create depth texture");
+		assert_result(_ctx->d3dDevice->CreateTexture2D(&depthTexDesc, 0, &rt.depthTexture),"Failed to create depth texture");
 		
 		D3D11_DEPTH_STENCIL_VIEW_DESC descDSV;
 		ZeroMemory(&descDSV, sizeof(descDSV));
@@ -3646,9 +3418,8 @@ namespace ds {
 		descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
 		descDSV.Texture2D.MipSlice = 0;
 
-		assert_result(_ctx->d3dDevice->CreateDepthStencilView(rt->depthTexture, &descDSV, &rt->depthStencilView),"Failed to create depth stencil view");
-		RenderTargetResource* res = new RenderTargetResource(rt);
-		return addResource(res,RT_RENDER_TARGET, name);
+		assert_result(_ctx->d3dDevice->CreateDepthStencilView(rt.depthTexture, &descDSV, &rt.depthStencilView),"Failed to create depth stencil view");
+		return ds_add_to_buffer(_ctx->resource_buffer, &rt, sizeof(RenderTarget), RT_RENDER_TARGET);
 	}
 
 	void setRenderTarget(RID rtID) {
@@ -3657,8 +3428,7 @@ namespace ds {
 			_ctx->d3dContext->OMSetRenderTargets(1, &_ctx->backBufferTarget, _ctx->depthStencilView);
 		}
 		else {
-			RenderTargetResource* res = (RenderTargetResource*)_ctx->_resources[ridx];
-			RenderTarget* rt = res->get();
+			RenderTarget* rt = (RenderTarget*)ds_get_resource(_ctx->resource_buffer, ridx);
 			_ctx->d3dContext->OMSetRenderTargets(1, &rt->view, rt->depthStencilView);
 			// Clear the back buffer.
 			_ctx->d3dContext->ClearRenderTargetView(rt->view, rt->clearColor);
@@ -3729,7 +3499,7 @@ namespace ds {
 	// compile with array of StateGroups
 	// -----------------------------------------------------------------
 	RID compile(const DrawCommand cmd, RID* groups, int num, const char* name) {
-		DrawItem item;// = new DrawItem;
+		DrawItem item;
 		item.command = cmd;
 		item.groups = new RID[num + 1];
 		for (int i = 0; i < num; ++i) {
@@ -3737,8 +3507,7 @@ namespace ds {
 		}
 		item.groups[num] = _ctx->defaultStateGroup;
 		item.num = num + 1;
-		item.nameIndex = _ctx->charBuffer->append(name);
-		//return addResource(new DrawItemResource(item), RT_DRAW_ITEM, name);
+		item.nameIndex = ds_append_char_buffer(_ctx->charBuffer, name);
 		return ds_add_to_buffer(_ctx->resource_buffer, &item, sizeof(DrawItem), RT_DRAW_ITEM);
 	}
 
@@ -3746,14 +3515,13 @@ namespace ds {
 	// compile with only one StateGroup
 	// -----------------------------------------------------------------
 	RID compile(const DrawCommand cmd, RID group, const char* name) {
-		DrawItem item;// = new DrawItem;
+		DrawItem item;
 		item.command = cmd;
 		item.groups = new RID[2];
 		item.groups[0] = group;
 		item.groups[1] = _ctx->defaultStateGroup;
 		item.num = 2;
-		item.nameIndex = _ctx->charBuffer->append(name);
-		//return addResource(new DrawItemResource(item), RT_DRAW_ITEM, name);
+		item.nameIndex = ds_append_char_buffer(_ctx->charBuffer,name);
 		return ds_add_to_buffer(_ctx->resource_buffer, &item, sizeof(DrawItem), RT_DRAW_ITEM);
 	}
 	
@@ -3909,12 +3677,12 @@ namespace ds {
 	}
 
 	RID StateGroupBuilder::build(const char* name) {
-		StateGroup group;// = new StateGroup();
+		StateGroup group;
 		quickSort(_items, 0, _num - 1);
 		group.num = _num;
 		group.items = (RID*)malloc(_num * sizeof(RID));;
 		memcpy(group.items, _items, _num * sizeof(RID));
-		RID rid = ds_add_to_buffer(_ctx->resource_buffer, &group, sizeof(StateGroup), RT_STATE_GROUP);////addResource(new StateGroupResource(group),RT_STATE_GROUP, name);
+		RID rid = ds_add_to_buffer(_ctx->resource_buffer, &group, sizeof(StateGroup), RT_STATE_GROUP);
 		group.rid = rid;
 		return rid;
 	}
@@ -3988,12 +3756,12 @@ namespace ds {
 	}
 
 	RID ComputeShaderBuilder::build(const char* name) {
-		ComputeShaderGroup* csg = new ComputeShaderGroup();
-		csg->num = _num;
-		csg->items = new RID[_num];
-		memcpy(csg->items, _items, _num * sizeof(RID));
-		RID rid = addResource(new ComputeShaderGroupResource(csg), RT_CS_GROUP, name);
-		csg->rid = rid;
+		ComputeShaderGroup csg;
+		csg.num = _num;
+		csg.items = (RID*)malloc(_num * sizeof(RID));
+		memcpy(csg.items, _items, _num * sizeof(RID));
+		RID rid = ds_add_to_buffer(_ctx->resource_buffer,&csg,sizeof(ComputeShaderGroup), RT_CS_GROUP);
+		csg.rid = rid;
 		return rid;
 	}
 	
@@ -4002,20 +3770,18 @@ namespace ds {
 	// ------------------------------------------------------
 	void dispatch(RID computeShaderID, int x,int y, int z) {
 		uint16_t ridx = getResourceIndex(computeShaderID, RT_CS_GROUP);
-		ComputeShaderGroupResource* res = (ComputeShaderGroupResource*)_ctx->_resources[ridx];
-		ComputeShaderGroup* group = res->get();
+		ComputeShaderGroup* group = (ComputeShaderGroup*)ds_get_resource(_ctx->resource_buffer, ridx);
 		for (int i = 0; i < group->num; ++i) {
 			RID current = group->items[i];
 			int type = type_mask(current);
 			if (type == RT_COMPUTE_SHADER) {
 				uint16_t sidx = getResourceIndex(current, RT_COMPUTE_SHADER);
-				ComputeShaderResource* sres = (ComputeShaderResource*)_ctx->_resources[sidx];
-				_ctx->d3dContext->CSSetShader(sres->get(), NULL, 0);
+				ds_computer_shader_resource* sres = (ds_computer_shader_resource*)ds_get_resource(_ctx->resource_buffer, sidx);
+				_ctx->d3dContext->CSSetShader(sres->shader, NULL, 0);
 			}
 			else if (type == RT_STRUCTURED_BUFFER) {
 				uint16_t sridx = getResourceIndex(current, RT_STRUCTURED_BUFFER);
-				BufferResource* bufferRes = (BufferResource*)_ctx->_resources[sridx];				
-				StructuredBuffer* sb = bufferRes->get();
+				StructuredBuffer* sb = (StructuredBuffer*)ds_get_resource(_ctx->resource_buffer, ridx);
 				int slot = slot_mask(current);
 				if (sb->srv != 0) {
 					_ctx->d3dContext->CSSetShaderResources(slot, 1, &sb->srv);
@@ -4027,15 +3793,15 @@ namespace ds {
 			else if (type == RT_SRV) {
 				uint16_t sridx = getResourceIndex(current, RT_SRV);
 				//ShaderResourceViewResource* srvRes = (ShaderResourceViewResource*)_ctx->_resources[sridx];
-				InternalTexture* tex = (InternalTexture*)ds_get_resource(_ctx->resource_buffer, sridx);
+				ds_texture* tex = (ds_texture*)ds_get_resource(_ctx->resource_buffer, sridx);
 				int slot = slot_mask(current);
 				_ctx->d3dContext->CSSetShaderResources(slot, 1, &tex->srv);
 			}
 			else if (type == RT_UA_SRV) {
 				uint16_t uaidx = getResourceIndex(current, RT_UA_SRV);
-				UAResourceViewResource* uar = (UAResourceViewResource*)_ctx->_resources[uaidx];
+				ds_uav_resource* uar = (ds_uav_resource*)ds_get_resource(_ctx->resource_buffer,uaidx);
 				int slot = slot_mask(current);
-				ID3D11UnorderedAccessView* view = uar->get();
+				ID3D11UnorderedAccessView* view = uar->view;
 				_ctx->d3dContext->CSSetUnorderedAccessViews(slot, 1, &view, NULL);
 			}
 			else if (type == RT_CONSTANT_BUFFER) {
@@ -4073,8 +3839,7 @@ namespace ds {
 		ID3D11Buffer* debugbuf = NULL;
 
 		uint16_t ridx = getResourceIndex(bufferID, RT_STRUCTURED_BUFFER);
-		BufferResource* bufferRes = (BufferResource*)_ctx->_resources[ridx];
-		StructuredBuffer* sb = bufferRes->get();
+		StructuredBuffer* sb = (StructuredBuffer*)ds_get_resource(_ctx->resource_buffer, ridx);
 		D3D11_BUFFER_DESC desc;
 		ZeroMemory(&desc, sizeof(desc));
 		sb->buffer->GetDesc(&desc);
@@ -4106,13 +3871,23 @@ namespace ds {
 		return 0;
 	}
 
+	static void apply(ds_pipeline_state* pipelineState, RID groupID) {
+		StateGroup* group = (StateGroup*)ds_get_resource(_ctx->resource_buffer, id_mask(groupID));
+		for (int i = 0; i < group->num; ++i) {
+			RID current = group->items[i];
+			int type = type_mask(current);
+			if (!ds_is_used_in_pipeline_state(pipelineState, current)) {
+				applyResource(current, type);
+			}
+			ds_add_to_pipeline_state(pipelineState, current);
+		}
+	}
+
 	// ------------------------------------------------------
 	// submit draw command
 	// ------------------------------------------------------
 	void submit(RID renderPass, RID drawItemID, int numElements) {
 		uint16_t pidx = getResourceIndex(renderPass, RT_RENDER_PASS);
-		//RenderPassResource* rpRes = (RenderPassResource*)_ctx->_resources[pidx];
-		//RenderPass* pass = rpRes->get();
 		RenderPass* pass = (RenderPass*)ds_get_resource(_ctx->resource_buffer, pidx);
 		if (pass->numRenderTargets > 0) {
 			for (int i = 0; i < pass->numRenderTargets; ++i) {
@@ -4129,18 +3904,16 @@ namespace ds {
 		// FIXME: how to handle world matrix???
 		setDepthBufferState(pass->depthState);
 		uint16_t ridx = getResourceIndex(drawItemID, RT_DRAW_ITEM);
-		//DrawItemResource* res = (DrawItemResource*)_ctx->_resources[ridx];
-		//const DrawItem* item = res->get();
 		DrawItem* item = (DrawItem*)ds_get_resource(_ctx->resource_buffer, ridx);
-		_ctx->pipelineStates[_ctx->currentDrawCall].reset();
+		ds_reset_pipeline_state(_ctx->pipelineStates[_ctx->currentDrawCall]);
 		_ctx->drawCalls[_ctx->currentDrawCall] = drawItemID;
 		for (int i = 0; i < item->num; ++i) {
-			apply(&_ctx->pipelineStates[_ctx->currentDrawCall], item->groups[i]);
+			apply(_ctx->pipelineStates[_ctx->currentDrawCall], item->groups[i]);
 		}
 		if (_ctx->lastDrawCall >= 0) {
 			uint16_t differences[64];
 			// build diff between draw calls
-			int num = _ctx->pipelineStates[_ctx->currentDrawCall].diff(_ctx->pipelineStates[_ctx->lastDrawCall], differences, 64);
+			int num = ds_diff_pipeline_states(_ctx->pipelineStates[_ctx->currentDrawCall],_ctx->pipelineStates[_ctx->lastDrawCall], differences, 64);
 			if (num > 0) {
 				int sidx = id_mask(drawItemID);
 				clearStates(differences, num);
@@ -4169,25 +3942,13 @@ namespace ds {
 		}
 	}
 
-	static void apply(PipelineState* pipelineState, RID groupID) {
-		//StateGroupResource* res = (StateGroupResource*)_ctx->_resources[id_mask(groupID)];
-		//StateGroup* group = res->get();
-		StateGroup* group = (StateGroup*)ds_get_resource(_ctx->resource_buffer, id_mask(groupID));
-		for (int i = 0; i < group->num; ++i) {
-			RID current = group->items[i];
-			int type = type_mask(current);
-			if (!pipelineState->isUsed(current)) {
-				applyResource(current, type);
-			}
-			pipelineState->add(current);
-		}
-	}
+	
 
 	// ******************************************************
 	// Render pass
 	// ******************************************************
 	RID createRenderPass(const RenderPassInfo& info, const char* name) {
-		RenderPass rp;// = new RenderPass();
+		RenderPass rp;
 		rp.camera = info.camera;
 		int nr = info.numRenderTargets;
 		if (nr > 4) {
@@ -4198,8 +3959,6 @@ namespace ds {
 			rp.rts[i] = info.renderTargets[i];
 		}
 		rp.depthState = info.depthBufferState;
-		//RenderPassResource* res = new RenderPassResource(rp);
-		//return addResource(res, RT_RENDER_PASS, name);
 		return ds_add_to_buffer(_ctx->resource_buffer, &rp, sizeof(RenderPass), RT_RENDER_PASS);
 	}
 
@@ -4272,6 +4031,7 @@ namespace ds {
 	//
 	// ******************************************************
 	void saveResourcesToFile(const char* fileName) {
+		/*
 		FILE* fp = fopen(fileName, "w");
 		if (fp) {
 			fprintf(fp, " index | resource type       | Name\n");
@@ -4284,7 +4044,6 @@ namespace ds {
 			fprintf(fp, "\n");
 			for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
 				const BaseResource* br = _ctx->_resources[i];
-				/*
 				if (br->getType() == RT_DRAW_ITEM) {
 					const DrawItemResource* dir = (DrawItemResource*)_ctx->_resources[i];
 					const DrawItem* item = dir->get();
@@ -4308,13 +4067,14 @@ namespace ds {
 						}
 					}
 				}
-				*/
 			}
 			fclose(fp);
 		}
+		*/
 	}
 
 	void logResources() {
+		/*
 		LOG_DEBUG(" index | resource type       | Name");
 		LOG_DEBUG("--------------------------------------------------------------");
 		for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
@@ -4325,7 +4085,6 @@ namespace ds {
 		LOG_DEBUG("\n");
 		for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
 			const BaseResource* br = _ctx->_resources[i];
-			/*
 			if (br->getType() == RT_DRAW_ITEM) {
 				const DrawItemResource* dir = (DrawItemResource*)_ctx->_resources[i];
 				const DrawItem* item = dir->get();
@@ -4349,8 +4108,8 @@ namespace ds {
 					}
 				}
 			}
-			*/
 		}
+		*/
 	}
 
 	// ******************************************************
@@ -4554,82 +4313,6 @@ namespace ds {
 		if (_ctx->eventWriteIndex >= 32) {
 			_ctx->eventWriteIndex = 0;
 		}
-	}
-
-	// -----------------------------------------------------
-	//
-	// CharBuffer
-	//
-	// -----------------------------------------------------
-	CharBuffer::CharBuffer() : data(nullptr), size(0), capacity(0), num(0) {}
-	
-	CharBuffer::~CharBuffer() {
-		if (data != nullptr) {
-			delete[] data;
-		}
-	}
-
-	void* CharBuffer::alloc(int sz) {
-		if (size + sz > capacity) {
-			int d = capacity * 2 + 8;
-			if (d < sz) {
-				d = sz * 2 + 8;
-			}
-			resize(d);
-		}
-		auto res = data + size;
-		size += sz;
-		int d = sz / 4;
-		if (d == 0) {
-			d = 1;
-		}
-		num += d;
-		return res;
-	}
-
-	void CharBuffer::resize(int newCap) {
-		if (newCap > capacity) {
-			char* tmp = new char[newCap];
-			if (data != nullptr) {
-				memcpy(tmp, data, size);
-				delete[] data;
-			}
-			capacity = newCap;
-			data = tmp;
-		}
-	}
-
-	const char* CharBuffer::get(int index) const {
-		return data + index;
-	}
-
-	int CharBuffer::append(const char* s, int len) {
-		if (size + len + 1 > capacity) {
-			resize(capacity + len + 1 + 8);
-		}
-		const char* t = s;
-		int ret = size;
-		for (int i = 0; i < len; ++i) {
-			data[size++] = *t;
-			++t;
-		}
-		data[size++] = '\0';
-		return ret;
-	}
-
-	int CharBuffer::append(const char* s) {
-		int len = strlen(s);
-		return append(s, len);
-	}
-
-	int CharBuffer::append(char s) {
-		if (size + 1 > capacity) {
-			resize(capacity + 9);
-		}
-		int ret = size;
-		data[size++] = s;
-		data[size++] = '\0';
-		return ret;
 	}
 
 	// -----------------------------------------------------
@@ -5371,6 +5054,5 @@ namespace ds {
 
 	const StaticHash INVALID_HASH = StaticHash(static_cast<unsigned int>(0));
 
-}
 #endif
 	

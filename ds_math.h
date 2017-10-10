@@ -1,7 +1,6 @@
 #pragma once
 #include <math.h>
 
-namespace ds {
 
 	// ------------------------------------------------
 	// Vector template
@@ -891,4 +890,3 @@ namespace ds {
 
 #endif
 
-}

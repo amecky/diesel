@@ -1,4 +1,5 @@
 #define DS_IMPLEMENTATION
+#define DS_MATH_IMPLEMENTATION
 #include "..\..\diesel.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "..\common\stb_image.h"
@@ -8,7 +9,8 @@
 #define SPRITE_IMPLEMENTATION
 #include "..\common\SpriteBatchBuffer.h"
 #include "..\common\imgui.h"
-
+#include "..\common\Textured_VS_Main.h"
+#include "..\common\Textured_PS_Main.h"
 // ---------------------------------------------------------------
 // Vertex
 // ---------------------------------------------------------------
@@ -98,8 +100,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID textureID = loadImage("..\\common\\cube_map.png");
 	RID cubeTextureID = loadImage("..\\common\\grid.png");
 	
-	RID vertexShader = ds::loadVertexShader("..\\common\\Textured_vs.cso", "TextureVS");
-	RID pixelShader = ds::loadPixelShader("..\\common\\Textured_ps.cso", "TexturePS");
+	ds::ShaderInfo vsInfo = { 0, Textured_VS_Main, sizeof(Textured_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
+	RID vertexShader = ds::createShader(vsInfo);
+	ds::ShaderInfo psInfo = { 0, Textured_PS_Main, sizeof(Textured_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
+	RID pixelShader = ds::createShader(psInfo);
 
 	float gridWidth = 3.0f;
 	float gridHeight = 3.0f;
