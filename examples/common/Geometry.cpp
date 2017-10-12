@@ -78,7 +78,7 @@ namespace geometry {
 
 	void buildSphere(float radius, int sliceCount, int stackCount, MeshData* data) {
 
-		data->add(ds::vec3(0, radius, 0),ds::vec3(0, 1, 0), ds::vec3(1, 0, 0),ds::vec2(0, 0));
+		data->add(ds::vec3(0.0f, radius, 0.0f),ds::vec3(0, 1, 0), ds::vec3(1, 0, 0),ds::vec2(0, 0));
 
 		float phiStep = ds::PI / stackCount;
 		float thetaStep = 2.0f * ds::PI / sliceCount;
@@ -93,7 +93,7 @@ namespace geometry {
 					(radius* sin(phi)*sin(theta))
 					);
 
-				ds::vec3 t = ds::vec3(-radius*sin(phi)*sin(theta), 0, radius*sin(phi)*cos(theta));
+				ds::vec3 t = ds::vec3(-radius*sin(phi)*sin(theta), 0.0f, radius*sin(phi)*cos(theta));
 				t = normalize(t);
 				ds::vec3 n = p;
 				n = normalize(n);
@@ -101,7 +101,7 @@ namespace geometry {
 				data->add(p, n, t, uv);
 			}
 		}
-		data->add(ds::vec3(0, -radius, 0),ds::vec3( 0, -1, 0), ds::vec3(1, 0, 0), ds::vec2(0, 1));
+		data->add(ds::vec3(0.0f, -radius, 0.0f),ds::vec3( 0, -1, 0), ds::vec3(1, 0, 0), ds::vec2(0, 1));
 
 		for (int i = 1; i <= sliceCount; ++i) {
 			data->indices.push_back(0);
