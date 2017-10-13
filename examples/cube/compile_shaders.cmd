@@ -16,6 +16,9 @@ rem Cube
 call :CompileShader%1 Cube Cube vs VS_Main
 call :CompileShader%1 Cube Cube ps PS_Main
 
+call :CompileShader%1 AmbientLightning AmbientLightning vs VS_Main
+call :CompileShader%1 AmbientLightning AmbientLightning ps PS_Main
+
 echo.
 
 if %error% == 0 (
