@@ -1141,6 +1141,12 @@ namespace ds {
 		vec4 tmp = m * nv;
 		return vec3(tmp.x, tmp.y, tmp.z);
 	}
+
+	inline vec3 operator * (const vec3& v, const matrix& m) {
+		vec4 nv(v.x, v.y, v.z, 1.0f);
+		vec4 tmp = m * nv;
+		return vec3(tmp.x, tmp.y, tmp.z);
+	}
 	// **********************************************************************
 	//
 	// The rendering API
