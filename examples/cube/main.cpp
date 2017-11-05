@@ -129,7 +129,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID ambientPixelShader = ds::createShader(apsInfo);
 
 	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 2.0f, -6.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
-	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
+	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.0f, 100.0f);
 	ds::Camera camera = {
 		viewMatrix,
 		projectionMatrix,
@@ -139,7 +139,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::vec3(0,1,0),
 		ds::vec3(1,0,0)
 	};
-	ds::RenderPassInfo rpInfo = { &camera,ds::DepthBufferState::ENABLED, 0, 0 };
+	ds::ViewportInfo vpInfo = { 1024,768,0.0f,100.0f };
+	RID vp = ds::createViewport(vpInfo);
+	ds::RenderPassInfo rpInfo = { &camera, vp, ds::DepthBufferState::ENABLED, 0, 0 };
 	RID basicPass = ds::createRenderPass(rpInfo);
 
 	// create buffer input layout

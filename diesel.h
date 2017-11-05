@@ -160,6 +160,10 @@ namespace ds {
 			z = other.z;
 		}
 
+		vec2 xy() const {
+			return vec2(x, y);
+		}
+
 		const float* operator() () const {
 			return &data[0];
 		}
@@ -211,6 +215,14 @@ namespace ds {
 			y = other.y;
 			z = other.z;
 			w = other.w;
+		}
+
+		vec2 xy() const {
+			return vec2(x, y);
+		}
+
+		vec3 xyz() const {
+			return vec3(x, y, z);
 		}
 
 		const float* operator() () const {
@@ -852,6 +864,16 @@ namespace ds {
 		return tmp;
 	}
 
+	inline matrix matOrthoOffCenterLH(float left, float right, float bottom, float top, float znearPlane, float zfarPlane) {
+		//https://msdn.microsoft.com/en-us/library/windows/desktop/bb281724(v=vs.85).aspx
+		matrix tmp(
+			2.0f / (right - left), 0.0f, 0.0f, 0.0f,
+			0.0f, 2.0f / (top - bottom), 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f / (zfarPlane - znearPlane), 0.0f,
+			(left + right) / (left - right), (top + bottom) / (bottom - top), znearPlane / (znearPlane - zfarPlane), 1.0f);
+		return tmp;
+	}
+
 	inline matrix operator * (const matrix& m1, const matrix& m2) {
 		matrix tmp;
 		tmp._11 = m1._11 * m2._11 + m1._12 * m2._21 + m1._13 * m2._31 + m1._14 * m2._41;
@@ -888,41 +910,62 @@ namespace ds {
 	}
 
 	// http://www.cprogramming.com/tutorial/3d/rotationMatrices.html
-	// left hand sided
+	// -------------------------------------------------------
+	// Rotation X matrix
+	// -------------------------------------------------------
 	inline matrix matRotationX(float angle) {
-		float s = sin(angle);
-		float c = cos(angle);
+		float s = sinf(angle);
+		float c = cosf(angle);
 		matrix sm(
 			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, c, -s, 0.0f,
-			0.0f, s, c, 0.0f,
+			0.0f, c, s, 0.0f,
+			0.0f, -s, c, 0.0f,
 			0.0f, 0.0f, 0.0f, 1.0f
 			);
 		return sm;
 	}
 
+	// -------------------------------------------------------
+	// Rotation Y matrix
+	// -------------------------------------------------------
 	inline matrix matRotationY(float angle) {
-		float s = sin(angle);
-		float c = cos(angle);
+		float s = sinf(angle);
+		float c = cosf(angle);
 		matrix sm(
-			c, 0.0f, s, 0.0f,
+			c, 0.0f, -s, 0.0f,
 			0.0f, 1.0f, 0.0f, 0.0f,
-			-s, 0.0f, c, 0.0f,
+			s, 0.0f, c, 0.0f,
 			0.0f, 0.0f, 0.0f, 1.0f
 			);
 		return sm;
 	}
-	// FIXME: wrong direction!!!!
+	
+	// -------------------------------------------------------
+	// Rotation Z matrix
+	// -------------------------------------------------------
 	inline matrix matRotationZ(float angle) {
-		float s = sin(angle);
-		float c = cos(angle);
+		float s = sinf(angle);
+		float c = cosf(angle);
 		matrix sm(
-			c, -s, 0.0f, 0.0f,
-			s, c, 0.0f, 0.0f,
+			c, s, 0.0f, 0.0f,
+			-s, c, 0.0f, 0.0f,
 			0.0f, 0.0f, 1.0f, 0.0f,
 			0.0f, 0.0f, 0.0f, 1.0f
 			);
 		return sm;
+	}
+
+	// -------------------------------------------------------
+	// Translation matrix
+	// -------------------------------------------------------
+	inline matrix matTranslate(const vec3& pos) {
+		matrix tm(
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f,
+			pos.x, pos.y, pos.z, 1.0f
+		);
+		return tm;
 	}
 
 	inline matrix matRotation(const vec3& r) {
@@ -943,18 +986,7 @@ namespace ds {
 		return tmp;
 	}
 
-	// -------------------------------------------------------
-	// Translation matrix
-	// -------------------------------------------------------
-	inline matrix matTranslate(const vec3& pos) {
-		matrix tm(
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			pos.x, pos.y, pos.z, 1.0f
-			);
-		return tm;
-	}
+	
 
 	inline matrix matLookAtLH(const vec3& eye, const vec3& lookAt, const vec3& up) {
 		// see msdn.microsoft.com/de-de/library/windows/desktop/bb205342(v=vs.85).aspx
@@ -975,7 +1007,7 @@ namespace ds {
 
 	inline matrix matPerspectiveFovLH(float fovy, float aspect, float zn, float zf) {
 		// msdn.microsoft.com/de-de/library/windows/desktop/bb205350(v=vs.85).aspx
-		float yScale = 1.0f / tan(fovy / 2.0f);
+		float yScale = 1.0f / tanf(fovy / 2.0f);
 		float xScale = yScale / aspect;
 
 		matrix tmp(
@@ -1000,9 +1032,9 @@ namespace ds {
 		float u2 = v.x * v.x;
 		float vec2 = v.y * v.y;
 		float w2 = v.z * v.z;
-		float s = sin(angle);
-		float c = cos(angle);
-		float sq = sqrt(L);
+		float s = sinf(angle);
+		float c = cosf(angle);
+		float sq = sqrtf(L);
 		matrix tmp = matIdentity();
 		tmp._11 = (u2 + (vec2 + w2) *c) / L;
 		tmp._12 = (v.x * v.y * (1 - c) - v.z * sq * s) / L;
@@ -1189,7 +1221,9 @@ namespace ds {
 	enum TextureFilters {
 		POINT,
 		LINEAR,
-		ANISOTROPIC
+		ANISOTROPIC,
+		COMPARISON_MIN_MAG_MIP_LINEAR,
+		COMPARISON_MIN_MAG_MIP_POINT
 	};
 
 	enum PrimitiveTypes {
@@ -1197,6 +1231,17 @@ namespace ds {
 		TRIANGLE_LIST,
 		TRIANGLE_STRIP,
 		LINE_LIST
+	};
+
+	enum CompareFunctions {
+		CMP_NEVER = 1,
+		CMP_LESS = 2,
+		CMP_EQUAL = 3,
+		CMP_LESS_EQUAL = 4,
+		CMP_GREATER = 5,
+		CMP_NOT_EQUAL = 6,
+		CMP_GREATER_EQUAL = 7,
+		CMP_ALWAYS = 8
 	};
 
 	struct InputLayoutDefinition {
@@ -1317,7 +1362,8 @@ namespace ds {
 		RT_COMPUTE_SHADER,
 		RT_STRUCTURED_BUFFER,
 		RT_UA_SRV,
-		RT_CS_GROUP
+		RT_CS_GROUP,
+		RT_VIEWPORT
 	};
 	
 	// ---------------------------------------------------
@@ -1413,7 +1459,7 @@ namespace ds {
 		StateGroupBuilder& structuredBuffer(RID rid, RID shader, int slot = 0);
 		StateGroupBuilder& basicConstantBuffer(RID shader, int slot = 0);
 		StateGroupBuilder& blendState(RID rid);
-		StateGroupBuilder& samplerState(RID rid, RID shader);
+		StateGroupBuilder& samplerState(RID rid, RID shader, int slot = 0);
 		StateGroupBuilder& vertexBuffer(RID rid);
 		StateGroupBuilder& instancedVertexBuffer(RID rid);
 		StateGroupBuilder& vertexShader(RID rid);
@@ -1474,8 +1520,18 @@ namespace ds {
 		int num;
 	};
 
+	struct ViewportInfo {
+		int width;
+		int height;
+		float minDepth;
+		float maxDepth;
+	};
+
+	RID createViewport(const ViewportInfo& info, const char* name = "Viewport");
+
 	struct RenderPass {
 		Camera* camera;
+		RID viewport;
 		RID rts[4];
 		int numRenderTargets;
 		DepthBufferState depthState;
@@ -1483,6 +1539,7 @@ namespace ds {
 
 	struct RenderPassInfo {
 		Camera* camera;
+		RID viewport;
 		// FIXME: RID depthBuffer
 		DepthBufferState depthBufferState;
 		RID* renderTargets;
@@ -1564,6 +1621,9 @@ namespace ds {
 	struct SamplerStateInfo {
 		TextureAddressModes addressMode;
 		TextureFilters filter;
+		ds::Color borderColor;
+		float minLOD;
+		CompareFunctions compareFunction;
 	};
 	
 	RID createSamplerState(const SamplerStateInfo& info, const char* name = "SamplerState");
@@ -1613,11 +1673,13 @@ namespace ds {
 
 	struct RenderTargetInfo {
 		uint16_t width;
-		uint16_t height;
+		uint16_t height;		
 		const ds::Color& clearColor;
 	};
 
 	RID createRenderTarget(const RenderTargetInfo& info, const char* name = "RenderTarget");
+
+	RID createDepthRenderTarget(const RenderTargetInfo& info, const char* name = "DepthRenderTarget");
 
 	//void setRenderTarget(RID rtID);
 
@@ -1739,6 +1801,7 @@ namespace ds {
 		DSKEY_F10,
 		DSKEY_F11,
 		DSKEY_F12,
+		DSKEY_ESC,
 		DSKEY_UNKNOWN
 	};
 
@@ -1768,6 +1831,8 @@ namespace ds {
 
 	void saveResourcesToFile(const char* fileName = "resources.txt");
 
+	void log(const LogLevel& level, char* format, ...);
+
 }
 
 #ifndef SID
@@ -1791,7 +1856,7 @@ namespace ds {
 
 	static void assert_fmt(char* expr_str, bool expr, char* format, ...);
 
-	static void log(const LogLevel& level, char* format,...);
+	
 
 	static void assert_result(HRESULT result, const char* msg);
 }
@@ -1844,7 +1909,7 @@ namespace ds {
 		"UNKNOWN"
 	};
 
-	const char* RESOURCE_NAMES[] {
+	const char* RESOURCE_NAMES[]{
 		"NONE",
 		"INPUT_LAYOUT",
 		"CONSTANT_BUFFER",
@@ -1853,7 +1918,7 @@ namespace ds {
 		"SAMPLER_STATE",
 		"BLENDSTATE",
 		"SRV",
-		"RASTERIZER_STATE",		
+		"RASTERIZER_STATE",
 		"INSTANCED_VERTEX_BUFFER",
 		"VERTEX_SHADER",
 		"GEOMETRY_SHADER",
@@ -1866,7 +1931,8 @@ namespace ds {
 		"COMPUTE_SHADER",
 		"STRUCTURED_BUFFER",
 		"UA_SRV",
-		"CS_GROUP"
+		"CS_GROUP",
+		"VIEWPORT"
 	};
 
 	void dbgInit();
@@ -2573,6 +2639,24 @@ namespace ds {
 	};
 
 	// ------------------------------------------------------
+	// ViewportResource
+	// ------------------------------------------------------
+	class ViewportResource : public AbstractResource<D3D11_VIEWPORT*> {
+
+	public:
+		ViewportResource(D3D11_VIEWPORT* t) : AbstractResource(t) {}
+		virtual ~ViewportResource() {}
+		void release() {
+			if (_data != 0) {
+				delete _data;
+			}
+		}
+		const ResourceType getType() const {
+			return RT_VIEWPORT;
+		}
+	};
+
+	// ------------------------------------------------------
 	// RenderPassResource
 	// ------------------------------------------------------
 	class RenderPassResource : public AbstractResource<RenderPass*> {
@@ -2736,6 +2820,8 @@ namespace ds {
 
 		DepthBufferState depthBufferState;
 
+		uint16_t currentPass;
+
 		// Timing
 		LARGE_INTEGER timerFrequency;
 		LARGE_INTEGER lastTime;
@@ -2805,7 +2891,10 @@ namespace ds {
 
 	uint16_t getResourceIndex(RID rid,ResourceType type) {
 		uint16_t idx = id_mask(rid);
-		if (idx != NO_RID) {			
+		if (idx != NO_RID) {		
+			if (idx >= _ctx->_resources.size()) {
+				DBG_LOG("Invalid index: %d - type %s", idx, RESOURCE_NAMES[type]);
+			}
 			XASSERT(idx < _ctx->_resources.size(), "Invalid resource selected - Out of bounds");
 			int current = type_mask(rid);
 			XASSERT(current == type, "The selected resource %d is not the required type: %s", idx, RESOURCE_NAMES[idx]);
@@ -2895,7 +2984,7 @@ namespace ds {
 	// ------------------------------------------------------
 	// assert functions
 	// ------------------------------------------------------
-	static void log(const LogLevel& level,char* format, ...) {
+	void log(const LogLevel& level,char* format, ...) {
 		va_list args;
 		va_start(args, format);
 		char buffer[1024];
@@ -3428,6 +3517,7 @@ namespace ds {
 		if (_ctx->supportDebug) {
 			dbgBegin();
 		}
+		_ctx->currentPass = NO_RID;
 		_ctx->d3dContext->OMSetRenderTargets(1, &_ctx->backBufferTarget, _ctx->depthStencilView);
 		_ctx->d3dContext->ClearRenderTargetView(_ctx->backBufferTarget, _ctx->clearColor);
 		_ctx->d3dContext->ClearDepthStencilView(_ctx->depthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -3442,6 +3532,8 @@ namespace ds {
 		if (_ctx->supportDebug) {
 			dbgFlush();
 		}
+		ID3D11ShaderResourceView *const pSRV[2] = { NULL, NULL };
+		_ctx->d3dContext->PSSetShaderResources(0, 2, pSRV);
 		_ctx->swapChain->Present(0, 0);
 		_ctx->numInputKeys = 0;
 		_ctx->mouseButtonClicked[0] = false;
@@ -3728,7 +3820,7 @@ namespace ds {
 	// create a quad index buffer 0, 1, 2, 2, 3, 0
 	// ------------------------------------------------------
 	RID createQuadIndexBuffer(int numQuads, const char* name) {		
-		int size = numQuads * 6;
+		uint32_t size = numQuads * 6;
 		uint32_t* data = new uint32_t[size];
 		int base = 0;
 		int cnt = 0;
@@ -3752,7 +3844,7 @@ namespace ds {
 	// create a quad index buffer 0, 1, 2, 2, 3, 0
 	// ------------------------------------------------------
 	RID createQuadIndexBuffer(int numQuads, int* order, const char* name) {
-		int size = numQuads * 6;
+		uint32_t size = numQuads * 6;
 		uint32_t* data = new uint32_t[size];
 		int base = 0;
 		int cnt = 0;
@@ -4002,6 +4094,8 @@ namespace ds {
 		{ D3D11_FILTER_MIN_MAG_MIP_POINT },
 		{ D3D11_FILTER_MIN_MAG_MIP_LINEAR },
 		{ D3D11_FILTER_ANISOTROPIC },
+		{ D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR},
+		{ D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT },
 	};
 
 	// ------------------------------------------------------
@@ -4010,15 +4104,19 @@ namespace ds {
 	RID createSamplerState(const SamplerStateInfo& info, const char* name) {
 		D3D11_SAMPLER_DESC colorMapDesc;
 		ZeroMemory(&colorMapDesc, sizeof(colorMapDesc));
-
 		colorMapDesc.AddressU = TEXTURE_ADDRESSMODES[info.addressMode];
 		colorMapDesc.AddressV = TEXTURE_ADDRESSMODES[info.addressMode];
 		colorMapDesc.AddressW = TEXTURE_ADDRESSMODES[info.addressMode];
-
-		colorMapDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+		colorMapDesc.MinLOD = info.minLOD;
+		colorMapDesc.ComparisonFunc = (D3D11_COMPARISON_FUNC )info.compareFunction;
 		colorMapDesc.Filter = TEXTURE_FILTERMODES[info.filter];
 		colorMapDesc.MaxLOD = D3D11_FLOAT32_MAX;
-		
+		colorMapDesc.MipLODBias = 0.f;
+		colorMapDesc.MaxAnisotropy = 0;
+		colorMapDesc.BorderColor[0] = info.borderColor.r;
+		colorMapDesc.BorderColor[1] = info.borderColor.g;
+		colorMapDesc.BorderColor[2] = info.borderColor.b;
+		colorMapDesc.BorderColor[3] = info.borderColor.a;
 		ID3D11SamplerState* sampler;
 		assert_result(_ctx->d3dDevice->CreateSamplerState(&colorMapDesc, &sampler), "Failed to create SamplerState");
 		SamplerStateResource* res = new SamplerStateResource(sampler);
@@ -4031,17 +4129,18 @@ namespace ds {
 	static void setSamplerState(RID rid) {
 		int stage = stage_mask(rid);
 		uint16_t ridx = getResourceIndex(rid, RT_SAMPLER_STATE);
+		int slot = slot_mask(rid);
 		if (ridx != NO_RID) {
 			SamplerStateResource* res = (SamplerStateResource*)_ctx->_resources[ridx];
 			ID3D11SamplerState* state = res->get();
 			if (stage == PLS_PS_RES) {
-				_ctx->d3dContext->PSSetSamplers(0, 1, &state);
+				_ctx->d3dContext->PSSetSamplers(slot, 1, &state);
 			}
 			else if (stage == PLS_VS_RES) {
-				_ctx->d3dContext->VSSetSamplers(0, 1, &state);
+				_ctx->d3dContext->VSSetSamplers(slot, 1, &state);
 			}
 			else if (stage == PLS_GS_RES) {
-				_ctx->d3dContext->GSSetSamplers(0, 1, &state);
+				_ctx->d3dContext->GSSetSamplers(slot, 1, &state);
 			}
 		}
 	}
@@ -4311,7 +4410,7 @@ namespace ds {
 	static void setPixelShader(RID rid) {
 		uint16_t ridx = getResourceIndex(rid, RT_PIXEL_SHADER);
 		if (ridx == NO_RID) {
-			_ctx->d3dContext->VSSetShader(NULL, NULL, 0);
+			_ctx->d3dContext->PSSetShader(NULL, NULL, 0);
 		}
 		else {
 			PixelShaderResource* res = (PixelShaderResource*)_ctx->_resources[ridx];
@@ -4648,6 +4747,55 @@ namespace ds {
 		return addResource(res,RT_RENDER_TARGET, name);
 	}
 
+	// ------------------------------------------------------
+	// create render target
+	// ------------------------------------------------------
+	RID createDepthRenderTarget(const RenderTargetInfo& info, const char* name) {
+		RenderTarget* rt = new RenderTarget;
+		rt->clearColor = info.clearColor;
+		// Initialize the render target texture description.
+		D3D11_TEXTURE2D_DESC textureDesc;
+		ZeroMemory(&textureDesc, sizeof(textureDesc));
+
+		rt->texture = 0;
+		rt->view = 0;			
+
+		D3D11_TEXTURE2D_DESC depthTexDesc;
+		ZeroMemory(&depthTexDesc, sizeof(depthTexDesc));
+		depthTexDesc.Width = info.width;
+		depthTexDesc.Height = info.height;
+		depthTexDesc.MipLevels = 1;
+		depthTexDesc.ArraySize = 1;
+		depthTexDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+		depthTexDesc.SampleDesc.Count = 1;
+		depthTexDesc.SampleDesc.Quality = 0;
+		depthTexDesc.Usage = D3D11_USAGE_DEFAULT;
+		depthTexDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+		depthTexDesc.CPUAccessFlags = 0;
+		depthTexDesc.MiscFlags = 0;
+		assert_result(_ctx->d3dDevice->CreateTexture2D(&depthTexDesc, 0, &rt->depthTexture), "Failed to create depth texture");
+
+		D3D11_DEPTH_STENCIL_VIEW_DESC descDSV;
+		ZeroMemory(&descDSV, sizeof(descDSV));
+		descDSV.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+		descDSV.Texture2D.MipSlice = 0;
+		assert_result(_ctx->d3dDevice->CreateDepthStencilView(rt->depthTexture, &descDSV, &rt->depthStencilView), "Failed to create depth stencil view");
+
+		// Setup the description of the shader resource view.
+		D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
+		shaderResourceViewDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+		shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
+		shaderResourceViewDesc.Texture2D.MipLevels = 1;
+		// Create the shader resource view.
+		assert_result(_ctx->d3dDevice->CreateShaderResourceView(rt->depthTexture, &shaderResourceViewDesc, &rt->srv), "Failed to create shader resource view");
+		rt->depthTexture->Release();
+		rt->depthTexture = 0;
+		RenderTargetResource* res = new RenderTargetResource(rt);
+		return addResource(res, RT_RENDER_TARGET, name);
+	}
+
 	void setRenderTarget(RID rtID) {
 		uint16_t ridx = getResourceIndex(rtID, RT_RENDER_TARGET);
 		if (ridx == NO_RID) {
@@ -4656,9 +4804,15 @@ namespace ds {
 		else {
 			RenderTargetResource* res = (RenderTargetResource*)_ctx->_resources[ridx];
 			RenderTarget* rt = res->get();
-			_ctx->d3dContext->OMSetRenderTargets(1, &rt->view, rt->depthStencilView);
-			// Clear the back buffer.
-			_ctx->d3dContext->ClearRenderTargetView(rt->view, rt->clearColor);
+			if (rt->view != 0) {
+				_ctx->d3dContext->OMSetRenderTargets(1, &rt->view, rt->depthStencilView);
+				_ctx->d3dContext->ClearRenderTargetView(rt->view, rt->clearColor);
+			}
+			else {
+				ID3D11RenderTargetView* rts[1] = { 0 };
+				_ctx->d3dContext->OMSetRenderTargets(1, rts, rt->depthStencilView);
+			}
+			// Clear the back buffer.			
 			// Clear the depth buffer.
 			_ctx->d3dContext->ClearDepthStencilView(rt->depthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 		}
@@ -4819,9 +4973,9 @@ namespace ds {
 		return *this;
 	}
 
-	StateGroupBuilder& StateGroupBuilder::samplerState(RID rid, RID shader) {
+	StateGroupBuilder& StateGroupBuilder::samplerState(RID rid, RID shader, int slot) {
 		int stage = extractFromShader(shader);
-		basicBinding(rid, ResourceType::RT_SAMPLER_STATE, stage, 0);
+		basicBinding(rid, ResourceType::RT_SAMPLER_STATE, stage, slot);
 		return *this;
 	}
 
@@ -5106,18 +5260,25 @@ namespace ds {
 		uint16_t pidx = getResourceIndex(renderPass, RT_RENDER_PASS);
 		RenderPassResource* rpRes = (RenderPassResource*)_ctx->_resources[pidx];
 		RenderPass* pass = rpRes->get();
-		if (pass->numRenderTargets > 0) {
-			for (int i = 0; i < pass->numRenderTargets; ++i) {
-				setRenderTarget(pass->rts[i]);
+		if (pidx != _ctx->currentPass) {		
+			if (pass->numRenderTargets > 0) {
+				for (int i = 0; i < pass->numRenderTargets; ++i) {
+					setRenderTarget(pass->rts[i]);
+				}
 			}
-		}
-		else {
-			//_ctx->d3dContext->OMSetRenderTargets(1, &rt->view, rt->depthStencilView);
+			else {
+				restoreBackBuffer();
+			}
+			uint16_t vpidx = getResourceIndex(pass->viewport, RT_VIEWPORT);
+			ViewportResource* vpRes = (ViewportResource*)_ctx->_resources[vpidx];
+			_ctx->d3dContext->RSSetViewports(1, vpRes->get());
 		}
 		Camera* camera = pass->camera;
-		_ctx->basicConstantBuffer.viewMatrix = matTranspose(camera->viewMatrix);
-		_ctx->basicConstantBuffer.projectionMatrix = matTranspose(camera->projectionMatrix);
-		_ctx->basicConstantBuffer.viewProjectionMatrix = matTranspose(camera->viewProjectionMatrix);
+		if (camera != 0) {
+			_ctx->basicConstantBuffer.viewMatrix = matTranspose(camera->viewMatrix);
+			_ctx->basicConstantBuffer.projectionMatrix = matTranspose(camera->projectionMatrix);
+			_ctx->basicConstantBuffer.viewProjectionMatrix = matTranspose(camera->viewProjectionMatrix);
+		}
 		// FIXME: how to handle world matrix???
 		setDepthBufferState(pass->depthState);
 		uint16_t ridx = getResourceIndex(drawItemID, RT_DRAW_ITEM);
@@ -5153,11 +5314,8 @@ namespace ds {
 		}
 		// FIXME: is this correct? At least it removes the warnings when using render targets as textures
 		ID3D11ShaderResourceView *const pSRV[2] = { NULL, NULL };
-		_ctx->d3dContext->PSSetShaderResources(0, 2, pSRV);
-		// FIXME: this is wrong since there might be several submit which would like to use the same rt
-		if (pass->numRenderTargets > 0) {			
-			restoreBackBuffer();
-		}
+		_ctx->d3dContext->PSSetShaderResources(0, 2, pSRV);		
+		_ctx->currentPass = pidx;
 	}
 
 	static void apply(PipelineState* pipelineState, RID groupID) {
@@ -5171,6 +5329,18 @@ namespace ds {
 			}
 			pipelineState->add(current);
 		}
+	}
+
+	RID createViewport(const ViewportInfo& info, const char* name) {
+		D3D11_VIEWPORT* vp = new D3D11_VIEWPORT;
+		vp->Height = static_cast<float>(info.height);
+		vp->Width = static_cast<float>(info.width);
+		vp->MaxDepth = info.maxDepth;
+		vp->MinDepth = info.minDepth;
+		vp->TopLeftX = 0.0f;
+		vp->TopLeftY = 0.0f;
+		ViewportResource* res = new ViewportResource(vp);
+		return addResource(res, RT_VIEWPORT, name);
 	}
 
 	// ******************************************************
@@ -5188,6 +5358,7 @@ namespace ds {
 			rp->rts[i] = info.renderTargets[i];
 		}
 		rp->depthState = info.depthBufferState;
+		rp->viewport = info.viewport;
 		RenderPassResource* res = new RenderPassResource(rp);
 		return addResource(res, RT_RENDER_PASS, name);
 	}
@@ -5309,12 +5480,12 @@ namespace ds {
 			if (br->getType() == RT_DRAW_ITEM) {
 				const DrawItemResource* dir = (DrawItemResource*)_ctx->_resources[i];
 				const DrawItem* item = dir->get();
-				DBG_LOG("DrawItem %d (%s) - groups: %d", id_mask(br->getRID()), _ctx->charBuffer->get(item->nameIndex), item->num);
+				DBG_LOG("#> DrawItem %d (%s) - groups: %d", id_mask(br->getRID()), _ctx->charBuffer->get(item->nameIndex), item->num);
 				for (int j = 0; j < item->num; ++j) {
 					RID groupID = item->groups[j];
 					StateGroupResource* res = (StateGroupResource*)_ctx->_resources[id_mask(groupID)];
 					StateGroup* group = res->get();
-					DBG_LOG("Group: %d (%s)", id_mask(group->rid), _ctx->charBuffer->get(res->getNameIndex()));
+					DBG_LOG("=> Group: %d (%s)", id_mask(group->rid), _ctx->charBuffer->get(res->getNameIndex()));
 					DBG_LOG("resource type        | id    | stage    | slot | Name");
 					DBG_LOG("------------------------------------------------------------------------------------------");
 					for (int k = 0; k < group->num; ++k) {
@@ -6235,7 +6406,9 @@ namespace ds {
 			0.0f,
 			0.0f
 		};
-		RenderPassInfo orthoRP = { &_ctx->orthoCamera,DepthBufferState::DISABLED, 0, 0 };
+		ViewportInfo vpInfo = { getScreenWidth(), getScreenHeight(), 0.0f, 1.0f };
+		RID vp = createViewport(vpInfo, "DebugViewport");
+		RenderPassInfo orthoRP = { &_ctx->orthoCamera, vp, DepthBufferState::DISABLED, 0, 0 };
 		_ctx->debugOrthoPass = createRenderPass(orthoRP, "DebugTextOrthoPass");
 		_ctx->debugConstantBuffer.wvp = matTranspose(orthoView * orthoProjection);
 	}

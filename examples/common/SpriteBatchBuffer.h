@@ -1,6 +1,5 @@
 #pragma once
 #include "..\..\diesel.h"
-
 //#define SPRITE_IMPLEMENTATION
 
 struct SpriteBatchConstantBuffer {
@@ -14,12 +13,19 @@ struct Sprite {
 	ds::vec2 scaling;
 	float rotation;
 	ds::Color color;
-
 };
 
 struct SpriteBatchBufferInfo {
+
 	unsigned int maxSprites;
 	RID textureID;
+	ds::TextureFilters textureFilter;
+	RID blendState;
+
+	SpriteBatchBufferInfo() : maxSprites(1024), textureID(NO_RID), textureFilter(ds::TextureFilters::LINEAR) , blendState(NO_RID) {}
+	SpriteBatchBufferInfo(int max,RID tex) : maxSprites(max), textureID(tex), textureFilter(ds::TextureFilters::LINEAR), blendState(NO_RID) {}
+	SpriteBatchBufferInfo(int max, RID tex, ds::TextureFilters filter) : maxSprites(max), textureID(tex), textureFilter(filter), blendState(NO_RID) {}
+	SpriteBatchBufferInfo(int max, RID tex, ds::TextureFilters filter,RID blend) : maxSprites(max), textureID(tex), textureFilter(filter), blendState(blend) {}
 };
 
 class SpriteBatchBuffer {
@@ -45,14 +51,14 @@ private:
 
 const BYTE Sprites_VS_Main[] =
 {
-	68,  88,  66,  67,  42, 103,
-	190,  35, 135, 222, 237,  77,
-	198,  14,  40, 159, 219, 147,
-	51, 185,   1,   0,   0,   0,
-	104,   4,   0,   0,   4,   0,
+	68,  88,  66,  67, 176, 179,
+	62,  76, 198,  29, 218, 165,
+	231, 174, 221,  37,  99, 133,
+	84, 135,   1,   0,   0,   0,
+	228,   4,   0,   0,   4,   0,
 	0,   0,  48,   0,   0,   0,
 	100,   0,   0,   0, 216,   0,
-	0,   0,  88,   4,   0,   0,
+	0,   0, 212,   4,   0,   0,
 	73,  83,  71,  78,  44,   0,
 	0,   0,   1,   0,   0,   0,
 	8,   0,   0,   0,  32,   0,
@@ -81,9 +87,9 @@ const BYTE Sprites_VS_Main[] =
 	78,   0,  84,  69,  88,  67,
 	79,  79,  82,  68,   0,  67,
 	79,  76,  79,  82,   0, 171,
-	83,  72,  69,  88, 120,   3,
+	83,  72,  69,  88, 244,   3,
 	0,   0,  64,   0,   1,   0,
-	222,   0,   0,   0, 106,  72,
+	253,   0,   0,   0, 106,  72,
 	0,   1,  89,   0,   0,   4,
 	70, 142,  32,   0,   0,   0,
 	0,   0,   5,   0,   0,   0,
@@ -99,149 +105,171 @@ const BYTE Sprites_VS_Main[] =
 	16,   0,   1,   0,   0,   0,
 	101,   0,   0,   3, 242,  32,
 	16,   0,   2,   0,   0,   0,
-	104,   0,   0,   2,   6,   0,
-	0,   0,  54,   0,   0,   5,
-	66,  32,  16,   0,   0,   0,
-	0,   0,   1,  64,   0,   0,
-	0,   0, 128,  63,   1,   0,
-	0,  10,  50,   0,  16,   0,
-	0,   0,   0,   0,   6,  16,
+	104,   0,   0,   2,   4,   0,
+	0,   0, 105,   0,   0,   4,
+	0,   0,   0,   0,   4,   0,
+	0,   0,   4,   0,   0,   0,
+	85,   0,   0,   7,  18,   0,
 	16,   0,   0,   0,   0,   0,
-	2,  64,   0,   0,   1,   0,
-	0,   0,   2,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,  55,   0,   0,  15,
-	194,   0,  16,   0,   0,   0,
-	0,   0,  86,   1,  16,   0,
-	0,   0,   0,   0,   2,  64,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0, 191,   0,   0,   0,  63,
-	2,  64,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,  63,   0,   0,
-	0, 191,  85,   0,   0,   7,
-	18,   0,  16,   0,   1,   0,
-	0,   0,  10,  16,  16,   0,
-	0,   0,   0,   0,   1,  64,
-	0,   0,   2,   0,   0,   0,
-	167,   0,   0,   9, 242,   0,
-	16,   0,   2,   0,   0,   0,
-	10,   0,  16,   0,   1,   0,
+	10,  16,  16,   0,   0,   0,
 	0,   0,   1,  64,   0,   0,
-	8,   0,   0,   0,  70, 126,
-	16,   0,   1,   0,   0,   0,
-	56,   0,   0,   7, 194,   0,
+	2,   0,   0,   0, 167,   0,
+	0,   9, 242,   0,  16,   0,
+	1,   0,   0,   0,  10,   0,
 	16,   0,   0,   0,   0,   0,
-	166,  14,  16,   0,   0,   0,
-	0,   0, 246,  11,  16,   0,
-	2,   0,   0,   0,  14,   0,
+	1,  64,   0,   0,   8,   0,
+	0,   0,  70, 126,  16,   0,
+	1,   0,   0,   0,  14,   0,
 	0,   8, 242,   0,  16,   0,
 	2,   0,   0,   0,  70,  14,
-	16,   0,   2,   0,   0,   0,
+	16,   0,   1,   0,   0,   0,
 	230, 142,  32,   0,   0,   0,
 	0,   0,   0,   0,   0,   0,
-	167,   0,   0,   9, 242,   0,
+	54,   0,   0,   6,  50,  48,
+	32,   0,   0,   0,   0,   0,
+	0,   0,   0,   0,  70,   0,
+	16,   0,   2,   0,   0,   0,
+	54,   0,   0,   5, 194,   0,
 	16,   0,   3,   0,   0,   0,
-	10,   0,  16,   0,   1,   0,
+	86,   1,  16,   0,   2,   0,
+	0,   0,   0,   0,   0,   7,
+	50,   0,  16,   0,   3,   0,
+	0,   0, 230,  10,  16,   0,
+	2,   0,   0,   0,  70,   0,
+	16,   0,   2,   0,   0,   0,
+	54,   0,   0,   6,  50,  48,
+	32,   0,   0,   0,   0,   0,
+	1,   0,   0,   0, 134,   0,
+	16,   0,   3,   0,   0,   0,
+	54,   0,   0,   6,  50,  48,
+	32,   0,   0,   0,   0,   0,
+	2,   0,   0,   0, 118,  15,
+	16,   0,   3,   0,   0,   0,
+	54,   0,   0,   6,  50,  48,
+	32,   0,   0,   0,   0,   0,
+	3,   0,   0,   0,  70,   0,
+	16,   0,   3,   0,   0,   0,
+	1,   0,   0,  10, 226,   0,
+	16,   0,   0,   0,   0,   0,
+	6,  16,  16,   0,   0,   0,
+	0,   0,   2,  64,   0,   0,
+	0,   0,   0,   0,   3,   0,
+	0,   0,   1,   0,   0,   0,
+	2,   0,   0,   0,  55,   0,
+	0,  15, 194,   0,  16,   0,
+	0,   0,   0,   0, 246,  11,
+	16,   0,   0,   0,   0,   0,
+	2,  64,   0,   0,   0,   0,
+	0,   0,   0,   0,   0,   0,
+	0,   0,   0, 191,   0,   0,
+	0,  63,   2,  64,   0,   0,
+	0,   0,   0,   0,   0,   0,
+	0,   0,   0,   0,   0,  63,
+	0,   0,   0, 191,  54,   0,
+	0,   7,  50,  32,  16,   0,
+	1,   0,   0,   0,  70,  48,
+	32,   4,   0,   0,   0,   0,
+	26,   0,  16,   0,   0,   0,
+	0,   0,  56,   0,   0,   7,
+	98,   0,  16,   0,   0,   0,
+	0,   0, 246,  14,  16,   0,
+	1,   0,   0,   0, 166,  11,
+	16,   0,   0,   0,   0,   0,
+	167,   0,   0,   9, 242,   0,
+	16,   0,   1,   0,   0,   0,
+	10,   0,  16,   0,   0,   0,
 	0,   0,   1,  64,   0,   0,
 	24,   0,   0,   0,  70, 126,
 	16,   0,   1,   0,   0,   0,
-	56,   0,   0,   7, 194,   0,
+	56,   0,   0,   7,  98,   0,
 	16,   0,   0,   0,   0,   0,
-	166,  14,  16,   0,   0,   0,
-	0,   0,  86,   1,  16,   0,
-	3,   0,   0,   0,  77,   0,
+	86,   6,  16,   0,   0,   0,
+	0,   0,  86,   4,  16,   0,
+	1,   0,   0,   0,  77,   0,
 	0,   7,  18,   0,  16,   0,
-	4,   0,   0,   0,  18,   0,
-	16,   0,   5,   0,   0,   0,
-	42,   0,  16,   0,   3,   0,
+	2,   0,   0,   0,  18,   0,
+	16,   0,   3,   0,   0,   0,
+	42,   0,  16,   0,   1,   0,
 	0,   0,  56,   0,   0,   7,
-	98,   0,  16,   0,   1,   0,
-	0,   0, 166,  11,  16,   0,
+	50,   0,  16,   0,   2,   0,
+	0,   0, 150,   5,  16,   0,
 	0,   0,   0,   0,   6,   0,
-	16,   0,   4,   0,   0,   0,
-	50,   0,   0,  10, 130,   0,
+	16,   0,   2,   0,   0,   0,
+	50,   0,   0,  10,  66,   0,
 	16,   0,   0,   0,   0,   0,
-	10,   0,  16,   0,   5,   0,
-	0,   0,  58,   0,  16,   0,
-	0,   0,   0,   0,  26,   0,
-	16, 128,  65,   0,   0,   0,
-	1,   0,   0,   0,  50,   0,
-	0,   9,  66,   0,  16,   0,
-	0,   0,   0,   0,  10,   0,
-	16,   0,   5,   0,   0,   0,
-	42,   0,  16,   0,   0,   0,
+	10,   0,  16,   0,   3,   0,
 	0,   0,  42,   0,  16,   0,
-	1,   0,   0,   0, 167,   0,
+	0,   0,   0,   0,  10,   0,
+	16, 128,  65,   0,   0,   0,
+	2,   0,   0,   0,  50,   0,
+	0,   9,  34,   0,  16,   0,
+	0,   0,   0,   0,  10,   0,
+	16,   0,   3,   0,   0,   0,
+	26,   0,  16,   0,   0,   0,
+	0,   0,  26,   0,  16,   0,
+	2,   0,   0,   0, 167,   0,
 	0,   9,  50,   0,  16,   0,
-	4,   0,   0,   0,  10,   0,
-	16,   0,   1,   0,   0,   0,
+	2,   0,   0,   0,  10,   0,
+	16,   0,   0,   0,   0,   0,
 	1,  64,   0,   0,   0,   0,
 	0,   0,  70, 112,  16,   0,
 	1,   0,   0,   0, 167,   0,
 	0,   9, 114,   0,  16,   0,
-	3,   0,   0,   0,  10,   0,
-	16,   0,   1,   0,   0,   0,
+	1,   0,   0,   0,  10,   0,
+	16,   0,   0,   0,   0,   0,
 	1,  64,   0,   0,  40,   0,
 	0,   0,  70, 114,  16,   0,
 	1,   0,   0,   0,  54,   0,
 	0,   5, 242,  32,  16,   0,
 	2,   0,   0,   0,  54,   9,
-	16,   0,   3,   0,   0,   0,
-	0,   0,   0,   9,  50,   0,
 	16,   0,   1,   0,   0,   0,
-	70,   0,  16,   0,   4,   0,
-	0,   0,  70, 128,  32, 128,
+	0,   0,   0,   9, 146,   0,
+	16,   0,   0,   0,   0,   0,
+	6,   4,  16,   0,   2,   0,
+	0,   0,   6, 132,  32, 128,
 	65,   0,   0,   0,   0,   0,
 	0,   0,   0,   0,   0,   0,
 	0,   0,   0,   7,  50,   0,
-	16,   0,   3,   0,   0,   0,
-	182,  15,  16,   0,   0,   0,
-	0,   0,  70,   0,  16,   0,
-	1,   0,   0,   0,  54,   0,
+	16,   0,   1,   0,   0,   0,
+	198,   0,  16,   0,   0,   0,
+	0,   0, 102,  10,  16,   0,
+	0,   0,   0,   0,  54,   0,
 	0,   5,  66,   0,  16,   0,
-	3,   0,   0,   0,   1,  64,
+	1,   0,   0,   0,   1,  64,
 	0,   0,   0,   0, 128,  63,
 	16,   0,   0,   8,  18,  32,
 	16,   0,   0,   0,   0,   0,
-	70,   2,  16,   0,   3,   0,
+	70,   2,  16,   0,   1,   0,
 	0,   0,  70, 131,  32,   0,
 	0,   0,   0,   0,   1,   0,
 	0,   0,  16,   0,   0,   8,
 	34,  32,  16,   0,   0,   0,
 	0,   0,  70,   2,  16,   0,
-	3,   0,   0,   0,  70, 131,
+	1,   0,   0,   0,  70, 131,
 	32,   0,   0,   0,   0,   0,
 	2,   0,   0,   0,  16,   0,
 	0,   8, 130,  32,  16,   0,
 	0,   0,   0,   0,  70,   2,
-	16,   0,   3,   0,   0,   0,
+	16,   0,   1,   0,   0,   0,
 	70, 131,  32,   0,   0,   0,
 	0,   0,   4,   0,   0,   0,
-	0,   0,   0,   7, 194,   0,
+	54,   0,   0,   5,  66,  32,
 	16,   0,   0,   0,   0,   0,
-	6,   4,  16,   0,   2,   0,
-	0,   0, 166,  14,  16,   0,
-	2,   0,   0,   0,  55,   0,
-	0,   9,  50,  32,  16,   0,
-	1,   0,   0,   0,  70,   0,
-	16,   0,   0,   0,   0,   0,
-	230,  10,  16,   0,   0,   0,
-	0,   0,  70,   0,  16,   0,
-	2,   0,   0,   0,  62,   0,
-	0,   1,  83,  70,  73,  48,
-	8,   0,   0,   0,   2,   0,
-	0,   0,   0,   0,   0,   0
+	1,  64,   0,   0,   0,   0,
+	128,  63,  62,   0,   0,   1,
+	83,  70,  73,  48,   8,   0,
+	0,   0,   2,   0,   0,   0,
+	0,   0,   0,   0
 };
+
 
 const BYTE Sprites_PS_Main[] =
 {
-	68,  88,  66,  67, 133, 123,
-	244, 109,  36, 101, 150, 228,
-	91, 135, 209, 221,  54, 143,
-	33,  28,   1,   0,   0,   0,
-	112,   1,   0,   0,   3,   0,
+	68,  88,  66,  67, 128, 110,
+	6,  17, 183, 249, 240,  47,
+	66,  79,  68, 157, 198, 184,
+	192,  10,   1,   0,   0,   0,
+	160,   1,   0,   0,   3,   0,
 	0,   0,  44,   0,   0,   0,
 	160,   0,   0,   0, 212,   0,
 	0,   0,  73,  83,  71,  78,
@@ -273,8 +301,8 @@ const BYTE Sprites_PS_Main[] =
 	0,   0,  83,  86,  95,  84,
 	65,  82,  71,  69,  84,   0,
 	171, 171,  83,  72,  68,  82,
-	148,   0,   0,   0,  64,   0,
-	0,   0,  37,   0,   0,   0,
+	196,   0,   0,   0,  64,   0,
+	0,   0,  49,   0,   0,   0,
 	90,   0,   0,   3,   0,  96,
 	16,   0,   0,   0,   0,   0,
 	88,  24,   0,   4,   0, 112,
@@ -293,33 +321,42 @@ const BYTE Sprites_PS_Main[] =
 	0,   0,  70, 126,  16,   0,
 	0,   0,   0,   0,   0,  96,
 	16,   0,   0,   0,   0,   0,
-	56,   0,   0,   7, 242,  32,
+	56,   0,   0,   7, 242,   0,
 	16,   0,   0,   0,   0,   0,
 	70,  14,  16,   0,   0,   0,
 	0,   0,  70,  30,  16,   0,
-	2,   0,   0,   0,  62,   0,
+	2,   0,   0,   0,  56,   0,
+	0,   7, 114,  32,  16,   0,
+	0,   0,   0,   0, 246,  15,
+	16,   0,   0,   0,   0,   0,
+	70,   2,  16,   0,   0,   0,
+	0,   0,  54,   0,   0,   5,
+	130,  32,  16,   0,   0,   0,
+	0,   0,  58,   0,  16,   0,
+	0,   0,   0,   0,  62,   0,
 	0,   1
 };
-
 
 
 SpriteBatchBuffer::SpriteBatchBuffer(const SpriteBatchBufferInfo& info) : _max(info.maxSprites) , _current(0) {
 
 	_buffer = new Sprite[_max];
 	ds::vec2 textureSize = ds::getTextureSize(info.textureID);
-	_constantBuffer.screenCenter = ds::vec4(ds::getScreenWidth() / 2, ds::getScreenHeight() / 2, textureSize.x, textureSize.y);
+	_constantBuffer.screenCenter = { static_cast<float>(ds::getScreenWidth()) / 2.0f, static_cast<float>(ds::getScreenHeight()) / 2.0f, textureSize.x, textureSize.y };
 
 	ds::ShaderInfo vsInfo = { 0 , Sprites_VS_Main, sizeof(Sprites_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
 	RID vertexShader = ds::createShader(vsInfo, "SpritesVS");
 	ds::ShaderInfo psInfo = { 0 , Sprites_PS_Main, sizeof(Sprites_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
 	RID pixelShader = ds::createShader(psInfo, "SpritesPS");
 
-	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
-	RID bs_id = ds::createBlendState(blendInfo);
-
+	RID bs_id = info.blendState;
+	if (bs_id == NO_RID) {
+		ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
+		bs_id = ds::createBlendState(blendInfo);
+	}
 	RID constantBuffer = ds::createConstantBuffer(sizeof(SpriteBatchConstantBuffer), &_constantBuffer);
 
-	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
+	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, info.textureFilter };
 	RID ssid = ds::createSamplerState(samplerInfo);
 
 	int indices[] = { 0,1,2,1,3,2 };
@@ -337,6 +374,7 @@ SpriteBatchBuffer::SpriteBatchBuffer(const SpriteBatchBufferInfo& info) : _max(i
 
 	RID basicGroup = ds::StateGroupBuilder()
 		.constantBuffer(constantBuffer, vertexShader)
+		.blendState(bs_id)
 		.structuredBuffer(_structuredBufferId, vertexShader, 1)
 		.vertexBuffer(NO_RID)
 		.vertexShader(vertexShader)
@@ -357,7 +395,7 @@ SpriteBatchBuffer::SpriteBatchBuffer(const SpriteBatchBufferInfo& info) : _max(i
 		orthoView,
 		orthoProjection,
 		orthoView * orthoProjection,
-		ds::vec3(0,0,-1),
+		ds::vec3(0,0,0),
 		ds::vec3(0,0,1),
 		ds::vec3(0,1,0),
 		ds::vec3(1,0,0),
@@ -365,9 +403,11 @@ SpriteBatchBuffer::SpriteBatchBuffer(const SpriteBatchBufferInfo& info) : _max(i
 		0.0f,
 		0.0f
 	};
-	ds::RenderPassInfo rpInfo = { &camera, ds::DepthBufferState::DISABLED, 0, 0 };
+	ds::ViewportInfo vpInfo = { ds::getScreenWidth(), ds::getScreenHeight(), 0.0f, 1.0f };
+	RID vp = ds::createViewport(vpInfo, "SpriteOrthoViewport");
+	ds::RenderPassInfo rpInfo = { &camera, vp, ds::DepthBufferState::DISABLED, 0, 0 };
 	_renderPass = ds::createRenderPass(rpInfo, "SpritesOrthoPass");
-	_constantBuffer.wvp = camera.viewProjectionMatrix;
+	_constantBuffer.wvp = ds::matTranspose(camera.viewProjectionMatrix);
 }
 
 SpriteBatchBuffer::~SpriteBatchBuffer() {

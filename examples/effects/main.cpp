@@ -62,13 +62,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		0.0f,
 		0.0f
 	};
-	ds::RenderPassInfo rpInfo = { &camera, ds::DepthBufferState::ENABLED, rts, 1 };
+	ds::ViewportInfo vpInfo = { 1024,768,0.0f,100.0f };
+	RID vp = ds::createViewport(vpInfo);
+	ds::RenderPassInfo rpInfo = { &camera, vp, ds::DepthBufferState::ENABLED, rts, 1 };
 	RID rtPass = ds::createRenderPass(rpInfo);
 
 	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
 	RID bs_id = ds::createBlendState(blendInfo);
 
-	ds::RenderPassInfo ppPassInfo = { &camera, ds::DepthBufferState::DISABLED, 0, 0 };
+	ds::RenderPassInfo ppPassInfo = { &camera, vp, ds::DepthBufferState::DISABLED, 0, 0 };
 	RID ppPass = ds::createRenderPass(ppPassInfo);
 
 	int x, y, n;

@@ -70,7 +70,9 @@ ParticleManager::ParticleManager(int maxParticles, RID textureID) {
 		0.0f,
 		0.0f
 	};
-	ds::RenderPassInfo rpInfo = { &camera, ds::DepthBufferState::DISABLED, 0, 0 };
+	ds::ViewportInfo vpInfo = { 1024,768,0.0f,100.0f };
+	RID vp = ds::createViewport(vpInfo);
+	ds::RenderPassInfo rpInfo = { &camera, vp, ds::DepthBufferState::DISABLED, 0, 0 };
 	_orthoPass = ds::createRenderPass(rpInfo, "ParticleOrthoPass");
 
 }
@@ -165,7 +167,7 @@ void ParticleManager::emitt(uint32_t id, const ds::vec2& pos, const EmitterSetti
 			array.scales[start] = s;
 			array.growth[start] = emitter.growth;
 			float ttl = ds::random(emitter.ttl.x, emitter.ttl.y);
-			array.timers[start] = ds::vec3(0.0f, ttl, 1);
+			array.timers[start] = ds::vec3(0.0f, ttl, 1.0f);
 			array.velocities[start] = ds::random(emitter.velocityVariance.x, emitter.velocityVariance.y) * ds::vec2(cos(angle), sin(angle));
 			array.accelerations[start].x = array.velocities[start].x * emitter.acceleration.x;
 			array.accelerations[start].y = array.velocities[start].y * emitter.acceleration.y;

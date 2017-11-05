@@ -22,8 +22,8 @@ namespace hex_math {
 
 	ds::vec2 hex_to_pixel(const Layout& layout, const Hex& h) {
 		const Orientation& M = layout.orientation;
-		double x = (M.f0 * h.q + M.f1 * h.r) * layout.size.x;
-		double y = (M.f2 * h.q + M.f3 * h.r) * layout.size.y;
+		float x = (M.f0 * h.q + M.f1 * h.r) * layout.size.x;
+		float y = (M.f2 * h.q + M.f3 * h.r) * layout.size.y;
 		return ds::vec2(x + layout.origin.x, y + layout.origin.y);
 	}
 

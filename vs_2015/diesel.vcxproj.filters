@@ -3,6 +3,5 @@
   <ItemGroup>
     <ClInclude Include="..\diesel.h" />
     <ClInclude Include="..\Profiler.h" />
-    <ClInclude Include="..\ds_math.h" />
   </ItemGroup>
 </Project>

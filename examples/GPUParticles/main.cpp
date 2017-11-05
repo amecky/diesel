@@ -56,9 +56,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		0.0f,
 		0.0f
 	};
-	ds::RenderPassInfo basicInfo = { &camera, ds::DepthBufferState::ENABLED, 0, 0 };
+	ds::ViewportInfo vpInfo = { 1024,768,0.0f,100.0f };
+	RID vp = ds::createViewport(vpInfo);
+	ds::RenderPassInfo basicInfo = { &camera, vp, ds::DepthBufferState::ENABLED, 0, 0 };
 	RID basicPass = ds::createRenderPass(basicInfo);
-	ds::RenderPassInfo particlePassInfo = { &camera, ds::DepthBufferState::DISABLED, 0, 0 };
+	ds::RenderPassInfo particlePassInfo = { &camera, vp, ds::DepthBufferState::DISABLED, 0, 0 };
 	RID particlePass = ds::createRenderPass(particlePassInfo);
 	
 	

@@ -162,7 +162,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		0.0f,
 		0.0f
 	};
-	ds::RenderPassInfo rpInfo = { &camera, ds::DepthBufferState::DISABLED, 0, 0 };
+	ds::ViewportInfo vpInfo = { 1024,768,0.0f,100.0f };
+	RID vp = ds::createViewport(vpInfo);
+	ds::RenderPassInfo rpInfo = { &camera, vp, ds::DepthBufferState::DISABLED, 0, 0 };
 	RID orthoPass = ds::createRenderPass(rpInfo);
 	constantBuffer.wvp = ds::matTranspose(camera.viewProjectionMatrix);
 

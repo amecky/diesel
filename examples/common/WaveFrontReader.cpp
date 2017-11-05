@@ -110,7 +110,7 @@ int WaveFrontReader::load(const char * fileName, ds::matrix* world) {
 		e.z += std::abs(_vertices[i].position.z);
 	}
 	for (int i = 0; i < 3; ++i) {
-		_extent[i] = e[i] / _vertices.size();
+		_extent.data[i] = e.data[i] / _vertices.size();
 	}
 	return cnt;
 }

@@ -38,15 +38,16 @@ void BloomComponent::initialize() {
 	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
 	// render pass using back buffer
 	//_backbufferPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::DISABLED);
-
+	ds::ViewportInfo vpInfo = { 1024,768,0.0f,100.0f };
+	RID vp = ds::createViewport(vpInfo);
 	// render pass using RT1
 	RID rt1s[] = { bloomRT1 };
-	ds::RenderPassInfo bloomRT1Info = { _camera, ds::DepthBufferState::DISABLED, rt1s, 1 };
+	ds::RenderPassInfo bloomRT1Info = { _camera, vp, ds::DepthBufferState::DISABLED, rt1s, 1 };
 	_bloomRT1Pass = ds::createRenderPass(bloomRT1Info);
 
 	// render pass using RT2
 	RID rt2s[] = { bloomRT2 };
-	ds::RenderPassInfo bloomRT2Info = { _camera, ds::DepthBufferState::DISABLED, rt2s, 1 };
+	ds::RenderPassInfo bloomRT2Info = { _camera, vp, ds::DepthBufferState::DISABLED, rt2s, 1 };
 	_bloomRT2Pass = ds::createRenderPass(bloomRT2Info);
 
 	ds::ShaderInfo fsvsInfo = { 0, Fullscreen_Quad_VS_Main, sizeof(Fullscreen_Quad_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };

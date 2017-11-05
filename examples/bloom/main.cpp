@@ -1,5 +1,4 @@
 #define DS_IMPLEMENTATION
-#define DS_MATH_IMPLEMENTATION
 #include "..\..\diesel.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "..\common\stb_image.h"
@@ -80,7 +79,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		0.0f,
 		0.0f
 	};
-	ds::RenderPassInfo rpInfo = { &orthoCamera, ds::DepthBufferState::DISABLED, targets, 1 };
+	ds::ViewportInfo vpInfo = { 1024,768,0.0f,100.0f };
+	RID vp = ds::createViewport(vpInfo);
+	ds::RenderPassInfo rpInfo = { &orthoCamera, vp, ds::DepthBufferState::DISABLED, targets, 1 };
 	RID orthoPass = ds::createRenderPass(rpInfo);
 
 	//
@@ -101,12 +102,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		0.0f
 	};
 	// render pass using back buffer
-	ds::RenderPassInfo ppInfo = { &camera, ds::DepthBufferState::DISABLED, 0, 0 };
+	ds::RenderPassInfo ppInfo = { &camera, vp, ds::DepthBufferState::DISABLED, 0, 0 };
 	RID ppPass = ds::createRenderPass(ppInfo);
 
 	// render pass using RT1
 	RID rt1s[] = { rt1 };
-	ds::RenderPassInfo rt1Info = { &camera, ds::DepthBufferState::DISABLED, rt1s, 1 };
+	ds::RenderPassInfo rt1Info = { &camera, vp, ds::DepthBufferState::DISABLED, rt1s, 1 };
 	RID rt1Pass = ds::createRenderPass(rt1Info);
 
 	BloomComponent bloom(&camera, rt1, ppPass, &bloomSettings, &bloomExtractSettings);

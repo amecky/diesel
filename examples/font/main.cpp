@@ -24,7 +24,7 @@ void fillTextEntry(const char* text, TextEntry* entry, int max) {
 		float dimY = 32;
 		float th = 32;
 		if (cnt < max) {
-			entry->rects[cnt++] = ds::vec4(x, y, 14.0f, 20.0f);
+			entry->rects[cnt++] = ds::vec4(x, y, 14, 20);
 		}			
 	}
 	entry->num = cnt;

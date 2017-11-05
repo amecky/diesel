@@ -70,7 +70,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		0.0f,
 		0.0f
 	};
-	ds::RenderPassInfo rpInfo = {&camera, ds::DepthBufferState::DISABLED, 0, 0 };
+	ds::ViewportInfo vpInfo = { 1024,768,0.0f,100.0f };
+	RID vp = ds::createViewport(vpInfo);
+	ds::RenderPassInfo rpInfo = {&camera, vp, ds::DepthBufferState::DISABLED, 0, 0 };
 	RID ppPass = ds::createRenderPass(rpInfo);
 	
 	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };

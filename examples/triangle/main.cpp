@@ -1,5 +1,4 @@
 #define DS_IMPLEMENTATION
-#define DS_MATH_IMPLEMENTATION
 #include "..\..\diesel.h"
 #include "Triangle_VS_Main.h"
 #include "Triangle_PS_Main.h"
@@ -46,7 +45,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		0.0f,
 		0.0f
 	};
-	ds::RenderPassInfo rpInfo = { &camera, ds::DepthBufferState::ENABLED, 0, 0 };
+
+	ds::ViewportInfo vpInfo = { 1024,768,0.0f,100.0f };
+	RID vp = ds::createViewport(vpInfo);
+	ds::RenderPassInfo rpInfo = { &camera, vp, ds::DepthBufferState::ENABLED, 0, 0 };
 	RID basicPass = ds::createRenderPass(rpInfo);
 	//
 	// create resources
