@@ -82,11 +82,11 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions);_DEBUG</PreprocessorDefinitions>
       <ExceptionHandling>false</ExceptionHandling>
       <BufferSecurityCheck>false</BufferSecurityCheck>
-      <CompileAs>CompileAsC</CompileAs>
+      <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <Link>
       <AdditionalDependencies>d3d11.lib;d3dx11.lib;dxerr.lib;dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies>

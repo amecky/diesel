@@ -453,7 +453,7 @@ namespace gui {
 			ds::vec2 cp = p;
 			ds::vec2 cursorPos = limitedTextSize(_guiCtx->inputText, _guiCtx->caretPos);
 			cp.x = _guiCtx->currentPos.x + 2.0f + (width + 10.0f) * index + cursorPos.x + 10.0f;
-			addBox(cp, ds::vec2(2, 30.0f - 4.0f), ds::Color(192, 0, 192, 255));
+			addBox(cp, ds::vec2(2.0f, 30.0f - 4.0f), ds::Color(192, 0, 192, 255));
 			p.y -= 1.0f;
 			addText(p, _guiCtx->inputText);
 		}
@@ -792,7 +792,7 @@ namespace gui {
 		ds::vec2 p = _guiCtx->currentPos;
 		p.y += 8.0f;
 		addBox(p, ds::vec2(10,4), ds::Color(32, 32, 32, 255), true);
-		moveForward(ds::vec2(10, 16.0f));
+		moveForward(ds::vec2(10, 16));
 	}
 
 	// -------------------------------------------------------

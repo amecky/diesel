@@ -5634,7 +5634,7 @@ namespace ds {
 						_gpCtx->adTTotalAvg[gts] = 0.0f;
 					}
 					_gpCtx->frameCountAvg = 0;
-					_gpCtx->tBeginAvg = GetTotalSeconds();
+					_gpCtx->tBeginAvg = static_cast<float>(GetTotalSeconds());
 				}
 			}
 		}

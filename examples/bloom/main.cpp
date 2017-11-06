@@ -79,7 +79,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		0.0f,
 		0.0f
 	};
-	ds::ViewportInfo vpInfo = { 1024,768,0.0f,100.0f };
+	ds::ViewportInfo vpInfo = { 1024,768,0.0f,1.0f };
 	RID vp = ds::createViewport(vpInfo);
 	ds::RenderPassInfo rpInfo = { &orthoCamera, vp, ds::DepthBufferState::DISABLED, targets, 1 };
 	RID orthoPass = ds::createRenderPass(rpInfo);

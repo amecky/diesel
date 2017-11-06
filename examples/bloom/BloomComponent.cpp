@@ -38,7 +38,7 @@ void BloomComponent::initialize() {
 	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
 	// render pass using back buffer
 	//_backbufferPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::DISABLED);
-	ds::ViewportInfo vpInfo = { 1024,768,0.0f,100.0f };
+	ds::ViewportInfo vpInfo = { 1024,768,0.0f,1.0f };
 	RID vp = ds::createViewport(vpInfo);
 	// render pass using RT1
 	RID rt1s[] = { bloomRT1 };
