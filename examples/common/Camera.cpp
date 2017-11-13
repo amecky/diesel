@@ -93,7 +93,7 @@ void FPSCamera::update(float elapsedTime) {
 		float dx = DEGTORAD(0.25f*(mp.x - _lastMousePos.x));
 		float dy = DEGTORAD(0.25f*(mp.y - _lastMousePos.y));
 		setPitch(dy);
-		setYaw(-dx);			
+		setYaw(dx);			
 	}
 	_lastMousePos.x = mp.x;
 	_lastMousePos.y = mp.y;

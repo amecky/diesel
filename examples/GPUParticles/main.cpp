@@ -60,7 +60,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID vp = ds::createViewport(vpInfo);
 	ds::RenderPassInfo basicInfo = { &camera, vp, ds::DepthBufferState::ENABLED, 0, 0 };
 	RID basicPass = ds::createRenderPass(basicInfo);
-	ds::RenderPassInfo particlePassInfo = { &camera, vp, ds::DepthBufferState::DISABLED, 0, 0 };
+	ds::RenderPassInfo particlePassInfo = { &camera, vp, ds::DepthBufferState::ENABLED, 0, 0 };
 	RID particlePass = ds::createRenderPass(particlePassInfo);
 	
 	
@@ -72,7 +72,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ParticleDescriptor particleDescriptor;
 	particleDescriptor.ttl = 0.4f;
 	particleDescriptor.velocity = ds::vec2(20.0f, 0.0f);
-	particleDescriptor.friction = 0.5f;
+	particleDescriptor.friction = 0.25f;
 	particleDescriptor.maxScale = ds::vec2(0.02f, 0.02f);
 	particleDescriptor.minScale = ds::vec2(0.05f, 0.05f);
 	particleDescriptor.acceleration = ds::vec3(0.0f, -1.75f, 0.0f);
