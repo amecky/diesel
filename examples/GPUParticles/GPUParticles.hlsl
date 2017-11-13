@@ -34,6 +34,9 @@ PS_Input VS_Main(uint id:SV_VERTEXID) {
 
     pos += ParticlesRO[particleIndex].velocity * elapsed;
     pos += ParticlesRO[particleIndex].acceleration * elapsed * elapsed;
+	if ( pos.y < -1.0) {
+		pos.y = -1.0;
+	}
     // move
 
     float3 look = normalize(eyePos - pos);
@@ -63,6 +66,6 @@ Texture2D colorMap : register(t0);
 SamplerState colorSampler : register(s0);
 
 float4 PS_Main(PS_Input frag) : SV_TARGET{
-	//return colorMap.Sample(colorSampler, frag.tex) * frag.color;
-	return frag.color;
+	return colorMap.Sample(colorSampler, frag.tex) * frag.color;
+	//return frag.color;
 }

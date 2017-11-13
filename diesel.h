@@ -4037,16 +4037,18 @@ namespace ds {
 	// ------------------------------------------------------
 	static void setInstancedVertexBuffer(RID rid) {
 		uint16_t ridx = getResourceIndex(rid, RT_INSTANCED_VERTEX_BUFFER);
-		InstancedVertexBufferResource* ibr = (InstancedVertexBufferResource*)_ctx->_resources[ridx];
-		InstancedBindData* data = ibr->get();
-		VertexBufferResource* fr = (VertexBufferResource*)_ctx->_resources[id_mask(data->rid)];
-		VertexBufferResource* sr = (VertexBufferResource*)_ctx->_resources[id_mask(data->instanceBuffer)];
-		unsigned int strides[2] = { fr->getVertexSize(),sr->getVertexSize() };
-		unsigned int offsets[2] = { 0 };
-		ID3D11Buffer* bufferPointers[2];
-		bufferPointers[0] = fr->get();
-		bufferPointers[1] = sr->get();
-		_ctx->d3dContext->IASetVertexBuffers(0, 2, bufferPointers, strides, offsets);
+		if (ridx != NO_RID) {
+			InstancedVertexBufferResource* ibr = (InstancedVertexBufferResource*)_ctx->_resources[ridx];
+			InstancedBindData* data = ibr->get();
+			VertexBufferResource* fr = (VertexBufferResource*)_ctx->_resources[id_mask(data->rid)];
+			VertexBufferResource* sr = (VertexBufferResource*)_ctx->_resources[id_mask(data->instanceBuffer)];
+			unsigned int strides[2] = { fr->getVertexSize(),sr->getVertexSize() };
+			unsigned int offsets[2] = { 0 };
+			ID3D11Buffer* bufferPointers[2];
+			bufferPointers[0] = fr->get();
+			bufferPointers[1] = sr->get();
+			_ctx->d3dContext->IASetVertexBuffers(0, 2, bufferPointers, strides, offsets);
+		}
 	}
 
 	// ------------------------------------------------------
@@ -4181,6 +4183,8 @@ namespace ds {
 			blendDesc.RenderTarget[0].BlendEnable = FALSE;
 			//blendDesc.RenderTarget[0].BlendEnable = (srcBlend != D3D11_BLEND_ONE) || (destBlend != D3D11_BLEND_ZERO);
 		}
+		blendDesc.AlphaToCoverageEnable = false;
+		blendDesc.IndependentBlendEnable = false;
 		blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
 		blendDesc.RenderTarget[0].SrcBlend = BLEND_STATEMAPPINGS[info.srcBlend];
 		blendDesc.RenderTarget[0].DestBlend = BLEND_STATEMAPPINGS[info.destBlend];

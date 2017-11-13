@@ -117,6 +117,9 @@ public:
 	void add(const ds::vec3& pos, ParticleDescriptor descriptor);
 	void tick(float dt);
 	void render();
+	int countAlive() const {
+		return _array.countAlive;
+	}
 private:
 	RID _renderPass;
 	ParticlesystemDescriptor _descriptor;

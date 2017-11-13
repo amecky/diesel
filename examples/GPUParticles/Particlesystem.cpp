@@ -8,7 +8,9 @@ Particlesystem::Particlesystem(ds::Camera* camera, ParticlesystemDescriptor desc
 	_array.initialize(descriptor.maxParticles);
 	_vertices = new GPUParticle[descriptor.maxParticles];
 
-	ds::BlendStateInfo blendStateInfo{ ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
+	//ds::BlendStateInfo blendStateInfo{ ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
+	//ds::BlendStateInfo blendStateInfo = { ds::BlendStates::ONE, ds::BlendStates::ZERO, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::ZERO, true };
+	ds::BlendStateInfo blendStateInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::ZERO, ds::BlendStates::ONE, ds::BlendStates::ZERO, true };
 	RID blendState = ds::createBlendState(blendStateInfo);
 
 	ds::ShaderInfo vsInfo = { 0, GPUParticles_VS_Main, sizeof(GPUParticles_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
@@ -81,6 +83,51 @@ void Particlesystem::tick(float dt) {
 	}
 }
 
+void swap(GPUParticle* a, GPUParticle* b) {
+	GPUParticle t = *a;
+	*a = *b;
+	*b = t;
+}
+/* This function takes last element as pivot, places
+the pivot element at its correct position in sorted
+array, and places all smaller (smaller than pivot)
+to left of pivot and all greater elements to right
+of pivot */
+int partition(GPUParticle* arr, int low, int high) {
+	float pivot = arr[high].position.z;    // pivot
+	int i = (low - 1);  // Index of smaller element
+	for (int j = low; j <= high - 1; j++) {
+		// If current element is smaller than or
+		// equal to pivot
+		if (arr[j].position.z <= pivot)
+		{
+			i++;    // increment index of smaller element
+			swap(&arr[i], &arr[j]);
+		}
+	}
+	swap(&arr[i + 1], &arr[high]);
+	return (i + 1);
+}
+
+/* The main function that implements QuickSort
+arr[] --> Array to be sorted,
+low  --> Starting index,
+high  --> Ending index */
+void quickSort(GPUParticle* arr, int low, int high)
+{
+	if (low < high)
+	{
+		/* pi is partitioning index, arr[p] is now
+		at right place */
+		int pi = partition(arr, low, high);
+
+		// Separately sort elements before
+		// partition and after partition
+		quickSort(arr, low, pi - 1);
+		quickSort(arr, pi + 1, high);
+	}
+}
+
 // -------------------------------------------------------
 // render particles
 // -------------------------------------------------------
@@ -104,6 +151,7 @@ void Particlesystem::render() {
 			ds::vec2(_array.sizes[i].z,_array.sizes[i].w)
 		};
 	}
+	//quickSort(_vertices, 0, _array.countAlive);
 	ds::mapBufferData(_structuredBufferId, _vertices, _array.countAlive * sizeof(GPUParticle));
 	ds::submit(_renderPass, _drawItem, _array.countAlive * 6);
 

@@ -34,10 +34,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.clearColor = ds::Color(0.1f, 0.1f, 0.1f, 1.0f);
 	rs.multisampling = 4;
 	rs.useGPUProfiling = false;
+	rs.supportDebug = true;
 	ds::init(rs);
 
 	ParticlesystemDescriptor descriptor;
-	descriptor.maxParticles = 1024;
+	descriptor.maxParticles = 16384;
 	descriptor.particleDimension = ds::vec2(32, 32);
 	// load image using stb_image
 	descriptor.texture = loadImage("particles.png");
@@ -60,12 +61,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID vp = ds::createViewport(vpInfo);
 	ds::RenderPassInfo basicInfo = { &camera, vp, ds::DepthBufferState::ENABLED, 0, 0 };
 	RID basicPass = ds::createRenderPass(basicInfo);
-	ds::RenderPassInfo particlePassInfo = { &camera, vp, ds::DepthBufferState::ENABLED, 0, 0 };
+	ds::RenderPassInfo particlePassInfo = { &camera, vp, ds::DepthBufferState::DISABLED, 0, 0 };
 	RID particlePass = ds::createRenderPass(particlePassInfo);
 	
 	
-	descriptor.startColor = ds::Color(192, 192, 0, 255);
-	descriptor.endColor = ds::Color(192, 16, 0, 0);
+	descriptor.startColor = ds::Color(255, 255, 0, 255);
+	descriptor.endColor = ds::Color(128, 128, 0, 0);
 
 	Particlesystem system(&camera, descriptor, particlePass);
 
@@ -75,10 +76,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	particleDescriptor.friction = 0.25f;
 	particleDescriptor.maxScale = ds::vec2(0.02f, 0.02f);
 	particleDescriptor.minScale = ds::vec2(0.05f, 0.05f);
-	particleDescriptor.acceleration = ds::vec3(0.0f, -1.75f, 0.0f);
+	particleDescriptor.acceleration = ds::vec3(0.0f, -1.15f, 0.0f);
 	
-	int emitter = 64;
-	float radius = 0.05f;
+	int emitter = 512;
+	float radius = 0.25f;
 	float t = 0.0f;
 
 	RID textureID = loadImage("..\\common\\cube_map.png");
@@ -98,7 +99,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	grid.create(gridPositions, 2, vertexShader, pixelShader, textureID, basicPass);
 
 	float dt = 1.0f / 60.0f;
-	float frequency = 200.0f * dt;
+	float frequency = 12800.0f * dt;
 	float accu = 0.0f;
 
 	FPSCamera fpsCamera(&camera);
@@ -114,12 +115,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			accu += frequency;
 			while (accu >= 1.0f) {
 				accu -= 1.0f;
+				float rmin = radius - radius * 0.8f;
+				float r = ds::random(rmin, radius);
 				float angle = ds::random(0.0f, ds::TWO_PI);
-				float x = cos(angle) * radius;
+				float x = cos(angle) * r;
 				float y = -1.0f;
-				float z = sin(angle) * radius;
-				particleDescriptor.ttl = ds::random(1.0f, 1.2f);
-				particleDescriptor.velocity = ds::vec3(ds::random(-0.4f,0.4f), ds::random(1.2f, 2.6f), ds::random(-0.4f, 0.4f));
+				float z = sin(angle) * r;
+				particleDescriptor.ttl = ds::random(1.0f, 1.6f);
+				particleDescriptor.velocity = ds::vec3(ds::random(-1.5f,1.5f), ds::random(1.2f, 4.6f), ds::random(-1.5f, 1.5f));
 				system.add(ds::vec3(x, y, z), particleDescriptor);
 			}
 			t -= dt;
@@ -128,6 +131,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		grid.render();
 		system.tick(static_cast<float>(ds::getElapsedSeconds()));
 		system.render();
+
+		ds::dbgPrint(0, 0, "FPS: %d", ds::getFramesPerSecond());
+		ds::dbgPrint(0, 1, "Particles: %d", system.countAlive());
+
 		ds::end();
 	}
 	ds::shutdown();
