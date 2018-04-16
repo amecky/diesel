@@ -141,13 +141,14 @@ void Particlesystem::render() {
 	_constantBuffer.eyePos = _camera->position;
 	_constantBuffer.padding = 0.0f;
 	_constantBuffer.world = ds::matTranspose(w);
+	_constantBuffer.textureRect = ds::vec4(0.0f, 0.0f, 1.0f, 1.0f);
 	for (int i = 0; i < _array.countAlive; ++i) {
 		_vertices[i] = {
 			_array.positions[i],
 			_array.velocities[i],
 			_array.accelerations[i],
 			ds::vec2(_array.timers[i].x, _array.timers[i].y),
-			ds::vec2(_array.sizes[i].xy()),
+			ds::vec2(_array.sizes[i].x,_array.sizes[i].y),
 			ds::vec2(_array.sizes[i].z,_array.sizes[i].w)
 		};
 	}

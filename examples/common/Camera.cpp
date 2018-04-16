@@ -90,7 +90,9 @@ void FPSCamera::update(float elapsedTime) {
 	ds::vec2 mp = ds::getMousePosition();
 	if (ds::isMouseButtonPressed(0)) {
 		// Make each pixel correspond to a quarter of a degree.
-		float dx = DEGTORAD(0.25f*(mp.x - _lastMousePos.x));
+		//float dx = DEGTORAD(0.25f*(mp.x - _lastMousePos.x));
+		//float dy = DEGTORAD(0.25f*(mp.y - _lastMousePos.y));
+		float dx = DEGTORAD(0.25f*(_lastMousePos.x - mp.x));
 		float dy = DEGTORAD(0.25f*(mp.y - _lastMousePos.y));
 		setPitch(dy);
 		setYaw(dx);			
