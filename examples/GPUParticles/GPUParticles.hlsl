@@ -49,13 +49,8 @@ PS_Input VS_Main(uint id:SV_VERTEXID) {
     pos += ParticlesRO[particleIndex].velocity * elapsed;
     pos += ParticlesRO[particleIndex].acceleration * elapsed * elapsed;
 	if ( pos.y < -1.0) {
-		pos.y = -1.0;
+		ParticlesRO[particleIndex].velocity.y *= -1.0;
 	}
-    // move
-
-    //float3 look = normalize(eyePos - pos);
-	//float3 right = normalize(cross(float3(0, 1, 0), look));
-	//float3 up = normalize(cross(look, right));
 
 	float2 scaling = ParticlesRO[particleIndex].scale;
 	scaling += ParticlesRO[particleIndex].growth * elapsed;
@@ -71,8 +66,6 @@ PS_Input VS_Main(uint id:SV_VERTEXID) {
 
     
 	vsOut.pos = mul(fp, wvp);
-	//vsOut.tex.x = (vertexIndex % 2) ? 1.0 : 0.0;
-    //vsOut.tex.y = (vertexIndex & 2) ? 1.0 : 0.0;
 
     vsOut.tex.x = (vertexIndex % 2) ? textureRect.z : textureRect.x;
     vsOut.tex.y = (vertexIndex & 2) ? textureRect.w : textureRect.y;
