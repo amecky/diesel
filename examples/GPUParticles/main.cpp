@@ -66,7 +66,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	
 	
 	descriptor.startColor = ds::Color(255, 255, 0, 255);
-	descriptor.endColor = ds::Color(128, 128, 0, 0);
+	descriptor.endColor = ds::Color(128, 0, 0, 0);
 
 	Particlesystem system(&camera, descriptor, particlePass);
 
@@ -74,8 +74,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	particleDescriptor.ttl = 0.4f;
 	particleDescriptor.velocity = ds::vec2(20.0f, 0.0f);
 	particleDescriptor.friction = 0.25f;
-	particleDescriptor.maxScale = ds::vec2(0.02f, 0.02f);
-	particleDescriptor.minScale = ds::vec2(0.05f, 0.05f);
+	particleDescriptor.maxScale = ds::vec2(0.01f, 0.01f);
+	particleDescriptor.minScale = ds::vec2(0.025f, 0.025f);
 	particleDescriptor.acceleration = ds::vec3(0.0f, -1.15f, 0.0f);
 	
 	int emitter = 512;

@@ -15,6 +15,7 @@ struct GridItem {
 	ds::vec3 pos;
 	float timer;
 	ds::Color color;
+	int type;
 };
 
 struct CubeConstantBuffer {
@@ -43,11 +44,11 @@ void log(const ds::LogLevel&, const char* message) {
 // main method
 // ---------------------------------------------------------------
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
-	ds::vec3 rotation(ds::PI * 0.5f, 0.0f, 0.0f);
+	ds::vec3 rotation(-ds::PI * 0.5f, 0.0f, 0.0f);
 	ds::matrix rotX = ds::matRotationX(rotation.x);
 	ObjVertex vertices[512];
 	WaveFrontReader reader;
-	int num = reader.load("hex.obj", &rotX);
+	int num = reader.load("hex.obj");// , &rotX);
 	for (size_t i = 0; i < reader.size(); ++i) {
 		vertices[i] = reader.get(i);
 	}
@@ -115,10 +116,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	};
 
 	LightBuffer lightBuffer;
-	lightBuffer.ambientColor = ds::Color(0.15f, 0.15f, 0.15f, 1.0f);
+	lightBuffer.ambientColor = ds::Color(0.25f, 0.25f, 0.25f, 1.0f);
 	lightBuffer.diffuseColor = ds::Color(255,255,255,255);
 	lightBuffer.padding = 0.0f;
-	ds::vec3 lightPos = ds::vec3(0.0f, 0.5f, 1.0f);
+	ds::vec3 lightPos = ds::vec3(0.1f, 0.0f, 1.0f);
 	lightBuffer.lightDirection = normalize(lightPos);
 	ds::InstancedInputLayoutInfo iilInfo = { decl, 4, instDecl, 5, vertexShader };
 	RID rid = ds::createInstancedInputLayout(iilInfo);
@@ -158,6 +159,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			item.pos = p;
 			item.timer = ds::random(0.0f, ds::PI);
 			item.color = ds::Color(192, 0, 0, 255);
+			item.type = 0;
+			if (r == 0 || r == HEIGHT - 1) {
+				item.color = ds::Color(0, 0, 192, 255);
+				item.type = 1;
+			}
+			if (q == -q_offset || q == WIDTH - q_offset  - 1) {
+				item.color = ds::Color(0, 192, 0, 255);
+				item.type = 1;
+			}
 			++w;
 		}
 	}
@@ -182,13 +192,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		// rotate, scale and move every instance
 		for (int y = 0; y < TOTAL; ++y) {
 			GridItem& item = items[y];
-			item.timer += ds::getElapsedSeconds();
-			ds::matrix pm = ds::matTranslate(ds::vec3(item.pos.x, item.pos.y, sin(item.timer) * 0.4f));
-			ds::matrix rx = ds::matRotationX(item.timer);
-			float scale = 0.5f + sin(item.timer) * 0.2f;
-			ds::matrix sm = ds::matScale(ds::vec3(scale, scale, scale));
-			ds::matrix world = rx * sm * pm;
-			instances[y] = { ds::matTranspose(world), item.color };
+			if (item.type == 0) {
+				item.timer += ds::getElapsedSeconds();
+				ds::matrix pm = ds::matTranslate(ds::vec3(item.pos.x, item.pos.y, sin(item.timer) * 0.4f));
+				ds::matrix rx = ds::matRotationX(item.timer);
+				float scale = 0.5f + sin(item.timer) * 0.2f;
+				ds::matrix sm = ds::matScale(ds::vec3(scale, scale, scale));
+				ds::matrix world = rx * sm * pm;
+				instances[y] = { ds::matTranspose(world), item.color };
+			}
+			else {
+				ds::matrix rx = ds::matRotationX(-ds::PI * 0.5f);
+				ds::matrix pm = ds::matTranslate(ds::vec3(item.pos.x, item.pos.y, sin(item.timer) * 0.4f));
+				ds::matrix world = rx * pm;
+				instances[y] = { ds::matTranspose(world), item.color };
+			}
 			
 		}
 		// map the instance data

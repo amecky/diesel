@@ -160,10 +160,6 @@ namespace ds {
 			z = other.z;
 		}
 
-		vec2 xy() const {
-			return vec2(x, y);
-		}
-
 		const float* operator() () const {
 			return &data[0];
 		}
@@ -215,14 +211,6 @@ namespace ds {
 			y = other.y;
 			z = other.z;
 			w = other.w;
-		}
-
-		vec2 xy() const {
-			return vec2(x, y);
-		}
-
-		vec3 xyz() const {
-			return vec3(x, y, z);
 		}
 
 		const float* operator() () const {
@@ -570,6 +558,14 @@ namespace ds {
 		return ret /= v;
 	}
 
+	inline float dot(const vec2& v, const vec2& u) {
+		float t = 0.0f;
+		for (int i = 0; i < 2; ++i) {
+			t += v.data[i] * u.data[i];
+		}
+		return t;
+	}
+
 	inline float dot(const vec3& v, const vec3& u) {
 		float t = 0.0f;
 		for (int i = 0; i < 3; ++i) {
@@ -909,6 +905,7 @@ namespace ds {
 		return sm;
 	}
 
+	// roation is counter clock wise
 	// http://www.cprogramming.com/tutorial/3d/rotationMatrices.html
 	// -------------------------------------------------------
 	// Rotation X matrix
@@ -918,8 +915,8 @@ namespace ds {
 		float c = cosf(angle);
 		matrix sm(
 			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, c, s, 0.0f,
-			0.0f, -s, c, 0.0f,
+			0.0f, c, -s, 0.0f,
+			0.0f, s, c, 0.0f,
 			0.0f, 0.0f, 0.0f, 1.0f
 			);
 		return sm;
@@ -932,9 +929,9 @@ namespace ds {
 		float s = sinf(angle);
 		float c = cosf(angle);
 		matrix sm(
-			c, 0.0f, -s, 0.0f,
+			c, 0.0f, s, 0.0f,
 			0.0f, 1.0f, 0.0f, 0.0f,
-			s, 0.0f, c, 0.0f,
+			-s, 0.0f, c, 0.0f,
 			0.0f, 0.0f, 0.0f, 1.0f
 			);
 		return sm;
@@ -947,8 +944,8 @@ namespace ds {
 		float s = sinf(angle);
 		float c = cosf(angle);
 		matrix sm(
-			c, s, 0.0f, 0.0f,
-			-s, c, 0.0f, 0.0f,
+			c, -s, 0.0f, 0.0f,
+			s, c, 0.0f, 0.0f,
 			0.0f, 0.0f, 1.0f, 0.0f,
 			0.0f, 0.0f, 0.0f, 1.0f
 			);
@@ -984,6 +981,18 @@ namespace ds {
 			}
 		}
 		return tmp;
+	}
+
+	inline vec3 matTransformCoord(const matrix& m, const vec3 v) {
+		vec3 r(0.0f);
+		float x = v.x*m._11 + v.y*m._21 + v.z*m._31 + m._41;
+		float y = v.x*m._12 + v.y*m._22 + v.z*m._32 + m._42;
+		float z = v.x*m._13 + v.y*m._23 + v.z*m._33 + m._43;
+		float w = v.x*m._14 + v.y*m._24 + v.z*m._34 + m._44;
+		r.x = x / w;
+		r.y = y / w;
+		r.z = z / w;
+		return r;
 	}
 
 	
@@ -1028,6 +1037,7 @@ namespace ds {
 	}
 
 	inline matrix matRotation(const vec3& v, float angle) {
+		// counter clock wise
 		float L = (v.x * v.x + v.y * v.y + v.z * v.z);
 		float u2 = v.x * v.x;
 		float vec2 = v.y * v.y;
@@ -1552,7 +1562,7 @@ namespace ds {
 	
 	RID compile(const DrawCommand cmd, RID group, const char* name = "UNKNOWN");
 
-	void submit(RID renderPass, RID drawItemID, int numElements = -1);
+	void submit(RID renderPass, RID drawItemID, int numElements = -1, int numInstances = -1);
 	
 	bool init(const RenderSettings& settings);
 
@@ -1654,6 +1664,12 @@ namespace ds {
 	};
 
 	RID createShader(const ShaderInfo& info, const char* name = "Shader");
+
+	RID createVertexShader(const void* data,int dataSize, const char* name = "VertexShader");
+
+	RID createPixelShader(const void* data, int dataSize, const char* name = "PixelShader");
+
+	RID createGeometryShader(const void* data, int dataSize, const char* name = "GeometryShader");
 	
 	// texture
 	struct TextureInfo {
@@ -1700,6 +1716,8 @@ namespace ds {
 	RID findResource(const StaticHash& hash, ResourceType type);
 
 	void rebuildCamera(Camera* camera);
+
+	Camera buildPerspectiveCamera(const vec3& pos);
 	
 	// drawing
 	
@@ -1774,6 +1792,8 @@ namespace ds {
 
 	float random(float min, float max);
 
+	bool random_chance(float split);
+
 	const char* getLastError();
 
 	enum SpecialKeys {
@@ -1842,6 +1862,14 @@ namespace ds {
 #define SID_VAL(str) (fnv1a(str))
 #endif
 
+#ifndef DBG_LOG
+#define DBG_LOG(s, ...) do { ds::log(LogLevel::LL_DEBUG,s,__VA_ARGS__); } while(false);
+#endif
+
+#ifndef REPORT
+#define REPORT(s, ...) do { ds::log(LogLevel::LL_ERROR,s,__VA_ARGS__); } while(false);
+#endif
+
 #ifdef DS_IMPLEMENTATION
 
 #include <Windows.h>
@@ -1865,13 +1893,7 @@ namespace ds {
 #define XASSERT(Expr, s, ...) do { ds::assert_fmt(#Expr, Expr,s,__VA_ARGS__); } while(false);
 #endif
 
-#ifndef DBG_LOG
-#define DBG_LOG(s, ...) do { ds::log(LogLevel::LL_DEBUG,s,__VA_ARGS__); } while(false);
-#endif
 
-#ifndef REPORT
-#define REPORT(s, ...) do { ds::log(LogLevel::LL_ERROR,s,__VA_ARGS__); } while(false);
-#endif
 
 namespace ds {
 
@@ -2810,7 +2832,7 @@ namespace ds {
 		RID basicConstantBufferID;
 
 		std::vector<BaseResource*> _resources;
-		std::vector<StateGroup*> _groups;
+		//std::vector<StateGroup*> _groups;
 		std::vector<ComputeShaderGroup*> _computeShaderGroups;
 
 		bool mouseButtonClicked[2];
@@ -2926,6 +2948,11 @@ namespace ds {
 	float random(float min, float max) {
 		std::uniform_real_distribution<float> dist(min, max);
 		return dist(mt);
+	}
+
+	bool random_chance(float split) {
+		float r = random(0.0f, 100.0f);
+		return r >= split;
 	}
 
 	static const uint64_t TicksPerSecond = 10000000;
@@ -3491,10 +3518,13 @@ namespace ds {
 			for (size_t i = 0; i < _ctx->_resources.size(); ++i) {
 				_ctx->_resources[i]->release();
 				delete _ctx->_resources[i];
-			}			
-			for (size_t i = 0; i < _ctx->_groups.size(); ++i) {				
+			}		
+			/*
+			for (size_t i = 0; i < _ctx->_groups.size(); ++i) {			
+				delete[] _ctx->_groups[i]->items;
 				delete _ctx->_groups[i];
 			}
+			*/
 			delete _ctx->charBuffer;
 			if (_ctx->backBufferTarget) _ctx->backBufferTarget->Release();
 			if (_ctx->swapChain) _ctx->swapChain->Release();
@@ -3819,7 +3849,7 @@ namespace ds {
 	// create a quad index buffer 0, 1, 2, 2, 3, 0
 	// ------------------------------------------------------
 	RID createQuadIndexBuffer(int numQuads, const char* name) {		
-		uint32_t size = numQuads * 6;
+		int size = numQuads * 6;
 		uint32_t* data = new uint32_t[size];
 		int base = 0;
 		int cnt = 0;
@@ -3843,7 +3873,7 @@ namespace ds {
 	// create a quad index buffer 0, 1, 2, 2, 3, 0
 	// ------------------------------------------------------
 	RID createQuadIndexBuffer(int numQuads, int* order, const char* name) {
-		uint32_t size = numQuads * 6;
+		int size = numQuads * 6;
 		uint32_t* data = new uint32_t[size];
 		int base = 0;
 		int cnt = 0;
@@ -4182,8 +4212,6 @@ namespace ds {
 			blendDesc.RenderTarget[0].BlendEnable = FALSE;
 			//blendDesc.RenderTarget[0].BlendEnable = (srcBlend != D3D11_BLEND_ONE) || (destBlend != D3D11_BLEND_ZERO);
 		}
-		blendDesc.AlphaToCoverageEnable = false;
-		blendDesc.IndependentBlendEnable = false;
 		blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
 		blendDesc.RenderTarget[0].SrcBlend = BLEND_STATEMAPPINGS[info.srcBlend];
 		blendDesc.RenderTarget[0].DestBlend = BLEND_STATEMAPPINGS[info.destBlend];
@@ -5259,7 +5287,7 @@ namespace ds {
 	// ------------------------------------------------------
 	// submit draw command
 	// ------------------------------------------------------
-	void submit(RID renderPass, RID drawItemID, int numElements) {
+	void submit(RID renderPass, RID drawItemID, int numElements, int numInstances) {
 		uint16_t pidx = getResourceIndex(renderPass, RT_RENDER_PASS);
 		RenderPassResource* rpRes = (RenderPassResource*)_ctx->_resources[pidx];
 		RenderPass* pass = rpRes->get();
@@ -5310,10 +5338,14 @@ namespace ds {
 			num = numElements;
 		}
 		_ctx->d3dContext->IASetPrimitiveTopology(PRIMITIVE_TOPOLOGIES[cmd.topology]);
+		int ni = cmd.instances;
+		if (numInstances != -1) {
+			ni = numInstances;
+		}
 		switch (cmd.drawType) {
 			case DT_VERTICES: _ctx->d3dContext->Draw(num, 0); break;
 			case DT_INDEXED: _ctx->d3dContext->DrawIndexed(num, 0, 0); break;
-			case DT_INSTANCED: _ctx->d3dContext->DrawInstanced(num, cmd.instances, 0, 0); break;
+			case DT_INSTANCED: _ctx->d3dContext->DrawInstanced(num, ni, 0, 0); break;
 		}
 		// FIXME: is this correct? At least it removes the warnings when using render targets as textures
 		ID3D11ShaderResourceView *const pSRV[2] = { NULL, NULL };
@@ -5364,6 +5396,24 @@ namespace ds {
 		rp->viewport = info.viewport;
 		RenderPassResource* res = new RenderPassResource(rp);
 		return addResource(res, RT_RENDER_PASS, name);
+	}
+
+	Camera buildPerspectiveCamera(const vec3& pos) {
+		matrix viewMatrix = matLookAtLH(pos, vec3(0, 0, 0), vec3(0, 1, 0));
+		matrix projectionMatrix = matPerspectiveFovLH(PI / 4.0f, getScreenAspectRatio(), 0.01f, 100.0f);
+		Camera camera = {
+			viewMatrix,
+			projectionMatrix,
+			viewMatrix * projectionMatrix,
+			pos,
+			vec3(0,0,1),
+			vec3(0,1,0),
+			vec3(1,0,0),
+			0.0f,
+			0.0f,
+			0.0f
+		};
+		return camera;
 	}
 
 	// ******************************************************
@@ -5637,7 +5687,7 @@ namespace ds {
 						_gpCtx->adTTotalAvg[gts] = 0.0f;
 					}
 					_gpCtx->frameCountAvg = 0;
-					_gpCtx->tBeginAvg = static_cast<float>(GetTotalSeconds());
+					_gpCtx->tBeginAvg = GetTotalSeconds();
 				}
 			}
 		}

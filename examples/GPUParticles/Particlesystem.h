@@ -22,6 +22,7 @@ struct ParticleConstantBuffer {
 	ds::matrix world;
 	ds::vec3 eyePos;
 	float padding;
+	ds::vec4 textureRect;
 };
 
 // -------------------------------------------------------
