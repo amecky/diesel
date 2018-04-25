@@ -28,7 +28,7 @@ void BloomComponent::initialize() {
 	//
 	// create three render targets to switch between
 	//
-	ds::RenderTargetInfo rtInfo = { 1024, 768, ds::Color(0, 0, 0, 0) };
+	ds::RenderTargetInfo rtInfo = { 512, 384, ds::Color(0, 0, 0, 0) };
 	RID bloomRT1 = ds::createRenderTarget(rtInfo);
 	RID bloomRT2 = ds::createRenderTarget(rtInfo);
 	//
@@ -69,7 +69,8 @@ void BloomComponent::initialize() {
 		_blurBuffer.weights[i] = WEIGHTS[i];
 	}
 	_blurBuffer.direction = ds::vec2(1, 0);
-	_blurBuffer.data = ds::vec2(1024.0f, 768.0f);
+	//_blurBuffer.data = ds::vec2(1024.0f, 768.0f);
+	_blurBuffer.data = ds::vec2(512.0f, 384.0f);
 	RID blurBufferID = ds::createConstantBuffer(sizeof(BlurBuffer), &_blurBuffer);
 	RID bloomExtractBufferID = ds::createConstantBuffer(sizeof(BloomExtractSettings), _bloomExtractBuffer);
 	RID bloomBufferID = ds::createConstantBuffer(sizeof(BloomSettings), _bloomBuffer);

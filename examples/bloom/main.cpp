@@ -189,9 +189,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		if (state == 1) {
 			gui::Value("FPS", ds::getFramesPerSecond());
 			gui::Slider("Threshold", &bloomExtractSettings.BloomThreshold,0.0f,1.0f,2);
-			gui::Input("Bloom Intensity", &bloomSettings.BloomIntensity);
-			gui::Input("Bloom Saturation", &bloomSettings.BloomSaturation);
-			gui::Input("Original Intensity", &bloomSettings.OriginalIntensity);
+			gui::Slider("Bloom Intensity", &bloomSettings.BloomIntensity,0.0f,1.5f,2);
+			gui::Slider("Bloom Saturation", &bloomSettings.BloomSaturation,0.0f,3.0f,2);
+			gui::Slider("Original Intensity", &bloomSettings.OriginalIntensity,0.5f,2.0f,2);
 			gui::Slider("Original Saturation", &bloomSettings.OriginalSaturation,0.0f,2.0f,1);
 			gui::Checkbox("Bloom", &useBloom);
 		}
