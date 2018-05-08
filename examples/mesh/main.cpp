@@ -83,18 +83,46 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		0.0f,
 		0.0f
 	};
-	ds::ViewportInfo vpInfo = { 1024,768,0.0f,1.0f };
-	RID vp = ds::createViewport(vpInfo);
-	ds::RenderPassInfo rpInfo = { &camera, vp, ds::DepthBufferState::ENABLED, 0, 0 };
-	RID basicPass = ds::createRenderPass(rpInfo);
+	
+	RID vp = ds::createViewport(ds::ViewportDesc()
+		.Top(0)
+		.Left(0)
+		.Width(ds::getScreenWidth())
+		.Height(ds::getScreenHeight())
+		.MinDepth(0.0f)
+		.MaxDepth(1.0f)
+	);
 
-	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
-	RID bs_id = ds::createBlendState(blendInfo);
+	
+	RID basicPass = ds::createRenderPass(ds::RenderPassDesc()
+		.Camera(&camera)
+		.Viewport(vp)
+		.DepthBufferState(ds::DepthBufferState::ENABLED)
+		.NumRenderTargets(0)
+		.RenderTargets(0)
+	);
 
-	ds::ShaderInfo vsInfo = { 0, Instancing_VS_Main, sizeof(Instancing_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
-	RID vertexShader = ds::createShader(vsInfo);
-	ds::ShaderInfo psInfo = { 0, Instancing_PS_Main, sizeof(Instancing_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
-	RID pixelShader = ds::createShader(psInfo);
+	RID bs_id = ds::createBlendState(ds::BlendStateDesc()
+		.SrcBlend(ds::BlendStates::SRC_ALPHA)
+		.SrcAlphaBlend(ds::BlendStates::SRC_ALPHA)
+		.DestBlend(ds::BlendStates::INV_SRC_ALPHA)
+		.DestAlphaBlend(ds::BlendStates::INV_SRC_ALPHA)
+		.AlphaEnabled(true));
+
+	
+	RID vertexShader = ds::createShader(ds::ShaderDesc()
+		.Data(Instancing_VS_Main)
+		.DataSize(sizeof(Instancing_VS_Main))
+		.ShaderType(ds::ShaderType::ST_VERTEX_SHADER)
+	);
+
+	
+	RID pixelShader = ds::createShader(ds::ShaderDesc()
+			.Data(Instancing_PS_Main)
+			.DataSize(sizeof(Instancing_PS_Main))
+			.ShaderType(ds::ShaderType::ST_PIXEL_SHADER)
+	);
+
 	//
 	// the instance data contains a world matrix for each instance and a color
 	//
@@ -122,7 +150,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::vec3 lightPos = ds::vec3(0.1f, 0.0f, 1.0f);
 	lightBuffer.lightDirection = normalize(lightPos);
 	ds::InstancedInputLayoutInfo iilInfo = { decl, 4, instDecl, 5, vertexShader };
-	RID rid = ds::createInstancedInputLayout(iilInfo);
+	RID rid = ds::createInstancedInputLayout(ds::InstancedInputLayoutDesc()
+		.LayoutDefinition(decl)
+		.Num(4)
+		.InstancedLayoutDefinition(instDecl)
+		.NumInstances(5)
+		.Shader(vertexShader)
+	);
+
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
 	RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer), &lightBuffer);
 	ds::VertexBufferInfo vbInfo = { ds::BufferType::STATIC, num, sizeof(ObjVertex), vertices };
@@ -130,8 +165,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::VertexBufferInfo ibInfo = { ds::BufferType::DYNAMIC, TOTAL, sizeof(InstanceData) };
 	RID idid = ds::createVertexBuffer(ibInfo);
 	RID instanceBuffer = ds::createInstancedBuffer(vbid, idid);
-	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
-	RID ssid = ds::createSamplerState(samplerInfo);
+	
+	RID ssid = ds::createSamplerState(ds::SamplerStateDesc()
+		.AddressMode(ds::TextureAddressModes::CLAMP)
+		.Filter(ds::TextureFilters::LINEAR)
+	);
 
 	ds::vec3 scale(1.0f, 1.0f, 1.0f);
 	

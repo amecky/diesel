@@ -411,8 +411,16 @@ SpriteBatchBuffer::SpriteBatchBuffer(const SpriteBatchBufferInfo& info) : _max(i
 		0.0f,
 		0.0f
 	};
-	ds::ViewportInfo vpInfo = { ds::getScreenWidth(), ds::getScreenHeight(), 0.0f, 1.0f };
-	RID vp = ds::createViewport(vpInfo, "SpriteOrthoViewport");
+
+	RID vp = ds::createViewport(ds::ViewportDesc()
+		.Top(0)
+		.Left(0)
+		.Width(ds::getScreenWidth())
+		.Height(ds::getScreenHeight())
+		.MinDepth(0.0f)
+		.MaxDepth(1.0f),
+		"SpriteOrthoViewport"
+	);
 	ds::RenderPassInfo rpInfo = { &camera, vp, ds::DepthBufferState::DISABLED, 0, 0 };
 	_renderPass = ds::createRenderPass(rpInfo, "SpritesOrthoPass");
 	_constantBuffer.wvp = ds::matTranspose(camera.viewProjectionMatrix);

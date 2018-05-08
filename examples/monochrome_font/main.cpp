@@ -164,8 +164,14 @@ void convertImage() {
 	// load image using stb_image
 	int sx, sy, n;
 	unsigned char *data = stbi_load("fixedsys.png", &sx, &sy, &n, 4);
-	ds::TextureInfo texInfo = { sx, sy, n, data, ds::TextureFormat::R8G8B8A8_UNORM, ds::BindFlag::BF_SHADER_RESOURCE };
-	RID textureID = ds::createTexture(texInfo);
+		RID textureID = ds::createTexture(ds::TextureDesc()
+		.Width(sx)
+		.Height(sy)
+		.Channels(n)
+		.Data(data)
+		.Format(ds::TextureFormat::R8G8B8A8_UNORM)
+		.BindFlags(ds::BindFlag::BF_SHADER_RESOURCE)
+	);
 	int dx = sx / 8;
 	FILE* fp = fopen("fixedsys.h","w");
 	if (fp) {
@@ -232,9 +238,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			}
 		}
 	}
-	
-	ds::TextureInfo texInfo = { 128, 128, 4, data, ds::TextureFormat::R8G8B8A8_UNORM, ds::BindFlag::BF_SHADER_RESOURCE };
-	RID textureID = ds::createTexture(texInfo);
+		
+	RID textureID = ds::createTexture(ds::TextureDesc()
+		.Width(128)
+		.Height(128)
+		.Channels(4)
+		.Data(data)
+		.Format(ds::TextureFormat::R8G8B8A8_UNORM)
+		.BindFlags(ds::BindFlag::BF_SHADER_RESOURCE));
 	SpriteBatchBufferInfo sbbInfo = { 1024,textureID };
 	SpriteBatchBuffer buffer(sbbInfo);
 

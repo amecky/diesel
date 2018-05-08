@@ -47,17 +47,38 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		0.0f
 	};
 
-	ds::ViewportInfo vpInfo = { 1024,768,0.0f,1.0f };
-	RID vp = ds::createViewport(vpInfo);
-	ds::RenderPassInfo rpInfo = { &camera, vp, ds::DepthBufferState::ENABLED, 0, 0 };
-	RID basicPass = ds::createRenderPass(rpInfo);
+	RID vp = ds::createViewport(ds::ViewportDesc()
+		.Top(0)
+		.Left(0)
+		.Width(1024)
+		.Height(768)
+		.MinDepth(0.0f)
+		.MaxDepth(1.0f)
+	);
+
+	
+	RID basicPass = ds::createRenderPass(ds::RenderPassDesc()
+		.Camera(&camera)
+		.Viewport(vp)
+		.DepthBufferState(ds::DepthBufferState::ENABLED)
+		.RenderTargets(0)
+		.NumRenderTargets(0));
 	//
 	// create resources
 	//
-	ds::ShaderInfo vsInfo = { 0, Triangle_VS_Main, sizeof(Triangle_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
-	RID vertexShader = ds::createShader(vsInfo);
-	ds::ShaderInfo psInfo = { 0, Triangle_PS_Main, sizeof(Triangle_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
-	RID pixelShader = ds::createShader(psInfo);
+	
+	RID vertexShader = ds::createShader(ds::ShaderDesc()
+		.Data(Triangle_VS_Main)
+		.DataSize(sizeof(Triangle_VS_Main))
+		.ShaderType(ds::ShaderType::ST_VERTEX_SHADER)
+	);
+
+	RID pixelShader = ds::createShader(ds::ShaderDesc()
+		.Data(Triangle_PS_Main)
+		.DataSize(sizeof(Triangle_PS_Main))
+		.ShaderType(ds::ShaderType::ST_PIXEL_SHADER)
+	);
+
 	// create buffer input layout
 	ds::InputLayoutDefinition decl[] = {
 		{ "POSITION", 0, ds::BufferAttributeType::FLOAT3 },
@@ -68,8 +89,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		{ ds::vec3(0,1,1),ds::Color(255,0,0,255) },
 		{ ds::vec3(1,-1,1),ds::Color(255,0,0,255) }
 	};
-	ds::InputLayoutInfo layoutInfo = { decl, 2, vertexShader };
-	RID rid = ds::createInputLayout(layoutInfo);
+	
+	RID rid = ds::createInputLayout(ds::InputLayoutDesc()
+	.	Declarations(decl)
+		.NumDeclarations(2)
+		.VertexShader(vertexShader)
+	);
+
 	ds::VertexBufferInfo vbInfo = { ds::BufferType::STATIC, 3, sizeof(Vertex), v };
 	RID vbid = ds::createVertexBuffer(vbInfo);
 	//

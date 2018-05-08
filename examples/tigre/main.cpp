@@ -39,18 +39,27 @@ RID buildTigreDrawItem(RID lightBufferID) {
 		v[i] = PNCVertex{ positions[i],normals[i], colors[i] };
 	}
 
-	ds::ShaderInfo vsInfo = { 0, AmbientLightning_VS_Main, sizeof(AmbientLightning_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
-	RID vertexShader = ds::createShader(vsInfo);
-	ds::ShaderInfo psInfo = { 0, AmbientLightning_PS_Main, sizeof(AmbientLightning_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
-	RID pixelShader = ds::createShader(psInfo);
+	
+	RID vertexShader = ds::createShader(ds::ShaderDesc()
+		.Data(AmbientLightning_VS_Main)
+		.DataSize(sizeof(AmbientLightning_VS_Main))
+		.ShaderType(ds::ShaderType::ST_VERTEX_SHADER));
+
+	RID pixelShader = ds::createShader(ds::ShaderDesc()
+		.Data(AmbientLightning_PS_Main)
+		.DataSize(sizeof(AmbientLightning_PS_Main))
+		.ShaderType(ds::ShaderType::ST_PIXEL_SHADER));
 
 	ds::InputLayoutDefinition tigreDecl[] = {
 		{ "POSITION", 0, ds::BufferAttributeType::FLOAT3 },
 		{ "NORMAL"  , 0, ds::BufferAttributeType::FLOAT3 },
 		{ "COLOR"   , 0, ds::BufferAttributeType::FLOAT4 }
 	};
-	ds::InputLayoutInfo tigreLayoutInfo = { tigreDecl, 3, vertexShader };
-	RID nid = ds::createInputLayout(tigreLayoutInfo);
+	
+	RID nid = ds::createInputLayout(ds::InputLayoutDesc()
+		.Declarations(tigreDecl)
+		.NumDeclarations(3)
+		.VertexShader(vertexShader));
 
 
 	ds::VertexBufferInfo cbInfo = { ds::BufferType::STATIC, num, sizeof(PNCVertex), v };
@@ -102,10 +111,22 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::vec3(0,1,0),
 		ds::vec3(1,0,0)
 	};
-	ds::ViewportInfo vpInfo = { 1024,768,0.0f,1.0f };
-	RID vp = ds::createViewport(vpInfo);
-	ds::RenderPassInfo rpInfo = { &camera, vp, ds::DepthBufferState::ENABLED, 0, 0 };
-	RID basicPass = ds::createRenderPass(rpInfo, "BasicPass");
+
+	RID vp = ds::createViewport(ds::ViewportDesc()
+		.Top(0)
+		.Left(0)
+		.Width(1024)
+		.Height(768)
+		.MinDepth(0.0f)
+		.MaxDepth(1.0f)
+	);
+
+	RID basicPass = ds::createRenderPass(ds::RenderPassDesc()
+		.Camera(&camera)
+		.Viewport(vp)
+		.DepthBufferState(ds::DepthBufferState::ENABLED)
+		.RenderTargets(0)
+		.NumRenderTargets(0));
 	
 	RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer), &lightBuffer);
 	

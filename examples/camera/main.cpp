@@ -32,8 +32,14 @@ struct CubeConstantBuffer {
 RID loadImage(const char* name) {
 	int x, y, n;
 	unsigned char *data = stbi_load(name, &x, &y, &n, 4);
-	ds::TextureInfo info = { x,y,n,data,ds::TextureFormat::R8G8B8A8_UNORM , ds::BindFlag::BF_SHADER_RESOURCE };
-	RID textureID = ds::createTexture(info);
+	RID textureID = ds::createTexture(ds::TextureDesc()
+		.Width(x)
+		.Height(y)
+		.Channels(n)
+		.Data(data)
+		.Format(ds::TextureFormat::R8G8B8A8_UNORM)
+		.BindFlags(ds::BindFlag::BF_SHADER_RESOURCE)
+	);
 	stbi_image_free(data);
 	return textureID;
 }
@@ -80,21 +86,45 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		0.0f
 	};
 
-	ds::ViewportInfo vpInfo = { 1024,768,0.0f,1.0f };
-	RID vp = ds::createViewport(vpInfo);
-	ds::RenderPassInfo rpInfo = { &camera, vp, ds::DepthBufferState::ENABLED, 0, 0 };
-	RID basicPass = ds::createRenderPass(rpInfo);
+	
+	RID vp = ds::createViewport(ds::ViewportDesc()
+		.Top(0)
+		.Left(0)
+		.Width(ds::getScreenWidth())
+		.Height(ds::getScreenHeight())
+		.MinDepth(0.0f)
+		.MaxDepth(1.0f)
+	);
+	RID basicPass = ds::createRenderPass(ds::RenderPassDesc()
+		.Camera(&camera)
+		.Viewport(vp)
+		.DepthBufferState(ds::DepthBufferState::ENABLED)
+		.NumRenderTargets(0)
+		.RenderTargets(0)
+	);
 
 	RID textureID = loadImage("..\\common\\cube_map.png");
 	RID cubeTextureID = loadImage("..\\common\\grid.png");
 
-	ds::BlendStateInfo blendStateInfo {ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
-	RID bs_id = ds::createBlendState(blendStateInfo);
+	RID bs_id = ds::createBlendState(ds::BlendStateDesc()
+		.SrcBlend(ds::BlendStates::SRC_ALPHA)
+		.SrcAlphaBlend(ds::BlendStates::SRC_ALPHA)
+		.DestBlend(ds::BlendStates::INV_SRC_ALPHA)
+		.DestAlphaBlend(ds::BlendStates::INV_SRC_ALPHA)
+		.AlphaEnabled(true)
+	);
 
-	ds::ShaderInfo vsInfo = { 0, Textured_VS_Main, sizeof(Textured_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
-	RID vertexShader = ds::createShader(vsInfo);
-	ds::ShaderInfo psInfo = { 0, Textured_PS_Main, sizeof(Textured_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
-	RID pixelShader = ds::createShader(psInfo);
+	RID vertexShader = ds::createShader(ds::ShaderDesc()
+		.Data(Textured_VS_Main)
+		.DataSize(sizeof(Textured_VS_Main))
+		.ShaderType(ds::ShaderType::ST_VERTEX_SHADER)
+	);
+
+	RID pixelShader = ds::createShader(ds::ShaderDesc()
+		.Data(Textured_PS_Main)
+		.DataSize(sizeof(Textured_PS_Main))
+		.ShaderType(ds::ShaderType::ST_PIXEL_SHADER)
+	);
 
 	Grid grid(&camera);
 	ds::vec3 gridPositions[] = {
@@ -109,14 +139,27 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		{ "POSITION", 0, ds::BufferAttributeType::FLOAT3 },
 		{ "TEXCOORD", 0, ds::BufferAttributeType::FLOAT2 }
 	};
-	ds::InputLayoutInfo layoutInfo = { decl,2,vertexShader };
-	RID rid = ds::createInputLayout(layoutInfo);
+	
+	RID rid = ds::createInputLayout(ds::InputLayoutDesc()
+		.Declarations(decl)
+		.NumDeclarations(2)
+		.VertexShader(vertexShader)
+	);
+
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
 	RID indexBuffer = ds::createQuadIndexBuffer(256);
-	ds::VertexBufferInfo vbInfo = { ds::BufferType::STATIC, 24, sizeof(Vertex), v };
-	RID cubeBuffer = ds::createVertexBuffer(vbInfo);
-	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::WRAP, ds::TextureFilters::LINEAR };
-	RID ssid = ds::createSamplerState(samplerInfo);
+	
+	RID cubeBuffer = ds::createVertexBuffer(ds::VertexBufferDesc()
+		.BufferType(ds::BufferType::STATIC)
+		.Data(v)
+		.NumVertices(24)
+		.VertexSize(sizeof(Vertex))
+	);
+	
+	RID ssid = ds::createSamplerState(ds::SamplerStateDesc()
+		.AddressMode(ds::TextureAddressModes::CLAMP)
+		.Filter(ds::TextureFilters::LINEAR)
+	);
 
 	ds::vec3 scale(1.0f, 1.0f, 1.0f);
 	ds::vec3 rotation(0.0f, 0.0f, 0.0f);

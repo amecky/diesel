@@ -1775,8 +1775,6 @@ namespace ds {
 
 	RID createIndexBuffer(const IndexBufferDesc& info, const char* name = "IndexBuffer");
 	
-	RID createIndexBuffer(const IndexBufferInfo& info, const char* name = "IndexBuffer");
-	
 	RID createQuadIndexBuffer(int numQuads, const char* name = "QuadIndexBuffer");
 
 	RID createQuadIndexBuffer(int numQuads, int* order, const char* name = "QuadIndexBuffer");
@@ -1794,7 +1792,12 @@ namespace ds {
 	class VertexBufferDesc {
 
 	public:
-		VertexBufferDesc() {};
+		VertexBufferDesc() {
+			_info.type = BufferType::STATIC;
+			_info.numVertices = 0;
+			_info.vertexSize = 0;
+			_info.data = 0;
+		}
 		VertexBufferDesc& BufferType(BufferType type) {
 			_info.type = type;
 			return *this;
@@ -1817,8 +1820,6 @@ namespace ds {
 	private:
 		VertexBufferInfo _info;
 	};
-
-	RID createVertexBuffer(const VertexBufferInfo& info, const char* name = "VertexBuffer");
 
 	RID createVertexBuffer(const VertexBufferDesc& desc, const char* name = "VertexBuffer");
 	
@@ -4286,7 +4287,7 @@ namespace ds {
 	// ------------------------------------------------------
 	// index buffer with data
 	// ------------------------------------------------------
-	RID createIndexBuffer(const IndexBufferInfo& info, const char* name) {
+	static RID internalCreateIndexBuffer(const IndexBufferInfo& info, const char* name) {
 		D3D11_BUFFER_DESC bufferDesc;
 		if (info.type == BufferType::DYNAMIC) {
 			bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
@@ -4311,7 +4312,7 @@ namespace ds {
 	}
 
 	RID createIndexBuffer(const IndexBufferDesc& info, const char* name) {
-		return createIndexBuffer(info.getInfo(), name);
+		return internalCreateIndexBuffer(info.getInfo(), name);
 	}
 	
 	// ------------------------------------------------------
@@ -4347,7 +4348,7 @@ namespace ds {
 			cnt += 4;
 		}
 		IndexBufferInfo info = { size, ds::IndexType::UINT_32, ds::BufferType::STATIC, data };
-		RID rid = createIndexBuffer(info, name);
+		RID rid = internalCreateIndexBuffer(info, name);
 		delete[] data;
 		return rid;
 	}
@@ -4368,7 +4369,7 @@ namespace ds {
 			cnt += 4;
 		}
 		IndexBufferInfo info = { size, ds::IndexType::UINT_32, ds::BufferType::STATIC, data };
-		RID rid = createIndexBuffer(info, name);
+		RID rid = internalCreateIndexBuffer(info, name);
 		delete[] data;
 		return rid;
 	}
@@ -4376,7 +4377,7 @@ namespace ds {
 	// ------------------------------------------------------
 	// vertex buffer with optional data
 	// ------------------------------------------------------
-	RID createVertexBuffer(const VertexBufferInfo& info, const char* name) {
+	static RID internalCreateVertexBuffer(const VertexBufferInfo& info, const char* name) {
 		UINT size = info.numVertices * info.vertexSize;
 		D3D11_BUFFER_DESC bufferDesciption;
 		ZeroMemory(&bufferDesciption, sizeof(bufferDesciption));
@@ -4407,7 +4408,7 @@ namespace ds {
 	}
 
 	RID createVertexBuffer(const VertexBufferDesc& desc, const char* name) {
-		return createVertexBuffer(desc.getInfo(), name);
+		return internalCreateVertexBuffer(desc.getInfo(), name);
 	}
 
 	RID createInstancedBuffer(RID vertexBuffer, RID instanceBuffer, const char* name) {
@@ -5884,7 +5885,7 @@ namespace ds {
 		}
 	}
 
-	static RID createViewport(const ViewportInfo& info, const char* name) {
+	static RID internalCreateViewport(const ViewportInfo& info, const char* name) {
 		D3D11_VIEWPORT* vp = new D3D11_VIEWPORT;
 		vp->Height = static_cast<float>(info.height);
 		vp->Width = static_cast<float>(info.width);
@@ -5897,7 +5898,7 @@ namespace ds {
 	}
 
 	RID createViewport(const ViewportDesc& desc, const char* name) {
-		return createViewport(desc.getInfo(), name);
+		return internalCreateViewport(desc.getInfo(), name);
 	}
 
 	// ******************************************************
@@ -6941,8 +6942,13 @@ namespace ds {
 		InputLayoutInfo layoutInfo = { decl, 3, vertexShader };
 		RID vertexDeclId = createInputLayout( layoutInfo, "PCC_Layout");
 		RID cbid = createConstantBuffer(sizeof(DebugTextConstantBuffer), &_ctx->debugConstantBuffer, "DebugTextConstantBuffer");
-		ds::VertexBufferInfo vbInfo = { BufferType::DYNAMIC, MAX_DBG_TXT_VERTICES, sizeof(DebugTextVertex), 0 };
-		_ctx->debugVertexBufferID = createVertexBuffer(vbInfo, "DebugTextVertexBuffer");
+		
+		_ctx->debugVertexBufferID = createVertexBuffer(ds::VertexBufferDesc()
+			.BufferType(ds::BufferType::DYNAMIC)
+			.NumVertices(MAX_DBG_TXT_VERTICES)
+			.VertexSize(sizeof(DebugTextVertex)), 
+			"DebugTextVertexBuffer"
+		);
 		
 		RID ssid = createSamplerState(SamplerStateDesc()
 			.AddressMode(TextureAddressModes::CLAMP)
@@ -6988,8 +6994,16 @@ namespace ds {
 			0.0f,
 			0.0f
 		};
-		ViewportInfo vpInfo = { getScreenWidth(), getScreenHeight(), 0.0f, 1.0f };
-		RID vp = createViewport(vpInfo, "DebugViewport");
+
+		RID vp = createViewport(ViewportDesc()
+			.Top(0)
+			.Left(0)
+			.Width(getScreenWidth())
+			.Height(getScreenHeight())
+			.MinDepth(0.0f)
+			.MaxDepth(1.0f)
+			, "DebugViewport"
+		);
 		RenderPassInfo orthoRP = { &_ctx->orthoCamera, vp, DepthBufferState::DISABLED, 0, 0 };
 		_ctx->debugOrthoPass = createRenderPass(orthoRP, "DebugTextOrthoPass");
 		_ctx->debugConstantBuffer.wvp = matTranspose(orthoView * orthoProjection);

@@ -20,14 +20,6 @@ struct Vertex {
 	Vertex(const ds::vec3& pv, const ds::Color& c) : p(pv), color(c) {}
 };
 
-struct AmbientVertex {
-	ds::vec3 p;
-	ds::Color color;
-	ds::vec3 n;
-
-	AmbientVertex() : p(0.0f), color(1.0f, 1.0f, 1.0f, 1.0f) , n(0.0f) {}
-};
-
 const ds::vec3 CUBE_VERTICES[8] = {
 	ds::vec3(-0.5f,-0.5f,-0.5f),
 	ds::vec3(-0.5f, 0.5f,-0.5f),
@@ -100,7 +92,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	rs.width = 1024;
 	rs.height = 768;
 	rs.title = "Spinning cube";
-	rs.clearColor = ds::Color(0.2f, 0.2f, 0.2f, 1.0f);
+	rs.clearColor = ds::Color(0.1f, 0.1f, 0.1f, 1.0f);
 	rs.multisampling = 4;
 	rs.useGPUProfiling = false;
 	rs.supportDebug = true;
@@ -184,57 +176,32 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		{ "COLOR"   , 0, ds::BufferAttributeType::FLOAT4 }
 	};
 
-	// create buffer input layout
-	ds::InputLayoutDefinition ambientDecl[] = {
-		{ "POSITION", 0, ds::BufferAttributeType::FLOAT3 },
-		{ "COLOR"   , 0, ds::BufferAttributeType::FLOAT4 },
-		{ "NORMAL"   , 0, ds::BufferAttributeType::FLOAT3 }
-	};
-
 	RID rid = ds::createInputLayout(ds::InputLayoutDesc()
 		.Declarations(decl)
 		.NumDeclarations(2)
 		.VertexShader(vertexShader)
 	);
 
-	RID arid = ds::createInputLayout(ds::InputLayoutDesc()
-		.Declarations(ambientDecl)
-		.NumDeclarations(3)
-		.VertexShader(ambientVertexShader)
+	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
+	
+	RID iid = ds::createIndexBuffer(ds::IndexBufferDesc()
+		.NumIndices(36)
+		.BufferType(ds::BufferType::STATIC)
+		.IndexType(ds::IndexType::UINT_32)
+		.Data(p_indices)
 	);
 
-	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
-	ds::IndexBufferInfo ibInfo = { 36, ds::IndexType::UINT_32, ds::BufferType::STATIC, p_indices };
-	RID iid = ds::createIndexBuffer(ibInfo);
-	ds::VertexBufferInfo vbInfo = { ds::BufferType::STATIC, 24, sizeof(Vertex), v };
-	RID vbid = ds::createVertexBuffer(vbInfo);
+	RID vbid = ds::createVertexBuffer(ds::VertexBufferDesc()
+		.BufferType(ds::BufferType::STATIC)
+		.Data(v)
+		.NumVertices(24)
+		.VertexSize(sizeof(Vertex))
+	);
 	
 	RID ssid = ds::createSamplerState(ds::SamplerStateDesc()
 		.AddressMode(ds::TextureAddressModes::CLAMP)
 		.Filter(ds::TextureFilters::LINEAR)
 	);
-
-	FILE* fp = fopen("..\\..\\..\\obj_converter\\roadTile_082.bin", "rb");
-	int total = 0;
-	fread(&total, sizeof(int), 1, fp);
-	AmbientVertex* nv = new AmbientVertex[total];
-	for (int i = 0; i < total; ++i) {
-		AmbientVertex* c = &nv[i];
-		fread(&c->p.x, sizeof(float), 1, fp);
-		fread(&c->p.y, sizeof(float), 1, fp);
-		fread(&c->p.z, sizeof(float), 1, fp);
-		fread(&c->color.r, sizeof(float), 1, fp);
-		fread(&c->color.g, sizeof(float), 1, fp);
-		fread(&c->color.b, sizeof(float), 1, fp);
-		fread(&c->color.a, sizeof(float), 1, fp);
-		fread(&c->n.x, sizeof(float), 1, fp);
-		fread(&c->n.y, sizeof(float), 1, fp);
-		fread(&c->n.z, sizeof(float), 1, fp);
-	}
-	fclose(fp);
-
-	ds::VertexBufferInfo kvbInfo = { ds::BufferType::STATIC, total, sizeof(AmbientVertex), nv };
-	RID kvbid = ds::createVertexBuffer(kvbInfo);
 
 	RID stateGroup = ds::StateGroupBuilder()
 		.inputLayout(rid)
@@ -247,23 +214,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		.indexBuffer(iid)
 		.build();
 
-	RID nextGroup = ds::StateGroupBuilder()
-		.inputLayout(arid)
-		.constantBuffer(cbid, ambientVertexShader, 0)
-		.constantBuffer(lightBufferID, ambientPixelShader, 0)
-		.blendState(bs_id)
-		.vertexBuffer(kvbid)
-		.vertexShader(ambientVertexShader)
-		.pixelShader(ambientPixelShader)
-		.build();
-
 	ds::DrawCommand drawCmd = { 36, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
 
-	ds::DrawCommand nextDrawCmd = { total, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::TRIANGLE_LIST };
-		
 	RID drawItem = ds::compile(drawCmd, stateGroup);
-
-	RID nextDrawItem = ds::compile(nextDrawCmd, nextGroup);
 
 	while (ds::isRunning()) {
 		ds::begin();
@@ -278,11 +231,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		constantBuffer.viewprojectionMatrix = ds::matTranspose(camera.viewProjectionMatrix);
 		constantBuffer.worldMatrix = ds::matTranspose(w);
 
-		//ds::submit(basicPass, drawItem);
-
-		//w = ds::matIdentity();
-		//constantBuffer.worldMatrix = ds::matTranspose(w);
-		ds::submit(basicPass, nextDrawItem);
+		ds::submit(basicPass, drawItem);
 
 		ds::dbgPrint(0, 0, "FPS: %d", ds::getFramesPerSecond());
 		ds::dbgPrint(0, 1, "Simple spinning cube demo");

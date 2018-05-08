@@ -41,8 +41,13 @@ struct CubeConstantBuffer {
 RID loadImage(const char* name,ds::TextureFormat format) {
 	int x, y, n;
 	unsigned char *data = stbi_load(name, &x, &y, &n, 4);
-	ds::TextureInfo texInfo = { x, y, n, data, format , ds::BindFlag::BF_SHADER_RESOURCE};
-	RID textureID = ds::createTexture(texInfo);
+	RID textureID = ds::createTexture(ds::TextureDesc()
+		.Width(x)
+		.Height(y)
+		.Channels(n)
+		.Data(data)
+		.Format(ds::TextureFormat::R8G8B8A8_UNORM)
+		.BindFlags(ds::BindFlag::BF_SHADER_RESOURCE));
 	stbi_image_free(data);
 	return textureID;
 }
@@ -179,16 +184,32 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		0.0f
 	};
 	ds::ViewportInfo vpInfo = { 1024,768,0.0f,1.0f };
-	RID vp = ds::createViewport(vpInfo);
-	ds::RenderPassInfo rpInfo = { &camera, vp, ds::DepthBufferState::ENABLED, 0, 0 };
-	RID basicPass = ds::createRenderPass(rpInfo);
+	RID vp = ds::createViewport(ds::ViewportDesc()
+		.Top(0)
+		.Left(0)
+		.Width(ds::getScreenWidth())
+		.Height(ds::getScreenHeight())
+		.MinDepth(0.0f)
+		.MaxDepth(1.0f)
+	);
+	
+	RID basicPass = ds::createRenderPass(ds::RenderPassDesc()
+		.Camera(&camera)
+		.Viewport(vp)
+		.DepthBufferState(ds::DepthBufferState::ENABLED)
+		.NumRenderTargets(0)
+		.RenderTargets(0));
 
 	RID textureID = loadImage("..\\common\\cube_map.png", ds::TextureFormat::R8G8B8A8_UNORM);
 	RID cubeTextureID = loadImage("Hex.png", ds::TextureFormat::R8G8B8A8_UNORM_SRGB);
 	RID cubeNormalID = loadImage("Hex_Normal.png", ds::TextureFormat::R8G8B8A8_UNORM_SRGB);
 
-	ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
-	RID bs_id = ds::createBlendState(blendInfo);
+	RID bs_id = ds::createBlendState(ds::BlendStateDesc()
+		.SrcBlend(ds::BlendStates::SRC_ALPHA)
+		.SrcAlphaBlend(ds::BlendStates::SRC_ALPHA)
+		.DestBlend(ds::BlendStates::INV_SRC_ALPHA)
+		.DestAlphaBlend(ds::BlendStates::INV_SRC_ALPHA)
+		.AlphaEnabled(true));
 
 	ds::ShaderInfo texturedVSInfo = { 0, Textured_VS_Main, sizeof(Textured_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
 	RID texturedVS = ds::createShader(texturedVSInfo);

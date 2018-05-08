@@ -123,8 +123,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	// load image using stb_image
 	int x, y, n;
 	unsigned char *data = stbi_load("..\\common\\imgui.png", &x, &y, &n, 4);
-	ds::TextureInfo texInfo = { x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM , ds::BindFlag::BF_SHADER_RESOURCE };
-	RID textureID = ds::createTexture(texInfo);
+
+	RID textureID = ds::createTexture(ds::TextureDesc()
+		.Width(x)
+		.Height(y)
+		.Channels(n)
+		.Data(data)
+		.Format(ds::TextureFormat::R8G8B8A8_UNORM)
+		.BindFlags(ds::BindFlag::BF_SHADER_RESOURCE));
 	stbi_image_free(data);
 
 	SpriteBatchBufferInfo sbbInfo = { 512, textureID };
