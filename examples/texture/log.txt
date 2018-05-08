@@ -1,3 +1,196 @@
  index | resource type       | Name
 --------------------------------------------------------------
+   0  | BLENDSTATE           | DefaultBlendState
+   1  | SAMPLER_STATE        | DefaultSamplerState
+   2  | RASTERIZER_STATE     | DefaultRasterizerState
+   3  | CONSTANT_BUFFER      | BasicConstantBuffer
+   4  | STATE_GROUP          | DefaultGroup
+   5  | SRV                  | DebugTextFont
+   6  | VERTEX_SHADER        | DebugVS
+   7  | PIXEL_SHADER         | DebugPS
+   8  | GEOMETRY_SHADER      | DebugGS
+   9  | INPUT_LAYOUT         | PCC_Layout
+  10  | CONSTANT_BUFFER      | DebugTextConstantBuffer
+  11  | VERTEX_BUFFER        | DebugTextVertexBuffer
+  12  | SAMPLER_STATE        | SamplerState
+  13  | STATE_GROUP          | StateGroup
+  14  | DRAW_ITEM            | DebugText
+  15  | VIEWPORT             | DebugViewport
+  16  | RENDER_PASS          | DebugTextOrthoPass
+  17  | VIEWPORT             | Viewport
+  18  | RENDER_PASS          | BasicPass
+  19  | SRV                  | Texture
+  20  | SRV                  | Texture
+  21  | VERTEX_SHADER        | Shader
+  22  | PIXEL_SHADER         | Shader
+  23  | INPUT_LAYOUT         | PT_Layout
+  24  | CONSTANT_BUFFER      | GridConstantBuffer
+  25  | INDEX_BUFFER         | GridIndexBuffer
+  26  | VERTEX_BUFFER        | GridVertexBuffer
+  27  | SAMPLER_STATE        | SamplerState
+  28  | STATE_GROUP          | StateGroup
+  29  | DRAW_ITEM            | Grid
+  30  | INPUT_LAYOUT         | PosTex_Layout
+  31  | CONSTANT_BUFFER      | CubeConstantBuffer
+  32  | INDEX_BUFFER         | IndexBuffer
+  33  | VERTEX_BUFFER        | CubeBuffer
+  34  | VERTEX_BUFFER        | StaticCubes
+  35  | SAMPLER_STATE        | SamplerState
+  36  | STATE_GROUP          | BasicGroup
+  37  | STATE_GROUP          | StaticCubeGroup
+  38  | STATE_GROUP          | CubeGroup
+  39  | DRAW_ITEM            | StaticItem
+  40  | DRAW_ITEM            | CubeItem
+  41  | SRV                  | Texture
+  42  | VERTEX_SHADER        | SpritesVS
+  43  | PIXEL_SHADER         | SpritesPS
+  44  | BLENDSTATE           | BlendState
+  45  | CONSTANT_BUFFER      | ConstantBuffer
+  46  | SAMPLER_STATE        | SamplerState
+  47  | INDEX_BUFFER         | QuadIndexBuffer
+  48  | STRUCTURED_BUFFER    | StructuredBuffer
+  49  | STATE_GROUP          | StateGroup
+  50  | DRAW_ITEM            | SpritesDrawItem
+  51  | VIEWPORT             | SpriteOrthoViewport
+  52  | RENDER_PASS          | SpritesOrthoPass
 
+
+DrawItem 14 (DebugText) - groups: 2
+Group: 13 (StateGroup)
+resource type        | id    | stage    | slot | Name
+------------------------------------------------------------------------------------------
+INPUT_LAYOUT         |     9 | IA       |  0   | PCC_Layout
+INDEX_BUFFER         | 65534 | IA       |  0   | NO_RID
+VERTEX_BUFFER        |    11 | IA       |  0   | DebugTextVertexBuffer
+GEOMETRY_SHADER      |     8 | GS       |  0   | DebugGS
+CONSTANT_BUFFER      |    10 | GS_RES   |  0   | DebugTextConstantBuffer
+VERTEX_SHADER        |     6 | PS       |  0   | DebugVS
+PIXEL_SHADER         |     7 | PS       |  0   | DebugPS
+SAMPLER_STATE        |    12 | PS_RES   |  0   | SamplerState
+SRV                  |     5 | PS_RES   |  0   | DebugTextFont
+Group: 4 (DefaultGroup)
+resource type        | id    | stage    | slot | Name
+------------------------------------------------------------------------------------------
+INDEX_BUFFER         | 65534 | IA       |  0   | NO_RID
+VERTEX_BUFFER        | 65534 | IA       |  0   | NO_RID
+SRV                  | 65534 | VS_RES   |  0   | NO_RID
+GEOMETRY_SHADER      | 65534 | GS       |  0   | NO_RID
+SRV                  | 65534 | GS_RES   |  0   | NO_RID
+RASTERIZER_STATE     |     2 | RS       |  0   | DefaultRasterizerState
+VERTEX_SHADER        | 65534 | PS       |  0   | NO_RID
+PIXEL_SHADER         | 65534 | PS       |  0   | NO_RID
+SRV                  | 65534 | PS_RES   |  0   | NO_RID
+BLENDSTATE           |     0 | OM       |  0   | DefaultBlendState
+
+DrawItem 29 (Grid) - groups: 2
+Group: 28 (StateGroup)
+resource type        | id    | stage    | slot | Name
+------------------------------------------------------------------------------------------
+INPUT_LAYOUT         |    23 | IA       |  0   | PT_Layout
+INDEX_BUFFER         |    25 | IA       |  0   | GridIndexBuffer
+VERTEX_BUFFER        |    26 | IA       |  0   | GridVertexBuffer
+CONSTANT_BUFFER      |    24 | VS_RES   |  0   | GridConstantBuffer
+VERTEX_SHADER        |    21 | PS       |  0   | Shader
+PIXEL_SHADER         |    22 | PS       |  0   | Shader
+SAMPLER_STATE        |    27 | PS_RES   |  0   | SamplerState
+SRV                  |    20 | PS_RES   |  0   | Texture
+Group: 4 (DefaultGroup)
+resource type        | id    | stage    | slot | Name
+------------------------------------------------------------------------------------------
+INDEX_BUFFER         | 65534 | IA       |  0   | NO_RID
+VERTEX_BUFFER        | 65534 | IA       |  0   | NO_RID
+SRV                  | 65534 | VS_RES   |  0   | NO_RID
+GEOMETRY_SHADER      | 65534 | GS       |  0   | NO_RID
+SRV                  | 65534 | GS_RES   |  0   | NO_RID
+RASTERIZER_STATE     |     2 | RS       |  0   | DefaultRasterizerState
+VERTEX_SHADER        | 65534 | PS       |  0   | NO_RID
+PIXEL_SHADER         | 65534 | PS       |  0   | NO_RID
+SRV                  | 65534 | PS_RES   |  0   | NO_RID
+BLENDSTATE           |     0 | OM       |  0   | DefaultBlendState
+
+DrawItem 39 (StaticItem) - groups: 3
+Group: 36 (BasicGroup)
+resource type        | id    | stage    | slot | Name
+------------------------------------------------------------------------------------------
+INPUT_LAYOUT         |    30 | IA       |  0   | PosTex_Layout
+INDEX_BUFFER         |    32 | IA       |  0   | IndexBuffer
+CONSTANT_BUFFER      |    31 | VS_RES   |  0   | CubeConstantBuffer
+VERTEX_SHADER        |    21 | PS       |  0   | Shader
+PIXEL_SHADER         |    22 | PS       |  0   | Shader
+SAMPLER_STATE        |    35 | PS_RES   |  0   | SamplerState
+SRV                  |    19 | PS_RES   |  0   | Texture
+BLENDSTATE           |     0 | OM       |  0   | DefaultBlendState
+Group: 37 (StaticCubeGroup)
+resource type        | id    | stage    | slot | Name
+------------------------------------------------------------------------------------------
+VERTEX_BUFFER        |    34 | IA       |  0   | StaticCubes
+Group: 4 (DefaultGroup)
+resource type        | id    | stage    | slot | Name
+------------------------------------------------------------------------------------------
+INDEX_BUFFER         | 65534 | IA       |  0   | NO_RID
+VERTEX_BUFFER        | 65534 | IA       |  0   | NO_RID
+SRV                  | 65534 | VS_RES   |  0   | NO_RID
+GEOMETRY_SHADER      | 65534 | GS       |  0   | NO_RID
+SRV                  | 65534 | GS_RES   |  0   | NO_RID
+RASTERIZER_STATE     |     2 | RS       |  0   | DefaultRasterizerState
+VERTEX_SHADER        | 65534 | PS       |  0   | NO_RID
+PIXEL_SHADER         | 65534 | PS       |  0   | NO_RID
+SRV                  | 65534 | PS_RES   |  0   | NO_RID
+BLENDSTATE           |     0 | OM       |  0   | DefaultBlendState
+
+DrawItem 40 (CubeItem) - groups: 3
+Group: 36 (BasicGroup)
+resource type        | id    | stage    | slot | Name
+------------------------------------------------------------------------------------------
+INPUT_LAYOUT         |    30 | IA       |  0   | PosTex_Layout
+INDEX_BUFFER         |    32 | IA       |  0   | IndexBuffer
+CONSTANT_BUFFER      |    31 | VS_RES   |  0   | CubeConstantBuffer
+VERTEX_SHADER        |    21 | PS       |  0   | Shader
+PIXEL_SHADER         |    22 | PS       |  0   | Shader
+SAMPLER_STATE        |    35 | PS_RES   |  0   | SamplerState
+SRV                  |    19 | PS_RES   |  0   | Texture
+BLENDSTATE           |     0 | OM       |  0   | DefaultBlendState
+Group: 38 (CubeGroup)
+resource type        | id    | stage    | slot | Name
+------------------------------------------------------------------------------------------
+VERTEX_BUFFER        |    33 | IA       |  0   | CubeBuffer
+Group: 4 (DefaultGroup)
+resource type        | id    | stage    | slot | Name
+------------------------------------------------------------------------------------------
+INDEX_BUFFER         | 65534 | IA       |  0   | NO_RID
+VERTEX_BUFFER        | 65534 | IA       |  0   | NO_RID
+SRV                  | 65534 | VS_RES   |  0   | NO_RID
+GEOMETRY_SHADER      | 65534 | GS       |  0   | NO_RID
+SRV                  | 65534 | GS_RES   |  0   | NO_RID
+RASTERIZER_STATE     |     2 | RS       |  0   | DefaultRasterizerState
+VERTEX_SHADER        | 65534 | PS       |  0   | NO_RID
+PIXEL_SHADER         | 65534 | PS       |  0   | NO_RID
+SRV                  | 65534 | PS_RES   |  0   | NO_RID
+BLENDSTATE           |     0 | OM       |  0   | DefaultBlendState
+
+DrawItem 50 (SpritesDrawItem) - groups: 2
+Group: 49 (StateGroup)
+resource type        | id    | stage    | slot | Name
+------------------------------------------------------------------------------------------
+INDEX_BUFFER         |    47 | IA       |  0   | QuadIndexBuffer
+VERTEX_BUFFER        | 65534 | IA       |  0   | NO_RID
+CONSTANT_BUFFER      |    45 | VS_RES   |  0   | ConstantBuffer
+VERTEX_SHADER        |    42 | PS       |  0   | SpritesVS
+PIXEL_SHADER         |    43 | PS       |  0   | SpritesPS
+SAMPLER_STATE        |    46 | PS_RES   |  0   | SamplerState
+SRV                  |    41 | PS_RES   |  0   | Texture
+BLENDSTATE           |    44 | OM       |  0   | BlendState
+STRUCTURED_BUFFER    |    48 | VS_RES   |  1   | StructuredBuffer
+Group: 4 (DefaultGroup)
+resource type        | id    | stage    | slot | Name
+------------------------------------------------------------------------------------------
+INDEX_BUFFER         | 65534 | IA       |  0   | NO_RID
+VERTEX_BUFFER        | 65534 | IA       |  0   | NO_RID
+SRV                  | 65534 | VS_RES   |  0   | NO_RID
+GEOMETRY_SHADER      | 65534 | GS       |  0   | NO_RID
+SRV                  | 65534 | GS_RES   |  0   | NO_RID
+RASTERIZER_STATE     |     2 | RS       |  0   | DefaultRasterizerState
+VERTEX_SHADER        | 65534 | PS       |  0   | NO_RID
+PIXEL_SHADER         | 65534 | PS       |  0   | NO_RID
+SRV                  | 65534 | PS_RES   |  0   | NO_RID
+BLENDSTATE           |     0 | OM       |  0   | DefaultBlendState

@@ -115,18 +115,38 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer), &lightBuffer);
 
-	ds::BlendStateInfo bsInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
-	RID bs_id = ds::createBlendState(bsInfo);
+	RID bs_id = ds::createBlendState(ds::BlendStateDesc()
+		.SrcBlend(ds::BlendStates::SRC_ALPHA)
+		.SrcAlphaBlend(ds::BlendStates::SRC_ALPHA)
+		.DestBlend(ds::BlendStates::INV_SRC_ALPHA)
+		.DestAlphaBlend(ds::BlendStates::INV_SRC_ALPHA)
+		.AlphaEnabled(true)
+	);
 
-	ds::ShaderInfo vsInfo = { 0, Cube_VS_Main, sizeof(Cube_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
-	RID vertexShader = ds::createShader(vsInfo);
-	ds::ShaderInfo psInfo = { 0, Cube_PS_Main, sizeof(Cube_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
-	RID pixelShader = ds::createShader(psInfo);
+	
+	RID vertexShader = ds::createShader(ds::ShaderDesc()
+		.Data(Cube_VS_Main)
+		.DataSize(sizeof(Cube_VS_Main))
+		.ShaderType(ds::ShaderType::ST_VERTEX_SHADER)
+	);
 
-	ds::ShaderInfo avsInfo = { 0, AmbientLightning_VS_Main, sizeof(AmbientLightning_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
-	RID ambientVertexShader = ds::createShader(avsInfo);
-	ds::ShaderInfo apsInfo = { 0, AmbientLightning_PS_Main, sizeof(AmbientLightning_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
-	RID ambientPixelShader = ds::createShader(apsInfo);
+	RID pixelShader = ds::createShader(ds::ShaderDesc()
+		.Data(Cube_PS_Main)
+		.DataSize(sizeof(Cube_PS_Main))
+		.ShaderType(ds::ShaderType::ST_PIXEL_SHADER)
+	);
+
+	RID ambientVertexShader = ds::createShader(ds::ShaderDesc()
+		.Data(AmbientLightning_VS_Main)
+		.DataSize(sizeof(AmbientLightning_VS_Main))
+		.ShaderType(ds::ShaderType::ST_VERTEX_SHADER)
+	);
+
+	RID ambientPixelShader = ds::createShader(ds::ShaderDesc()
+		.Data(AmbientLightning_PS_Main)
+		.DataSize(sizeof(AmbientLightning_PS_Main))
+		.ShaderType(ds::ShaderType::ST_PIXEL_SHADER)
+	);
 
 	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 2.0f, -6.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
 	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.0f, 100.0f);
@@ -139,10 +159,24 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::vec3(0,1,0),
 		ds::vec3(1,0,0)
 	};
-	ds::ViewportInfo vpInfo = { 1024,768,0.0f,1.0f };
-	RID vp = ds::createViewport(vpInfo);
-	ds::RenderPassInfo rpInfo = { &camera, vp, ds::DepthBufferState::ENABLED, 0, 0 };
-	RID basicPass = ds::createRenderPass(rpInfo);
+	
+	RID vp = ds::createViewport(ds::ViewportDesc()
+		.Top(0)
+		.Left(0)
+		.Width(1024)
+		.Height(768)
+		.MinDepth(0.0f)
+		.MaxDepth(1.0f)
+	);
+
+	
+	RID basicPass = ds::createRenderPass(ds::RenderPassDesc()
+		.Camera(&camera)
+		.Viewport(vp)
+		.DepthBufferState(ds::DepthBufferState::ENABLED)
+		.RenderTargets(0)
+		.NumRenderTargets(0)
+	);
 
 	// create buffer input layout
 	ds::InputLayoutDefinition decl[] = {
@@ -157,19 +191,28 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		{ "NORMAL"   , 0, ds::BufferAttributeType::FLOAT3 }
 	};
 
-	ds::InputLayoutInfo layoutInfo = { decl, 2, vertexShader };
-	RID rid = ds::createInputLayout(layoutInfo);
+	RID rid = ds::createInputLayout(ds::InputLayoutDesc()
+		.Declarations(decl)
+		.NumDeclarations(2)
+		.VertexShader(vertexShader)
+	);
 
-	ds::InputLayoutInfo ambientLayoutInfo = { ambientDecl, 3, ambientVertexShader };
-	RID arid = ds::createInputLayout(ambientLayoutInfo);
+	RID arid = ds::createInputLayout(ds::InputLayoutDesc()
+		.Declarations(ambientDecl)
+		.NumDeclarations(3)
+		.VertexShader(ambientVertexShader)
+	);
 
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
 	ds::IndexBufferInfo ibInfo = { 36, ds::IndexType::UINT_32, ds::BufferType::STATIC, p_indices };
 	RID iid = ds::createIndexBuffer(ibInfo);
 	ds::VertexBufferInfo vbInfo = { ds::BufferType::STATIC, 24, sizeof(Vertex), v };
 	RID vbid = ds::createVertexBuffer(vbInfo);
-	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
-	RID ssid = ds::createSamplerState(samplerInfo);
+	
+	RID ssid = ds::createSamplerState(ds::SamplerStateDesc()
+		.AddressMode(ds::TextureAddressModes::CLAMP)
+		.Filter(ds::TextureFilters::LINEAR)
+	);
 
 	FILE* fp = fopen("..\\..\\..\\obj_converter\\roadTile_082.bin", "rb");
 	int total = 0;

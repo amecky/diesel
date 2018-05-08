@@ -34,9 +34,15 @@ struct CubeConstantBuffer {
 // ---------------------------------------------------------------
 RID loadImage(const char* name) {
 	int x, y, n;
-	unsigned char *data = stbi_load(name, &x, &y, &n, 4);
-	ds::TextureInfo texInfo = { x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM, ds::BindFlag::BF_SHADER_RESOURCE };
-	RID textureID = ds::createTexture(texInfo);
+	unsigned char *data = stbi_load(name, &x, &y, &n, 4);	
+	RID textureID = ds::createTexture(ds::TextureDesc()
+		.Width(x)
+		.Height(y)
+		.Channels(n)
+		.Data(data)
+		.Format(ds::TextureFormat::R8G8B8A8_UNORM)
+		.BindFlags(ds::BindFlag::BF_SHADER_RESOURCE)
+	);
 	stbi_image_free(data);
 	return textureID;
 }
@@ -94,18 +100,32 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::vec3(0,1,0),
 		ds::vec3(1,0,0)
 	};
-	ds::ViewportInfo vpInfo = { 1024,768,0.0f,1.0f };
-	RID vp = ds::createViewport(vpInfo);
+	
+	RID vp = ds::createViewport(ds::ViewportDesc()
+		.Top(0)
+		.Left(0)
+		.Width(1024)
+		.Height(768)
+		.MinDepth(0.0f)
+		.MaxDepth(1.0f)
+	);
 	ds::RenderPassInfo rpInfo = { &camera, vp, ds::DepthBufferState::ENABLED, 0, 0 };
 	RID basicPass = ds::createRenderPass(rpInfo, "BasicPass");
 
 	RID textureID = loadImage("..\\common\\cube_map.png");
 	RID cubeTextureID = loadImage("..\\common\\grid.png");
+		
+	RID vertexShader = ds::createShader(ds::ShaderDesc()
+		.Data(Textured_VS_Main)
+		.DataSize(sizeof(Textured_VS_Main))
+		.ShaderType(ds::ShaderType::ST_VERTEX_SHADER)
+	);
 	
-	ds::ShaderInfo vsInfo = { 0, Textured_VS_Main, sizeof(Textured_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
-	RID vertexShader = ds::createShader(vsInfo);
-	ds::ShaderInfo psInfo = { 0, Textured_PS_Main, sizeof(Textured_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
-	RID pixelShader = ds::createShader(psInfo);
+	RID pixelShader = ds::createShader(ds::ShaderDesc()
+		.Data(Textured_PS_Main)
+		.DataSize(sizeof(Textured_PS_Main))
+		.ShaderType(ds::ShaderType::ST_PIXEL_SHADER)
+	);
 
 	float gridWidth = 3.0f;
 	float gridHeight = 3.0f;
@@ -132,8 +152,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::VertexBufferInfo scInfo = { ds::BufferType::STATIC, totalCubeVertices, sizeof(Vertex), sv };
 	RID staticCubes = ds::createVertexBuffer(scInfo, "StaticCubes");
 
-	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
-	RID ssid = ds::createSamplerState(samplerInfo);
+	RID ssid = ds::createSamplerState(ds::SamplerStateDesc()
+		.AddressMode(ds::TextureAddressModes::CLAMP)
+		.Filter(ds::TextureFilters::LINEAR)
+	);
+
 	RID blendStateID = ds::findResource(SID("DefaultBlendState"), ds::ResourceType::RT_BLENDSTATE);
 
 	worldMatrix wm;
@@ -182,6 +205,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	int state = 1;
 	while (ds::isRunning()) {
 		ds::begin();
+		ds::gpu::beginFrame();
 		// grid
 		grid.render();
 		// static cubes
@@ -211,6 +235,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		gui::end();
 		spriteBuffer.flush();
 		ds::gpu::measure(3);
+		ds::gpu::endFrame();
 		ds::gpu::waitForData();
 		// GUI
 		spriteBuffer.begin();

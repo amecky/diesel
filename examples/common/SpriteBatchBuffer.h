@@ -351,13 +351,21 @@ SpriteBatchBuffer::SpriteBatchBuffer(const SpriteBatchBufferInfo& info) : _max(i
 
 	RID bs_id = info.blendState;
 	if (bs_id == NO_RID) {
-		ds::BlendStateInfo blendInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
-		bs_id = ds::createBlendState(blendInfo);
+		bs_id = ds::createBlendState(ds::BlendStateDesc()
+			.SrcBlend(ds::BlendStates::SRC_ALPHA)
+			.SrcAlphaBlend(ds::BlendStates::SRC_ALPHA)
+			.DestBlend(ds::BlendStates::INV_SRC_ALPHA)
+			.DestAlphaBlend(ds::BlendStates::INV_SRC_ALPHA)
+			.AlphaEnabled(true)
+		);
 	}
 	RID constantBuffer = ds::createConstantBuffer(sizeof(SpriteBatchConstantBuffer), &_constantBuffer);
 
-	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, info.textureFilter };
-	RID ssid = ds::createSamplerState(samplerInfo);
+	
+	RID ssid = ds::createSamplerState(ds::SamplerStateDesc()
+		.AddressMode(ds::TextureAddressModes::CLAMP)
+		.Filter(info.textureFilter)
+	);
 
 	int indices[] = { 0,1,2,1,3,2 };
 	RID idxBuffer = ds::createQuadIndexBuffer(_max, indices);
