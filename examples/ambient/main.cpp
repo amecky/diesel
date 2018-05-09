@@ -67,8 +67,14 @@ struct LightBuffer {
 RID loadImage(const char* name) {
 	int x, y, n;
 	unsigned char *data = stbi_load(name, &x, &y, &n, 4);
-	ds::TextureInfo texInfo = { x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM, ds::BindFlag::BF_SHADER_RESOURCE };
-	RID textureID = ds::createTexture(texInfo);
+	RID textureID = ds::createTexture(ds::TextureDesc()
+		.Width(x)
+		.Height(y)
+		.Channels(n)
+		.Data(data)
+		.Format(ds::TextureFormat::R8G8B8A8_UNORM)
+		.BindFlags(ds::BindFlag::BF_SHADER_RESOURCE)
+	);
 	stbi_image_free(data);
 	return textureID;
 }
@@ -118,14 +124,26 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID textureID = loadImage("directx-11-logo.png");
 	RID floorTexture = loadImage("..\\common\\cube_map.png");
+	
+	RID bs_id = ds::createBlendState(ds::BlendStateDesc()
+		.SrcBlend(ds::BlendStates::SRC_ALPHA)
+		.SrcAlphaBlend(ds::BlendStates::SRC_ALPHA)
+		.DestBlend(ds::BlendStates::INV_SRC_ALPHA)
+		.DestAlphaBlend(ds::BlendStates::INV_SRC_ALPHA)
+		.AlphaEnabled(true)
+	);
 
-	ds::BlendStateInfo bsInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
-	RID bs_id = ds::createBlendState(bsInfo);
+	RID vertexShader = ds::createShader(ds::ShaderDesc()
+		.Data(AmbientLightning_VS_Main)
+		.DataSize(sizeof(AmbientLightning_VS_Main))
+		.ShaderType(ds::ShaderType::ST_VERTEX_SHADER)
+	);
 
-	ds::ShaderInfo vsInfo = { 0, AmbientLightning_VS_Main , sizeof(AmbientLightning_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
-	RID vertexShader = ds::createShader(vsInfo);
-	ds::ShaderInfo psInfo = { 0, AmbientLightning_PS_Main, sizeof(AmbientLightning_PS_Main),ds::ShaderType::ST_PIXEL_SHADER };
-	RID pixelShader = ds::createShader(psInfo);
+	RID pixelShader = ds::createShader(ds::ShaderDesc()
+		.Data(AmbientLightning_PS_Main)
+		.DataSize(sizeof(AmbientLightning_PS_Main))
+		.ShaderType(ds::ShaderType::ST_PIXEL_SHADER)
+	);
 
 	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 2.0f, -6.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
 	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
@@ -138,30 +156,66 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::vec3(0,1,0),
 		ds::vec3(1,0,0)
 	};
-
-	ds::ViewportInfo vpInfo = { 1024,768,0.0f,1.0f };
-	RID vp = ds::createViewport(vpInfo);
-	ds::RenderPassInfo rpInfo = { &camera, vp, ds::DepthBufferState::ENABLED, 0, 0 };
-	RID basicPass = ds::createRenderPass(rpInfo, "BasicPass");
+	
+	RID vp = ds::createViewport(ds::ViewportDesc()
+		.Top(0)
+		.Left(0)
+		.Width(1024)
+		.Height(768)
+		.MinDepth(0.0f)
+		.MaxDepth(1.0f)
+	);
+	
+	RID basicPass = ds::createRenderPass(ds::RenderPassDesc()
+		.Camera(&camera)
+		.Viewport(vp)
+		.DepthBufferState(ds::DepthBufferState::ENABLED)
+		.RenderTargets(0)
+		.NumRenderTargets(0), 
+		"BasicPass"
+	);
 
 	ds::InputLayoutDefinition decl[] = {
 		{ "POSITION", 0, ds::BufferAttributeType::FLOAT3 },
 		{ "TEXCOORD", 0, ds::BufferAttributeType::FLOAT2 },
 		{ "NORMAL"  , 0, ds::BufferAttributeType::FLOAT3 }			
 	};
-	ds::InputLayoutInfo layoutInfo = { decl, 3, vertexShader };
-	RID rid = ds::createInputLayout(layoutInfo);
+	
+	RID rid = ds::createInputLayout(ds::InputLayoutDesc()
+		.Declarations(decl)
+		.NumDeclarations(3)
+		.VertexShader(vertexShader)
+	);
+
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
 	RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer), &lightBuffer);
 	RID indexBuffer = ds::createQuadIndexBuffer(36);
 	ds::VertexBufferInfo cbInfo = { ds::BufferType::STATIC, 24, sizeof(Vertex), v };
-	RID cubeBuffer = ds::createVertexBuffer(cbInfo);
-	ds::VertexBufferInfo fvbInfo = { ds::BufferType::STATIC, 4, sizeof(Vertex), floorVertices };
-	RID floorBuffer = ds::createVertexBuffer(fvbInfo);
-	ds::VertexBufferInfo buInfo = { ds::BufferType::STATIC, 24, sizeof(Vertex), lv };
-	RID bulbID = ds::createVertexBuffer(buInfo);
-	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
-	RID ssid = ds::createSamplerState(samplerInfo);
+	RID cubeBuffer = ds::createVertexBuffer(ds::VertexBufferDesc()
+		.BufferType(ds::BufferType::STATIC)
+		.Data(v)
+		.NumVertices(24)
+		.VertexSize(sizeof(Vertex))
+	);
+	
+	RID floorBuffer = ds::createVertexBuffer(ds::VertexBufferDesc()
+		.BufferType(ds::BufferType::STATIC)
+		.Data(floorVertices)
+		.NumVertices(4)
+		.VertexSize(sizeof(Vertex))
+	);
+	
+	RID bulbID = ds::createVertexBuffer(ds::VertexBufferDesc()
+		.BufferType(ds::BufferType::STATIC)
+		.Data(lv)
+		.NumVertices(24)
+		.VertexSize(sizeof(Vertex))
+	);
+	
+	RID ssid = ds::createSamplerState(ds::SamplerStateDesc()
+		.AddressMode(ds::TextureAddressModes::CLAMP)
+		.Filter(ds::TextureFilters::LINEAR)
+	);
 
 	ds::vec3 scale(1.0f, 1.0f, 1.0f);
 	ds::vec3 rotation(0.0f, 0.0f, 0.0f);

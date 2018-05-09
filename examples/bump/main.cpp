@@ -211,15 +211,29 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		.DestAlphaBlend(ds::BlendStates::INV_SRC_ALPHA)
 		.AlphaEnabled(true));
 
-	ds::ShaderInfo texturedVSInfo = { 0, Textured_VS_Main, sizeof(Textured_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
-	RID texturedVS = ds::createShader(texturedVSInfo);
-	ds::ShaderInfo texturedPSInfo = { 0, Textured_PS_Main, sizeof(Textured_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
-	RID texturedPS = ds::createShader(texturedPSInfo);
+	RID texturedVS = ds::createShader(ds::ShaderDesc()
+		.Data(Textured_VS_Main)
+		.DataSize(sizeof(Textured_VS_Main))
+		.ShaderType(ds::ShaderType::ST_VERTEX_SHADER)
+	);
+	
+	RID texturedPS = ds::createShader(ds::ShaderDesc()
+		.Data(Textured_PS_Main)
+		.DataSize(sizeof(Textured_PS_Main))
+		.ShaderType(ds::ShaderType::ST_PIXEL_SHADER)
+	);
 
-	ds::ShaderInfo bumpVSInfo = { 0, Bump_VS_Main, sizeof(Bump_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
-	RID bumpVS = ds::createShader(bumpVSInfo);
-	ds::ShaderInfo bumpPSInfo = { 0, Bump_PS_Main, sizeof(Bump_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
-	RID bumpPS = ds::createShader(bumpPSInfo);
+	RID bumpVS = ds::createShader(ds::ShaderDesc()
+		.Data(Bump_VS_Main)
+		.DataSize(sizeof(Bump_VS_Main))
+		.ShaderType(ds::ShaderType::ST_VERTEX_SHADER)
+	);
+	
+	RID bumpPS = ds::createShader(ds::ShaderDesc()
+		.Data(Bump_PS_Main)
+		.DataSize(sizeof(Bump_PS_Main))
+		.ShaderType(ds::ShaderType::ST_PIXEL_SHADER)
+	);
 
 	Grid grid(&camera);
 	ds::vec3 gridPositions[] = {
@@ -237,20 +251,40 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		{ "TANGENT" , 0 ,ds::BufferAttributeType::FLOAT3 }
 	};
 
-	ds::InputLayoutInfo layoutInfo = { decl, 4, bumpVS };
-	RID rid = ds::createInputLayout(layoutInfo);
+	RID rid = ds::createInputLayout(ds::InputLayoutDesc()
+		.Declarations(decl)
+		.NumDeclarations(4)
+		.VertexShader(bumpVS)
+	);
+
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
 	RID indexBuffer = ds::createQuadIndexBuffer(256);
-	ds::VertexBufferInfo vbInfo = { ds::BufferType::STATIC, 24, sizeof(Vertex), v };
-	RID cubeBuffer = ds::createVertexBuffer(vbInfo);
+	
+	RID cubeBuffer = ds::createVertexBuffer(ds::VertexBufferDesc()
+		.BufferType(ds::BufferType::STATIC)
+		.Data(v)
+		.NumVertices(24)
+		.VertexSize(sizeof(Vertex)));
 
-	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
-	RID ssid = ds::createSamplerState(samplerInfo);
-
-	ds::VertexBufferInfo sphereInfo = { ds::BufferType::STATIC, 401, sizeof(Vertex), sv };
-	RID sphereBuffer = ds::createVertexBuffer(sphereInfo, "sphere_vertex_buffer");
-	ds::IndexBufferInfo idxInfo = { 2280, ds::IndexType::UINT_32, ds::BufferType::STATIC, indices };
-	RID sphereIndexBuffer = ds::createIndexBuffer(idxInfo, "sphere_index_buffer");
+	RID ssid = ds::createSamplerState(ds::SamplerStateDesc()
+		.AddressMode(ds::TextureAddressModes::CLAMP)
+		.Filter(ds::TextureFilters::LINEAR));
+	
+	RID sphereBuffer = ds::createVertexBuffer(ds::VertexBufferDesc()
+		.BufferType(ds::BufferType::STATIC)
+		.Data(sv)
+		.NumVertices(401)
+		.VertexSize(sizeof(Vertex)),
+		"sphere_vertex_buffer"
+	);
+	
+	RID sphereIndexBuffer = ds::createIndexBuffer(ds::IndexBufferDesc()
+		.BufferType(ds::BufferType::STATIC)
+		.Data(indices)
+		.IndexType(ds::IndexType::UINT_32)
+		.NumIndices(2280), 
+		"sphere_index_buffer"
+	);
 
 	worldMatrix wm;
 

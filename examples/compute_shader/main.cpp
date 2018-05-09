@@ -31,16 +31,45 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	int x, y, n;
 	unsigned char *data = stbi_load("martian_oasis_by_smnbrnr.png", &x, &y, &n, 4);
-	ds::TextureInfo baseInfo = { x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM , ds::BindFlag::BF_SHADER_RESOURCE };
-	RID textureID = ds::createTexture(baseInfo);
-	ds::TextureInfo lowerImage = { 1024, 384, 4, 0, ds::TextureFormat::R8G8B8A8_UNORM, ds::BindFlag::BF_UNORDERED_ACCESS | ds::BindFlag::BF_SHADER_RESOURCE };
-	RID ext = ds::createTexture(lowerImage, "OutputTex");
+	
+	RID textureID = ds::createTexture(ds::TextureDesc()
+		.Width(x)
+		.Height(y)
+		.Channels(n)
+		.Data(data)
+		.Format(ds::TextureFormat::R8G8B8A8_UNORM)
+		.BindFlags(ds::BindFlag::BF_SHADER_RESOURCE)
+	);
+	
+	RID ext = ds::createTexture(ds::TextureDesc()
+		.Width(1024)
+		.Height(384)
+		.Channels(4)
+		.TextureType(ds::TextureType::DEFAULT)		
+		.Format(ds::TextureFormat::R8G8B8A8_UNORM)
+		.BindFlags(ds::BindFlag::BF_UNORDERED_ACCESS | ds::BindFlag::BF_SHADER_RESOURCE), 
+		"OutputTex"
+	);
 
 	RID computeShader = ds::createComputeShader(desaturate_CSMain, sizeof(desaturate_CSMain), "Desaturate");
-	ds::StructuredBufferInfo inputBufferInfo = { x * y * n, n, true, false, data, NO_RID, NO_RID };
-	RID inputBuffer = ds::createStructuredBuffer(inputBufferInfo, "InputStructuredBuffer");
-	ds::StructuredBufferInfo outputBufferInfo = { x * y * n, n, false, true, 0, ext, NO_RID };
-	RID outputBuffer = ds::createStructuredBuffer(outputBufferInfo, "OutputStructuredBuffer");
+
+	RID inputBuffer = ds::createStructuredBuffer(ds::StructuredBufferDesc()
+		.NumElements(x * y * n)
+		.ElementSize(n)
+		.CpuWritable(true)
+		.GpuWritable(false)
+		.Data(data), 
+		"InputStructuredBuffer"
+	);
+
+	RID outputBuffer = ds::createStructuredBuffer(ds::StructuredBufferDesc()
+		.NumElements(x * y * n)
+		.ElementSize(n)
+		.CpuWritable(false)
+		.GpuWritable(true)
+		.Texture(ext),
+		"OutputStructuredBuffer"
+	);
 
 	ConstantBuffer buffer;
 	buffer.amplitude = 0.0f;
@@ -70,13 +99,27 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		0.0f,
 		0.0f
 	};
-	ds::ViewportInfo vpInfo = { 1024,768,0.0f,1.0f };
-	RID vp = ds::createViewport(vpInfo);
-	ds::RenderPassInfo rpInfo = {&camera, vp, ds::DepthBufferState::DISABLED, 0, 0 };
-	RID ppPass = ds::createRenderPass(rpInfo);
 	
-	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
-	RID ssid = ds::createSamplerState(samplerInfo);
+	RID vp = ds::createViewport(ds::ViewportDesc()
+		.Top(0)
+		.Left(0)
+		.Width(1024)
+		.Height(768)
+		.MinDepth(0.0f)
+		.MaxDepth(1.0f)
+	);
+	
+	RID ppPass = ds::createRenderPass(ds::RenderPassDesc()
+		.Camera(&camera)
+		.Viewport(vp)
+		.DepthBufferState(ds::DepthBufferState::DISABLED)
+		.RenderTargets(0)
+		.NumRenderTargets(0));
+		
+	RID ssid = ds::createSamplerState(ds::SamplerStateDesc()
+		.AddressMode(ds::TextureAddressModes::CLAMP)
+		.Filter(ds::TextureFilters::LINEAR)
+	);
 
 	ds::ShaderInfo vsInfo = { 0, Fullscreen_VS_Main, sizeof(Fullscreen_VS_Main) , ds::ShaderType::ST_VERTEX_SHADER };
 	RID fsVertexShader = ds::createVertexShader(Fullscreen_VS_Main, sizeof(Fullscreen_VS_Main), "Fullscreen_VS");

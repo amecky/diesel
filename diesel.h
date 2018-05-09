@@ -1221,6 +1221,20 @@ namespace ds {
 		DYNAMIC
 	};
 
+	enum class CpuAccessFlag : unsigned char {
+		NONE = 0,
+		WRITE = 1,
+		READ = 2,
+		READ_WRITE = 3
+	};
+
+	enum class TextureType : unsigned char {
+		STATIC = 1,
+		DYNAMIC = 2,
+		DEFAULT = 3,
+		STAGING = 4
+	};
+
 	enum TextureAddressModes {
 		WRAP,
 		MIRROR,
@@ -1843,7 +1857,46 @@ namespace ds {
 		RID renderTarget;
 	};
 
-	RID createStructuredBuffer(const StructuredBufferInfo& info, const char* name = "StructuredBuffer");
+	class StructuredBufferDesc {
+	public:
+		StructuredBufferDesc() {
+			_info.data = 0;
+			_info.elementSize = 0;
+			_info.cpuWritable = false;
+			_info.gpuWritable = false;
+			_info.textureID = NO_RID;
+			_info.renderTarget = NO_RID;
+		}
+		StructuredBufferDesc& NumElements(unsigned int numElements) {
+			return *this;
+		}
+		StructuredBufferDesc& ElementSize(int elementSize) {
+			return *this;
+		}
+		StructuredBufferDesc&  CpuWritable(bool cpuWritable) {
+			return *this;
+		}
+		StructuredBufferDesc& GpuWritable(bool gpuWritable) {
+			return *this;
+		}
+		StructuredBufferDesc& Data(void* data) {
+			return *this;
+		}
+		StructuredBufferDesc& Texture(RID textureID) {
+			return *this;
+		}
+		StructuredBufferDesc& RenderTarget(RID renderTarget) {
+			return *this;
+		}
+		const StructuredBufferInfo& getInfo() const {
+			return _info;
+		}
+	private:
+		StructuredBufferInfo _info;
+	};
+	
+
+	RID createStructuredBuffer(const StructuredBufferDesc& desc, const char* name = "StructuredBuffer");
 
 	// ---------------------------------------------------
 	// SamplerState
@@ -2020,12 +2073,22 @@ namespace ds {
 		void* data;
 		TextureFormat format;
 		uint16_t bindFlags;
+		TextureType textureType;
+		CpuAccessFlag cpuAccessFlag;
 	};
 
 	class TextureDesc {
 
 		public:
-			TextureDesc() {}
+			TextureDesc() {
+				_info.data = 0;
+				_info.width = 0;
+				_info.height = 0;
+				_info.channels = 0;
+				_info.bindFlags = 0;
+				_info.textureType = TextureType::DYNAMIC;
+				_info.cpuAccessFlag = CpuAccessFlag::NONE;
+			}
 			TextureDesc& Width(uint16_t width) {
 				_info.width = width;
 				return *this;
@@ -2048,6 +2111,14 @@ namespace ds {
 			}
 			TextureDesc&  BindFlags(uint16_t bindFlags) {
 				_info.bindFlags = bindFlags;
+				return *this;
+			}
+			TextureDesc&  TextureType(TextureType type) {
+				_info.textureType = type;
+				return *this;
+			}
+			TextureDesc&  CpuAccessFlags(CpuAccessFlag flag) {
+				_info.cpuAccessFlag = flag;
 				return *this;
 			}
 			const TextureInfo& getInfo() const {
@@ -4450,7 +4521,7 @@ namespace ds {
 	// createStructuredBuffer
 	// ------------------------------------------------------
 	// FIXME: do we need to add a paramter to info like SRV/UAV buffer?
-	RID createStructuredBuffer(const StructuredBufferInfo& info, const char* name) {
+	static RID internalCreateStructuredBuffer(const StructuredBufferInfo& info, const char* name) {
 		StructuredBuffer* sb = new StructuredBuffer;
 		sb->buffer = 0;
 		sb->uav = 0;
@@ -4520,6 +4591,10 @@ namespace ds {
 		BufferResource* res = new BufferResource(sb);
 		return addResource(res, RT_STRUCTURED_BUFFER, name);
 
+	}
+
+	RID createStructuredBuffer(const StructuredBufferDesc& desc, const char* name) {
+		return internalCreateStructuredBuffer(desc.getInfo(), name);
 	}
 
 	// ------------------------------------------------------
@@ -5007,6 +5082,19 @@ namespace ds {
 		DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
 	};
 
+	static D3D11_USAGE convertTextureType(TextureType type) {
+		if (type == TextureType::DEFAULT) {
+			return D3D11_USAGE_DEFAULT;
+		}
+		else if (type == TextureType::STATIC) {
+			return D3D11_USAGE_IMMUTABLE;
+		}
+		else if (type == TextureType::STAGING) {
+			return D3D11_USAGE_STAGING;
+		}
+		return D3D11_USAGE_DYNAMIC;
+	}
+
 	// ------------------------------------------------------
 	// create texture
 	// ------------------------------------------------------	
@@ -5042,7 +5130,7 @@ namespace ds {
 		*/
 			//desc.Usage = D3D11_USAGE_IMMUTABLE;
 		//desc.Usage = D3D11_USAGE_DEFAULT;// D3D11_USAGE_DYNAMIC;
-		desc.Usage = D3D11_USAGE_DYNAMIC;
+		desc.Usage = convertTextureType(info.textureType);
 		if (info.data != 0) {
 			D3D11_SUBRESOURCE_DATA subres;
 			subres.pSysMem = info.data;
