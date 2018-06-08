@@ -1868,24 +1868,31 @@ namespace ds {
 			_info.renderTarget = NO_RID;
 		}
 		StructuredBufferDesc& NumElements(unsigned int numElements) {
+			_info.numElements = numElements;
 			return *this;
 		}
 		StructuredBufferDesc& ElementSize(int elementSize) {
+			_info.elementSize = elementSize;
 			return *this;
 		}
 		StructuredBufferDesc&  CpuWritable(bool cpuWritable) {
+			_info.cpuWritable = cpuWritable;
 			return *this;
 		}
 		StructuredBufferDesc& GpuWritable(bool gpuWritable) {
+			_info.gpuWritable = gpuWritable;
 			return *this;
 		}
 		StructuredBufferDesc& Data(void* data) {
+			_info.data = data;
 			return *this;
 		}
 		StructuredBufferDesc& Texture(RID textureID) {
+			_info.textureID = textureID;
 			return *this;
 		}
 		StructuredBufferDesc& RenderTarget(RID renderTarget) {
+			_info.renderTarget = renderTarget;
 			return *this;
 		}
 		const StructuredBufferInfo& getInfo() const {
