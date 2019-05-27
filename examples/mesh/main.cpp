@@ -160,10 +160,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer);
 	RID lightBufferID = ds::createConstantBuffer(sizeof(LightBuffer), &lightBuffer);
-	ds::VertexBufferInfo vbInfo = { ds::BufferType::STATIC, num, sizeof(ObjVertex), vertices };
-	RID vbid = ds::createVertexBuffer(vbInfo);
-	ds::VertexBufferInfo ibInfo = { ds::BufferType::DYNAMIC, TOTAL, sizeof(InstanceData) };
-	RID idid = ds::createVertexBuffer(ibInfo);
+	RID vbid = ds::createVertexBuffer(ds::VertexBufferDesc()
+		.BufferType(ds::BufferType::STATIC)
+		.NumVertices(num)
+		.Data(vertices)
+		.VertexSize(sizeof(ObjVertex))
+	);
+	RID idid = ds::createVertexBuffer(ds::VertexBufferDesc()
+		.BufferType(ds::BufferType::DYNAMIC)
+		.NumVertices(TOTAL)
+		.VertexSize(sizeof(InstanceData))
+	);
 	RID instanceBuffer = ds::createInstancedBuffer(vbid, idid);
 	
 	RID ssid = ds::createSamplerState(ds::SamplerStateDesc()
@@ -223,9 +230,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID drawItem = ds::compile(drawCmd, stateGroup);
 
+	float timer = 0.0f;
+
 	while (ds::isRunning()) {
 
 		ds::begin();
+
+		timer += ds::getElapsedSeconds();
+
+		ds::vec3 lightPos = ds::vec3(0.2f * sin(timer * ds::TWO_PI * 0.25f), 0.0f, 1.0f);
+		lightBuffer.lightDirection = normalize(lightPos);
 
 		// rotate, scale and move every instance
 		for (int y = 0; y < TOTAL; ++y) {

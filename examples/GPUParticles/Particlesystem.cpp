@@ -11,30 +11,44 @@ Particlesystem::Particlesystem(ds::Camera* camera, ParticlesystemDescriptor desc
 	//ds::BlendStateInfo blendStateInfo{ ds::BlendStates::SRC_ALPHA, ds::BlendStates::SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::INV_SRC_ALPHA, true };
 	//ds::BlendStateInfo blendStateInfo = { ds::BlendStates::ONE, ds::BlendStates::ZERO, ds::BlendStates::INV_SRC_ALPHA, ds::BlendStates::ZERO, true };
 	ds::BlendStateInfo blendStateInfo = { ds::BlendStates::SRC_ALPHA, ds::BlendStates::ZERO, ds::BlendStates::ONE, ds::BlendStates::ZERO, true };
-	RID blendState = ds::createBlendState(blendStateInfo);
+	RID blendState = ds::createBlendState(ds::BlendStateDesc()
+		.SrcBlend(ds::BlendStates::SRC_ALPHA)
+		.SrcAlphaBlend(ds::BlendStates::ZERO)
+		.DestBlend(ds::BlendStates::ONE)
+		.DestAlphaBlend(ds::BlendStates::ZERO)
+		.AlphaEnabled(true)
+	);
 
-	ds::ShaderInfo vsInfo = { 0, GPUParticles_VS_Main, sizeof(GPUParticles_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
-	RID vertexShader = ds::createShader(vsInfo, "ParticlesVS");
-	ds::ShaderInfo psInfo = { 0, GPUParticles_PS_Main, sizeof(GPUParticles_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
-	RID pixelShader = ds::createShader(psInfo, "ParticlesPS");
+	RID vertexShader = ds::createShader(ds::ShaderDesc()
+		.Data(GPUParticles_VS_Main)
+		.DataSize(sizeof(GPUParticles_VS_Main))
+		.ShaderType(ds::ShaderType::ST_VERTEX_SHADER)
+		, "ParticlesVS"
+	); 
+	
+	RID pixelShader = ds::createShader(ds::ShaderDesc()
+		.Data(GPUParticles_PS_Main)
+		.DataSize(sizeof(GPUParticles_PS_Main))
+		.ShaderType(ds::ShaderType::ST_PIXEL_SHADER)
+		, "ParticlesPS"
+	);
 
 
 	RID constantBuffer = ds::createConstantBuffer(sizeof(ParticleConstantBuffer), &_constantBuffer);
-	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
-	RID samplerState = ds::createSamplerState(samplerInfo);
+	RID samplerState = ds::createSamplerState(ds::SamplerStateDesc()
+		.AddressMode(ds::TextureAddressModes::CLAMP)
+		.Filter(ds::TextureFilters::LINEAR)
+	);
 
 	int indices[] = { 0,1,2,1,3,2 };
 	RID idxBuffer = ds::createQuadIndexBuffer(descriptor.maxParticles, indices);
 
-	ds::StructuredBufferInfo sbInfo;
-	sbInfo.cpuWritable = true;
-	sbInfo.data = 0;
-	sbInfo.elementSize = sizeof(GPUParticle);
-	sbInfo.numElements = descriptor.maxParticles;
-	sbInfo.gpuWritable = false;
-	sbInfo.renderTarget = NO_RID;
-	sbInfo.textureID = NO_RID;
-	_structuredBufferId = ds::createStructuredBuffer(sbInfo);
+	_structuredBufferId = ds::createStructuredBuffer(ds::StructuredBufferDesc()
+		.CpuWritable(true)
+		.ElementSize(sizeof(GPUParticle))
+		.NumElements(descriptor.maxParticles)
+		.GpuWritable(false)
+	);
 
 	RID basicGroup = ds::StateGroupBuilder()
 		.blendState(blendState)

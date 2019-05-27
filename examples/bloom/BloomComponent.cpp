@@ -29,8 +29,16 @@ void BloomComponent::initialize() {
 	// create three render targets to switch between
 	//
 	ds::RenderTargetInfo rtInfo = { 512, 384, ds::Color(0, 0, 0, 0) };
-	RID bloomRT1 = ds::createRenderTarget(rtInfo);
-	RID bloomRT2 = ds::createRenderTarget(rtInfo);
+	RID bloomRT1 = ds::createRenderTarget(ds::RenderTargetDesc()
+		.Width(512)
+		.Height(384)
+		.ClearColor(ds::Color(0, 0, 0, 0))
+	);
+	RID bloomRT2 = ds::createRenderTarget(ds::RenderTargetDesc()
+		.Width(512)
+		.Height(384)
+		.ClearColor(ds::Color(0, 0, 0, 0))
+	);
 	//
 	// basic pass 
 	//
@@ -38,28 +46,68 @@ void BloomComponent::initialize() {
 	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
 	// render pass using back buffer
 	//_backbufferPass = ds::createRenderPass(viewMatrix, projectionMatrix, ds::DepthBufferState::DISABLED);
-	ds::ViewportInfo vpInfo = { 1024,768,0.0f,1.0f };
-	RID vp = ds::createViewport(vpInfo);
+	RID vp = ds::createViewport(ds::ViewportDesc()
+		.Top(0)
+		.Left(0)
+		.Width(1024.0f)
+		.Height(768.0f)
+		.MinDepth(0.0f)
+		.MaxDepth(1.0f),
+		"BloomViewport"
+	);
 	// render pass using RT1
 	RID rt1s[] = { bloomRT1 };
-	ds::RenderPassInfo bloomRT1Info = { _camera, vp, ds::DepthBufferState::DISABLED, rt1s, 1 };
-	_bloomRT1Pass = ds::createRenderPass(bloomRT1Info);
+	_bloomRT1Pass = ds::createRenderPass(ds::RenderPassDesc()
+		.Camera(_camera)
+		.Viewport(vp)
+		.DepthBufferState(ds::DepthBufferState::DISABLED)
+		.RenderTargets(rt1s)
+		.NumRenderTargets(1),
+		"RT1Pass"
+	);
 
 	// render pass using RT2
 	RID rt2s[] = { bloomRT2 };
-	ds::RenderPassInfo bloomRT2Info = { _camera, vp, ds::DepthBufferState::DISABLED, rt2s, 1 };
-	_bloomRT2Pass = ds::createRenderPass(bloomRT2Info);
+	_bloomRT2Pass = ds::createRenderPass(ds::RenderPassDesc()
+		.Camera(_camera)
+		.Viewport(vp)
+		.DepthBufferState(ds::DepthBufferState::DISABLED)
+		.RenderTargets(rt2s)
+		.NumRenderTargets(1),
+		"RT1Pass"
+	);
 
-	ds::ShaderInfo fsvsInfo = { 0, Fullscreen_Quad_VS_Main, sizeof(Fullscreen_Quad_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
-	RID fsVertexShader = ds::createShader(fsvsInfo);
-	ds::ShaderInfo psvsInfo = { 0, Fullscreen_Quad_PS_Main, sizeof(Fullscreen_Quad_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
-	RID fsPixelShader = ds::createShader(psvsInfo);
-	ds::ShaderInfo blurPSInfo = { 0, Blurr_PS_Main, sizeof(Blurr_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
-	RID blurPSShader = ds::createShader(blurPSInfo);
-	ds::ShaderInfo bloomPSInfo = { 0, BloomCombine_PS_Main, sizeof(BloomCombine_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
-	RID bloomPSShader = ds::createShader(bloomPSInfo);
+	RID fsVertexShader = ds::createShader(ds::ShaderDesc()
+		.Data(Fullscreen_Quad_VS_Main)
+		.DataSize(sizeof(Fullscreen_Quad_VS_Main))
+		.ShaderType(ds::ShaderType::ST_VERTEX_SHADER)
+		, "FullScreenQuadVS"
+	);
+	RID fsPixelShader = ds::createShader(ds::ShaderDesc()
+		.Data(Fullscreen_Quad_PS_Main)
+		.DataSize(sizeof(Fullscreen_Quad_PS_Main))
+		.ShaderType(ds::ShaderType::ST_PIXEL_SHADER)
+		, "FullScreenQuadPS"
+	); 
+	RID blurPSShader = ds::createShader(ds::ShaderDesc()
+		.Data(Blurr_PS_Main)
+		.DataSize(sizeof(Blurr_PS_Main))
+		.ShaderType(ds::ShaderType::ST_PIXEL_SHADER)
+		, "BlurrPS"
+	);
+	RID bloomPSShader = ds::createShader(ds::ShaderDesc()
+		.Data(BloomCombine_PS_Main)
+		.DataSize(sizeof(BloomCombine_PS_Main))
+		.ShaderType(ds::ShaderType::ST_PIXEL_SHADER)
+		, "BloomCombinePS"
+	); 
 	ds::ShaderInfo bloomExtractPSInfo = { 0, Bloom_PS_Main, sizeof(Bloom_PS_Main), ds::ShaderType::ST_PIXEL_SHADER };
-	RID bloomExtractPS = ds::createShader(bloomExtractPSInfo);
+	RID bloomExtractPS = ds::createShader(ds::ShaderDesc()
+		.Data(Bloom_PS_Main)
+		.DataSize(sizeof(Bloom_PS_Main))
+		.ShaderType(ds::ShaderType::ST_PIXEL_SHADER)
+		, "BloomPS"
+	); 
 	//
 	// the blur buffer 
 	//
@@ -75,8 +123,10 @@ void BloomComponent::initialize() {
 	RID bloomExtractBufferID = ds::createConstantBuffer(sizeof(BloomExtractSettings), _bloomExtractBuffer);
 	RID bloomBufferID = ds::createConstantBuffer(sizeof(BloomSettings), _bloomBuffer);
 	//
-	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
-	RID ssid = ds::createSamplerState(samplerInfo);
+	RID ssid = createSamplerState(ds::SamplerStateDesc()
+		.AddressMode(ds::TextureAddressModes::CLAMP)
+		.Filter(ds::TextureFilters::LINEAR)
+	);
 	//
 	// the full screen draw command
 	//

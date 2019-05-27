@@ -15,8 +15,15 @@
 RID loadImage(const char* name) {
 	int x, y, n;
 	unsigned char *data = stbi_load(name, &x, &y, &n, 4);
-	ds::TextureInfo texInfo = { x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM , ds::BindFlag::BF_SHADER_RESOURCE };
-	RID textureID = ds::createTexture(texInfo);
+	RID textureID = ds::createTexture(ds::TextureDesc()
+		.BindFlags(ds::BindFlag::BF_SHADER_RESOURCE)
+		.Channels(n)
+		.Data(data)
+		.Format(ds::TextureFormat::R8G8B8A8_UNORM)
+		.Width(x)
+		.Height(y)
+		, name
+	);
 	stbi_image_free(data);
 	return textureID;
 }
@@ -57,12 +64,31 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		0.0f,
 		0.0f
 	};
-	ds::ViewportInfo vpInfo = { 1024,768,0.0f,1.0f };
-	RID vp = ds::createViewport(vpInfo);
-	ds::RenderPassInfo basicInfo = { &camera, vp, ds::DepthBufferState::ENABLED, 0, 0 };
-	RID basicPass = ds::createRenderPass(basicInfo);
-	ds::RenderPassInfo particlePassInfo = { &camera, vp, ds::DepthBufferState::DISABLED, 0, 0 };
-	RID particlePass = ds::createRenderPass(particlePassInfo);
+	
+	RID vp = ds::createViewport(ds::ViewportDesc()
+		.Top(0)
+		.Left(0)
+		.Width(ds::getScreenWidth())
+		.Height(ds::getScreenHeight())
+		.MinDepth(0.0f)
+		.MaxDepth(1.0f)
+	);
+	
+	RID basicPass = ds::createRenderPass(ds::RenderPassDesc()
+		.Camera(&camera)
+		.Viewport(vp)
+		.DepthBufferState(ds::DepthBufferState::ENABLED)
+		.RenderTargets(0)
+		.NumRenderTargets(0)
+	);
+
+	RID particlePass = ds::createRenderPass(ds::RenderPassDesc()
+		.Camera(&camera)
+		.Viewport(vp)
+		.DepthBufferState(ds::DepthBufferState::DISABLED)
+		.RenderTargets(0)
+		.NumRenderTargets(0)
+	);
 	
 	
 	descriptor.startColor = ds::Color(255, 255, 0, 255);

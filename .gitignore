@@ -70,3 +70,5 @@ vs_2015_c/Release/
 vs_2015_c/diesel.sdf
 vs_2015_c/diesel.opensdf
 examples/water/Debug/
+*.ipch
+vs_2015/.vs/diesel/v15/.suo

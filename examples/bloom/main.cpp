@@ -21,8 +21,15 @@
 RID loadImage(const char* name) {
 	int x, y, n;
 	unsigned char *data = stbi_load(name, &x, &y, &n, 4);
-	ds::TextureInfo texInfo = { x, y, n, data, ds::TextureFormat::R8G8B8A8_UNORM , ds::BindFlag::BF_SHADER_RESOURCE };
-	RID textureID = ds::createTexture(texInfo);
+	RID textureID = ds::createTexture(ds::TextureDesc()
+		.BindFlags(ds::BindFlag::BF_SHADER_RESOURCE)
+		.Channels(n)
+		.Data(data)
+		.Format(ds::TextureFormat::R8G8B8A8_UNORM)
+		.Width(x)
+		.Height(y)
+		, name
+	);
 	stbi_image_free(data);
 	return textureID;
 }
@@ -43,8 +50,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	//
 	// create three render targets to switch between
 	//
-	ds::RenderTargetInfo rtInfo = { 1024, 768, ds::Color(0, 0, 0, 0) };
-	RID rt1 = ds::createRenderTarget(rtInfo);
+	RID rt1 = ds::createRenderTarget(ds::RenderTargetDesc()
+		.Width(1024.0f)
+		.Height(768.0f)
+		.ClearColor(ds::Color(0,0,0,0))
+	);
 	//
 	// The bloom settings 
 	//
@@ -79,10 +89,25 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		0.0f,
 		0.0f
 	};
-	ds::ViewportInfo vpInfo = { 1024,768,0.0f,1.0f };
-	RID vp = ds::createViewport(vpInfo);
-	ds::RenderPassInfo rpInfo = { &orthoCamera, vp, ds::DepthBufferState::DISABLED, targets, 1 };
-	RID orthoPass = ds::createRenderPass(rpInfo);
+
+	RID vp = ds::createViewport(ds::ViewportDesc()
+		.Top(0)
+		.Left(0)
+		.Width(1024.0f)
+		.Height(768.0f)
+		.MinDepth(0.0f)
+		.MaxDepth(1.0f),
+		"Viewport"
+	);
+
+	RID orthoPass = ds::createRenderPass(ds::RenderPassDesc()
+		.Camera(&orthoCamera)
+		.Viewport(vp)
+		.DepthBufferState(ds::DepthBufferState::DISABLED)
+		.RenderTargets(targets)
+		.NumRenderTargets(1),
+		"OrthoPass"
+	);
 
 	//
 	// basic pass 
@@ -103,12 +128,26 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	};
 	// render pass using back buffer
 	ds::RenderPassInfo ppInfo = { &camera, vp, ds::DepthBufferState::DISABLED, 0, 0 };
-	RID ppPass = ds::createRenderPass(ppInfo);
+	RID ppPass = ds::createRenderPass(ds::RenderPassDesc()
+		.Camera(&camera)
+		.Viewport(vp)
+		.DepthBufferState(ds::DepthBufferState::DISABLED)
+		.RenderTargets(0)
+		.NumRenderTargets(0),
+		"BackBufferPass"
+	);
 
 	// render pass using RT1
 	RID rt1s[] = { rt1 };
 	ds::RenderPassInfo rt1Info = { &camera, vp, ds::DepthBufferState::DISABLED, rt1s, 1 };
-	RID rt1Pass = ds::createRenderPass(rt1Info);
+	RID rt1Pass = ds::createRenderPass(ds::RenderPassDesc()
+		.Camera(&camera)
+		.Viewport(vp)
+		.DepthBufferState(ds::DepthBufferState::DISABLED)
+		.RenderTargets(rt1s)
+		.NumRenderTargets(1),
+		"RT1Pass"
+	);
 
 	BloomComponent bloom(&camera, rt1, ppPass, &bloomSettings, &bloomExtractSettings);
 
@@ -120,8 +159,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	RID fsPixelShader = ds::createShader(psInfo, "FullscreenQuadPS");
 
 	//
-	ds::SamplerStateInfo samplerInfo = { ds::TextureAddressModes::CLAMP, ds::TextureFilters::LINEAR };
-	RID ssid = ds::createSamplerState(samplerInfo);
+	RID ssid = createSamplerState(ds::SamplerStateDesc()
+		.AddressMode(ds::TextureAddressModes::CLAMP)
+		.Filter(ds::TextureFilters::LINEAR)
+	);
 	//
 	// the full screen draw command
 	//

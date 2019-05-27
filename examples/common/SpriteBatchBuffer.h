@@ -370,15 +370,12 @@ SpriteBatchBuffer::SpriteBatchBuffer(const SpriteBatchBufferInfo& info) : _max(i
 	int indices[] = { 0,1,2,1,3,2 };
 	RID idxBuffer = ds::createQuadIndexBuffer(_max, indices);
 
-	ds::StructuredBufferInfo sbInfo;
-	sbInfo.cpuWritable = true;
-	sbInfo.data = 0;
-	sbInfo.elementSize = sizeof(Sprite);
-	sbInfo.numElements = _max;
-	sbInfo.gpuWritable = false;
-	sbInfo.renderTarget = NO_RID;
-	sbInfo.textureID = NO_RID;
-	_structuredBufferId = ds::createStructuredBuffer(sbInfo);
+	_structuredBufferId = ds::createStructuredBuffer(ds::StructuredBufferDesc()
+		.CpuWritable(true)
+		.ElementSize(sizeof(Sprite))
+		.NumElements(_max)
+		.GpuWritable(false)
+		);
 
 	RID basicGroup = ds::StateGroupBuilder()
 		.constantBuffer(constantBuffer, vertexShader)

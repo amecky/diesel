@@ -48,15 +48,12 @@ ParticleManager::ParticleManager(int maxParticles, RID textureID) {
 	int indices[] = { 0,1,2,1,3,2 };
 	RID idxBuffer = ds::createQuadIndexBuffer(maxParticles, indices);
 
-	ds::StructuredBufferInfo sbInfo;
-	sbInfo.cpuWritable = true;
-	sbInfo.data = 0;
-	sbInfo.elementSize = sizeof(GPUParticle);
-	sbInfo.numElements = maxParticles;
-	sbInfo.gpuWritable = false;
-	sbInfo.renderTarget = NO_RID;
-	sbInfo.textureID = NO_RID;
-	_structuredBufferId = ds::createStructuredBuffer(sbInfo);
+	_structuredBufferId = ds::createStructuredBuffer(ds::StructuredBufferDesc()
+		.CpuWritable(true)
+		.ElementSize(sizeof(GPUParticle))
+		.NumElements(maxParticles)
+		.GpuWritable(false)
+		);
 
 	RID basicGroup = ds::StateGroupBuilder()
 		.constantBuffer(constantBuffer, vertexShader)
