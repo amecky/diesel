@@ -193,7 +193,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	for (int i = 0; i < TOTAL; ++i) {
 		GridItem& item = items[i];
 		item.pos = ds::vec3(cos(an), sin(an), 0.0f) * 5.0f;
-		item.color = ds::Color(192, 0, 0, 255);
+		item.color = ds::Color(255,255,255, 255);
 		item.angle = an;
 		item.timer = an;
 		an += as;
@@ -220,8 +220,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 		timer += ds::getElapsedSeconds();
 
-		//ds::vec3 lightPos = ds::vec3(0.2f * sin(timer * ds::TWO_PI * 0.25f), 0.0f, -1.0f);
-		ds::vec3 lightPos = ds::vec3(0.0f, 0.0f, 1.0f);
+		ds::vec3 lightPos = ds::vec3(0.5f * sin(timer * ds::TWO_PI * 0.1f), 0.0f, 1.0f);
+		//ds::vec3 lightPos = ds::vec3(0.5f, 0.5f, 1.0f);
 		lightBuffer.lightDirection = normalize(lightPos);
 
 		// rotate, scale and move every instance
@@ -231,7 +231,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			ds::matrix rx = ds::matRotationX(item.timer);
 			ds::matrix rz = ds::matRotationZ(item.timer);
 			ds::matrix pm = ds::matTranslate(ds::vec3(item.pos.x, item.pos.y, item.pos.z));
-			ds::matrix world = rz * pm;
+			ds::matrix world = rz * rx * pm;
 			instances[y] = { ds::matTranspose(world), item.color };
 			
 		}

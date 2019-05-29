@@ -50,7 +50,7 @@ float4 PS_Main( PS_Input frag ) : SV_TARGET {
 	color = color * textureColor;
 	color.a = textureColor.a;
 	//float3 nv = float3(0.5,0.5,0.5) + frag.normal * 0.5;
-	color = float4(lightIntensity,lightIntensity,lightIntensity,1.0);
+	//color = float4(lightIntensity,lightIntensity,lightIntensity,1.0);
 	//color = float4(nv,1.0);
 	return color;
 }
