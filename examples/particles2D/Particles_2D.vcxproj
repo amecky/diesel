@@ -128,7 +128,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\common\imgui.cpp" />
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Particles2D.cpp" />
     <ClCompile Include="Particlesystem.cpp" />
   </ItemGroup>
   <ItemGroup>

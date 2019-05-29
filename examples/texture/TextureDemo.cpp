@@ -147,10 +147,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	RID cbid = ds::createConstantBuffer(sizeof(CubeConstantBuffer), &constantBuffer, "CubeConstantBuffer");
 	RID indexBuffer = ds::createQuadIndexBuffer(256, "IndexBuffer");
-	ds::VertexBufferInfo cbInfo = { ds::BufferType::STATIC, 24, sizeof(Vertex), v };
-	RID cubeBuffer = ds::createVertexBuffer(cbInfo, "CubeBuffer");
+	RID cubeBuffer = ds::createVertexBuffer(ds::VertexBufferDesc()
+		.Data(v)
+		.BufferType(ds::BufferType::STATIC)
+		.NumVertices(24)
+		.VertexSize(sizeof(Vertex))
+	);
 	ds::VertexBufferInfo scInfo = { ds::BufferType::STATIC, totalCubeVertices, sizeof(Vertex), sv };
-	RID staticCubes = ds::createVertexBuffer(scInfo, "StaticCubes");
+	RID staticCubes = ds::createVertexBuffer(ds::VertexBufferDesc()
+		.Data(sv)
+		.BufferType(ds::BufferType::STATIC)
+		.NumVertices(totalCubeVertices)
+		.VertexSize(sizeof(Vertex))
+		, "StaticCubes"
+	);
 
 	RID ssid = ds::createSamplerState(ds::SamplerStateDesc()
 		.AddressMode(ds::TextureAddressModes::CLAMP)

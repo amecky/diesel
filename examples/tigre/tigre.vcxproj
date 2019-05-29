@@ -129,7 +129,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Tigre.cpp" />
     <ClCompile Include="WaveFrontReader.cpp" />
   </ItemGroup>
   <ItemGroup>

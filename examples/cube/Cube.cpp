@@ -141,7 +141,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	);
 
 	ds::matrix viewMatrix = ds::matLookAtLH(ds::vec3(0.0f, 2.0f, -6.0f), ds::vec3(0, 0, 0), ds::vec3(0, 1, 0));
-	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.0f, 100.0f);
+	ds::matrix projectionMatrix = ds::matPerspectiveFovLH(ds::PI / 4.0f, ds::getScreenAspectRatio(), 0.01f, 100.0f);
 	ds::Camera camera = {
 		viewMatrix,
 		projectionMatrix,
@@ -151,6 +151,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::vec3(0,1,0),
 		ds::vec3(1,0,0)
 	};
+	ds::rebuildCamera(&camera);
 	
 	RID vp = ds::createViewport(ds::ViewportDesc()
 		.Top(0)
@@ -208,10 +209,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		.constantBuffer(cbid, vertexShader, 0)
 		.blendState(bs_id)
 		.samplerState(ssid, pixelShader)
-		.vertexBuffer(vbid)
+		.vertexBuffer(vbid)		
+		.indexBuffer(iid)
 		.vertexShader(vertexShader)
 		.pixelShader(pixelShader)
-		.indexBuffer(iid)
 		.build();
 
 	ds::DrawCommand drawCmd = { 36, ds::DrawType::DT_INDEXED, ds::PrimitiveTypes::TRIANGLE_LIST };
@@ -226,10 +227,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		ds::matrix bY = ds::matRotationY(t);
 		float scale = 0.7f + sin(t) * 0.3f;
 		ds::matrix s = ds::matScale(ds::vec3(scale));
-		ds::matrix w = bY;// *ds::matTranslate(cp);
+		ds::matrix w = bY *ds::matTranslate(cp);
 		
 		constantBuffer.viewprojectionMatrix = ds::matTranspose(camera.viewProjectionMatrix);
-		constantBuffer.worldMatrix = ds::matTranspose(w);
+		//constantBuffer.worldMatrix = ds::matTranspose(w);
+		constantBuffer.worldMatrix = ds::matTranspose(ds::matIdentity());
 
 		ds::submit(basicPass, drawItem);
 

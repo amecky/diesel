@@ -1,5 +1,5 @@
 cbuffer cbChangesPerObject : register( b0 ) {
-    matrix mvp;
+    matrix viewProjection;
     matrix world;    
 };
 
@@ -18,7 +18,7 @@ PS_Input VS_Main( VS_Input vertex ) {
     PS_Input vsOut = ( PS_Input )0;
 	vertex.position.w = 1.0;
     vsOut.pos = mul( vertex.position, world);
-	vsOut.pos = mul(vsOut.pos, mvp);
+	vsOut.pos = mul(vsOut.pos, viewProjection);
     vsOut.color = vertex.color;
     return vsOut;
 }

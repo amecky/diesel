@@ -130,14 +130,11 @@
   <ItemGroup>
     <ClCompile Include="..\common\Camera.cpp" />
     <ClCompile Include="..\common\WaveFrontReader.cpp" />
-    <ClCompile Include="hex.cpp" />
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Mesh.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\common\Camera.h" />
     <ClInclude Include="..\common\WaveFrontReader.h" />
-    <ClInclude Include="hex.h" />
-    <ClInclude Include="HexGrid.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -103,12 +103,24 @@ int WaveFrontReader::load(const char * fileName, ds::matrix* world) {
 		}
 
 	}	
+	ds::vec3 min(1000.0f, 1000.0f, 1000.0f);
+	ds::vec3 max(0.0f, 0.0f, 0.0f);
 	ds::vec3 e(0.0f);
 	for (size_t i = 0; i < _vertices.size(); ++i) {
+		const ds::vec3& current = _vertices[i].position;
+		for (int j = 0; j < 3; ++j) {
+			if (current.data[j] > max.data[j]) {
+				max.data[j] = current.data[j];
+			}
+			if (current.data[j] < min.data[j]) {
+				min.data[j] = current.data[j];
+			}
+		}
 		e.x += std::abs(_vertices[i].position.x);
 		e.y += std::abs(_vertices[i].position.y);
 		e.z += std::abs(_vertices[i].position.z);
 	}
+	ds::vec3 center = (min + max) * 0.5f;
 	for (int i = 0; i < 3; ++i) {
 		_extent.data[i] = e.data[i] / _vertices.size();
 	}

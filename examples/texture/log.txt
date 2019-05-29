@@ -33,7 +33,7 @@
   30  | INPUT_LAYOUT         | PosTex_Layout
   31  | CONSTANT_BUFFER      | CubeConstantBuffer
   32  | INDEX_BUFFER         | IndexBuffer
-  33  | VERTEX_BUFFER        | CubeBuffer
+  33  | VERTEX_BUFFER        | VertexBuffer
   34  | VERTEX_BUFFER        | StaticCubes
   35  | SAMPLER_STATE        | SamplerState
   36  | STATE_GROUP          | BasicGroup
@@ -153,7 +153,7 @@ BLENDSTATE           |     0 | OM       |  0   | DefaultBlendState
 Group: 38 (CubeGroup)
 resource type        | id    | stage    | slot | Name
 ------------------------------------------------------------------------------------------
-VERTEX_BUFFER        |    33 | IA       |  0   | CubeBuffer
+VERTEX_BUFFER        |    33 | IA       |  0   | VertexBuffer
 Group: 4 (DefaultGroup)
 resource type        | id    | stage    | slot | Name
 ------------------------------------------------------------------------------------------

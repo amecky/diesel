@@ -3,16 +3,14 @@
 #include "..\..\diesel.h"
 #include "..\common\WaveFrontReader.h"
 #include "..\common\Camera.h"
-#include "HexGrid.h"
 #include "Instancing_VS_Main.h"
 #include "Instancing_PS_Main.h"
 
-const int HEIGHT = 10;
-const int WIDTH = 14;
-const int TOTAL = HEIGHT * WIDTH;
+const int TOTAL = 36;// HEIGHT * WIDTH;
 
 struct GridItem {
 	ds::vec3 pos;
+	float angle;
 	float timer;
 	ds::Color color;
 	int type;
@@ -46,9 +44,11 @@ void log(const ds::LogLevel&, const char* message) {
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
 	ds::vec3 rotation(-ds::PI * 0.5f, 0.0f, 0.0f);
 	ds::matrix rotX = ds::matRotationX(rotation.x);
-	ObjVertex vertices[512];
+	ds::matrix worldOffset = ds::matTranslate(ds::vec3(-0.5f, -0.125f, 0.375f));
+	ObjVertex vertices[2048];
 	WaveFrontReader reader;
-	int num = reader.load("hex.obj");// , &rotX);
+	int num = reader.load("uni_cube.obj");// , &worldOffset);// , &rotX);
+	
 	for (size_t i = 0; i < reader.size(); ++i) {
 		vertices[i] = reader.get(i);
 	}
@@ -147,7 +147,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	lightBuffer.ambientColor = ds::Color(0.25f, 0.25f, 0.25f, 1.0f);
 	lightBuffer.diffuseColor = ds::Color(255,255,255,255);
 	lightBuffer.padding = 0.0f;
-	ds::vec3 lightPos = ds::vec3(0.1f, 0.0f, 1.0f);
+	ds::vec3 lightPos = ds::vec3(0.0f, 0.0f, 5.0f);
 	lightBuffer.lightDirection = normalize(lightPos);
 	ds::InstancedInputLayoutInfo iilInfo = { decl, 4, instDecl, 5, vertexShader };
 	RID rid = ds::createInstancedInputLayout(ds::InstancedInputLayoutDesc()
@@ -183,40 +183,22 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::vec3 pos(0.0f, 0.0f, 0.0f);
 
 	FPSCamera fpsCamera(&camera);
-	fpsCamera.setPosition(ds::vec3(1, 3, -14));
-
-	// we use a 14 x 10 hexagon grid 
-	ds::HexGrid<int> grid;
-	grid.resize(WIDTH, HEIGHT);
+	fpsCamera.setPosition(ds::vec3(0, 0, -14));
 
 	float t = 0.0f;
-	Layout l(layout_pointy,ds::vec2(0.58f),ds::vec2(-6.0f,-1.0f));
 
 	GridItem items[TOTAL];
-
-	for (int r = 0; r < HEIGHT; r++) {
-		int q_offset = r >> 1;
-		int w = 0;
-		for (int q = -q_offset; q < WIDTH - q_offset; q++) {
-			Hex h = Hex(q, r);
-			ds::vec2 p = hex_math::hex_to_pixel(l, h);
-			GridItem& item = items[w + r * WIDTH];
-			item.pos = p;
-			item.timer = ds::random(0.0f, ds::PI);
-			item.color = ds::Color(192, 0, 0, 255);
-			item.type = 0;
-			if (r == 0 || r == HEIGHT - 1) {
-				item.color = ds::Color(0, 0, 192, 255);
-				item.type = 1;
-			}
-			if (q == -q_offset || q == WIDTH - q_offset  - 1) {
-				item.color = ds::Color(0, 192, 0, 255);
-				item.type = 1;
-			}
-			++w;
-		}
+	float as = ds::TWO_PI / static_cast<float>(TOTAL);
+	float an = 0.0f;
+	for (int i = 0; i < TOTAL; ++i) {
+		GridItem& item = items[i];
+		item.pos = ds::vec3(cos(an), sin(an), 0.0f) * 5.0f;
+		item.color = ds::Color(192, 0, 0, 255);
+		item.angle = an;
+		item.timer = an;
+		an += as;
 	}
-
+	
 	RID stateGroup = ds::StateGroupBuilder()
 		.inputLayout(rid)
 		.vertexShader(vertexShader)
@@ -238,27 +220,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 		timer += ds::getElapsedSeconds();
 
-		ds::vec3 lightPos = ds::vec3(0.2f * sin(timer * ds::TWO_PI * 0.25f), 0.0f, 1.0f);
+		//ds::vec3 lightPos = ds::vec3(0.2f * sin(timer * ds::TWO_PI * 0.25f), 0.0f, -1.0f);
+		ds::vec3 lightPos = ds::vec3(0.0f, 0.0f, 1.0f);
 		lightBuffer.lightDirection = normalize(lightPos);
 
 		// rotate, scale and move every instance
 		for (int y = 0; y < TOTAL; ++y) {
 			GridItem& item = items[y];
-			if (item.type == 0) {
-				item.timer += ds::getElapsedSeconds();
-				ds::matrix pm = ds::matTranslate(ds::vec3(item.pos.x, item.pos.y, sin(item.timer) * 0.4f));
-				ds::matrix rx = ds::matRotationX(item.timer);
-				float scale = 0.5f + sin(item.timer) * 0.2f;
-				ds::matrix sm = ds::matScale(ds::vec3(scale, scale, scale));
-				ds::matrix world = rx * sm * pm;
-				instances[y] = { ds::matTranspose(world), item.color };
-			}
-			else {
-				ds::matrix rx = ds::matRotationX(-ds::PI * 0.5f);
-				ds::matrix pm = ds::matTranslate(ds::vec3(item.pos.x, item.pos.y, sin(item.timer) * 0.4f));
-				ds::matrix world = rx * pm;
-				instances[y] = { ds::matTranspose(world), item.color };
-			}
+			item.timer += ds::getElapsedSeconds();
+			ds::matrix rx = ds::matRotationX(item.timer);
+			ds::matrix rz = ds::matRotationZ(item.timer);
+			ds::matrix pm = ds::matTranslate(ds::vec3(item.pos.x, item.pos.y, item.pos.z));
+			ds::matrix world = rz * pm;
+			instances[y] = { ds::matTranspose(world), item.color };
 			
 		}
 		// map the instance data

@@ -100,9 +100,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	particleDescriptor.ttl = 0.4f;
 	particleDescriptor.velocity = ds::vec2(20.0f, 0.0f);
 	particleDescriptor.friction = 0.25f;
-	particleDescriptor.maxScale = ds::vec2(0.01f, 0.01f);
-	particleDescriptor.minScale = ds::vec2(0.025f, 0.025f);
-	particleDescriptor.acceleration = ds::vec3(0.0f, -1.15f, 0.0f);
+	particleDescriptor.maxScale = ds::vec2(0.025f, 0.025f);
+	particleDescriptor.minScale = ds::vec2(0.075f, 0.075f);
+	particleDescriptor.acceleration = ds::vec3(0.0f, -0.3f, 0.0f);
 	
 	int emitter = 512;
 	float radius = 0.25f;
@@ -125,12 +125,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	grid.create(gridPositions, 2, vertexShader, pixelShader, textureID, basicPass);
 
 	float dt = 1.0f / 60.0f;
-	float frequency = 12800.0f * dt;
+	float frequency = 800.0f * dt;// 12800.0f * dt;
 	float accu = 0.0f;
 
 	FPSCamera fpsCamera(&camera);
 	fpsCamera.setPosition(ds::vec3(0, 1, -6));
 	fpsCamera.buildView();
+
+	float angleStep = 0.01f * ds::TWO_PI;
+	float currentAngle = 0.0f;
 
 	while (ds::isRunning()) {
 
@@ -143,13 +146,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				accu -= 1.0f;
 				float rmin = radius - radius * 0.8f;
 				float r = ds::random(rmin, radius);
-				float angle = ds::random(0.0f, ds::TWO_PI);
+				//float angle = ds::random(0.0f, ds::TWO_PI);
+				float angle = currentAngle;
+				currentAngle += angleStep;
+				float beta = 0.2f * ds::PI + ds::random(0.0f, ds::PI) * 0.8f;
 				float x = cos(angle) * r;
-				float y = -1.0f;
+				float y = sin(beta) * r;
 				float z = sin(angle) * r;
 				particleDescriptor.ttl = ds::random(1.0f, 1.6f);
-				particleDescriptor.velocity = ds::vec3(ds::random(-1.5f,1.5f), ds::random(1.2f, 4.6f), ds::random(-1.5f, 1.5f));
-				system.add(ds::vec3(x, y, z), particleDescriptor);
+				//particleDescriptor.velocity = ds::vec3(ds::random(-1.5f,1.5f), ds::random(1.2f, 4.6f), ds::random(-1.5f, 1.5f));
+				particleDescriptor.velocity = ds::vec3(x,y,z) * ds::random(4.0f,8.0f);
+				system.add(ds::vec3(x, -1.0f + y, z), particleDescriptor);
 			}
 			t -= dt;
 		}

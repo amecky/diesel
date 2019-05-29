@@ -916,8 +916,8 @@ namespace ds {
 		float c = cosf(angle);
 		matrix sm(
 			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, c, -s, 0.0f,
-			0.0f, s, c, 0.0f,
+			0.0f, c, s, 0.0f,
+			0.0f, -s, c, 0.0f,
 			0.0f, 0.0f, 0.0f, 1.0f
 			);
 		return sm;
@@ -930,9 +930,9 @@ namespace ds {
 		float s = sinf(angle);
 		float c = cosf(angle);
 		matrix sm(
-			c, 0.0f, s, 0.0f,
+			c, 0.0f, -s, 0.0f,
 			0.0f, 1.0f, 0.0f, 0.0f,
-			-s, 0.0f, c, 0.0f,
+			s, 0.0f, c, 0.0f,
 			0.0f, 0.0f, 0.0f, 1.0f
 			);
 		return sm;
@@ -945,8 +945,8 @@ namespace ds {
 		float s = sinf(angle);
 		float c = cosf(angle);
 		matrix sm(
-			c, -s, 0.0f, 0.0f,
-			s, c, 0.0f, 0.0f,
+			c, s, 0.0f, 0.0f,
+			-s, c, 0.0f, 0.0f,
 			0.0f, 0.0f, 1.0f, 0.0f,
 			0.0f, 0.0f, 0.0f, 1.0f
 			);

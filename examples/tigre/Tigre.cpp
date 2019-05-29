@@ -62,8 +62,12 @@ RID buildTigreDrawItem(RID lightBufferID) {
 		.VertexShader(vertexShader));
 
 
-	ds::VertexBufferInfo cbInfo = { ds::BufferType::STATIC, num, sizeof(PNCVertex), v };
-	RID cubeBuffer = ds::createVertexBuffer(cbInfo);
+	RID cubeBuffer = ds::createVertexBuffer(ds::VertexBufferDesc()
+		.BufferType(ds::BufferType::STATIC)
+		.Data(v)
+		.NumVertices(num)
+		.VertexSize(sizeof(PNCVertex))
+	);
 
 	delete[] v;
 	

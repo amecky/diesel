@@ -25,6 +25,25 @@ struct PS_Input {
 	float4 color : COLOR0;
 };
 
+float hash( float n ) {
+    return frac(sin(n)*43758.5453);
+}
+
+float noise(float3 x) {
+    // The noise function returns a value in the range -1.0f -> 1.0f
+
+    float3 p = floor(x);
+    float3 f = frac(x);
+
+    f = f*f*(3.0-2.0*f);
+    float n = p.x + p.y*57.0 + 113.0*p.z;
+
+    return lerp(lerp(lerp( hash(n+0.0), hash(n+1.0),f.x),
+                   lerp( hash(n+57.0), hash(n+58.0),f.x),f.y),
+               lerp(lerp( hash(n+113.0), hash(n+114.0),f.x),
+                   lerp( hash(n+170.0), hash(n+171.0),f.x),f.y),f.z);
+}
+
 float4 ComputePosition(float3 pos, float size, float rot, float2 vPos) {
 	float3 toEye = normalize(eyePos - pos);
 	float3 up = float3(0.0, 1.0, 0.0);
@@ -46,11 +65,21 @@ PS_Input VS_Main(uint id:SV_VERTEXID) {
     float norm = ParticlesRO[particleIndex].timer.y;	
     float3 pos = ParticlesRO[particleIndex].position;
 
-    pos += ParticlesRO[particleIndex].velocity * elapsed;
-    pos += ParticlesRO[particleIndex].acceleration * elapsed * elapsed;
-	if ( pos.y < -1.0) {
-		ParticlesRO[particleIndex].velocity.y *= -1.0;
+    float3 vel = ParticlesRO[particleIndex].velocity;
+
+    if ( pos.y < -1.0) {
+		vel.y *= -1.0;
 	}
+
+    vel = float3(vel.x *  noise(1.3f * elapsed), 
+				vel.y * (noise(elapsed + 21.5823f) * 0.5f + 0.5f),
+				vel.z *  noise(0.6f * elapsed));
+
+    pos += vel * elapsed;
+    pos += ParticlesRO[particleIndex].acceleration * elapsed * elapsed;
+	
+
+	//ParticlesRO[particleIndex].velocity = vel;
 
 	float2 scaling = ParticlesRO[particleIndex].scale;
 	scaling += ParticlesRO[particleIndex].growth * elapsed;

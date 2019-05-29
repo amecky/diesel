@@ -96,8 +96,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		.VertexShader(vertexShader)
 	);
 
-	ds::VertexBufferInfo vbInfo = { ds::BufferType::STATIC, 3, sizeof(Vertex), v };
-	RID vbid = ds::createVertexBuffer(vbInfo);
+	RID vbid = ds::createVertexBuffer(ds::VertexBufferDesc()
+		.BufferType(ds::BufferType::STATIC)
+		.Data(v)
+		.NumVertices(3)
+		.VertexSize(sizeof(Vertex))
+	);
 	//
 	// create state group
 	//
