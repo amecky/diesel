@@ -47,7 +47,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::matrix worldOffset = ds::matTranslate(ds::vec3(-0.5f, -0.125f, 0.375f));
 	ObjVertex vertices[2048];
 	WaveFrontReader reader;
-	int num = reader.load("uni_cube.obj");// , &worldOffset);// , &rotX);
+	int num = reader.load("ring.obj");// , &worldOffset);// , &rotX);
 	
 	for (size_t i = 0; i < reader.size(); ++i) {
 		vertices[i] = reader.get(i);
@@ -231,7 +231,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			ds::matrix rx = ds::matRotationX(item.timer);
 			ds::matrix rz = ds::matRotationZ(item.timer);
 			ds::matrix pm = ds::matTranslate(ds::vec3(item.pos.x, item.pos.y, item.pos.z));
-			ds::matrix world = rz * rx * pm;
+			ds::matrix world = rx * pm;
 			instances[y] = { ds::matTranspose(world), item.color };
 			
 		}

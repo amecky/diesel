@@ -3,5 +3,13 @@
   <ItemGroup>
     <ClInclude Include="..\diesel.h" />
     <ClInclude Include="..\Profiler.h" />
+    <ClInclude Include="..\features\ds_billboards.h">
+      <Filter>features</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="features">
+      <UniqueIdentifier>{9e2b6941-d92e-47c6-b66d-12248eebbac2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>
