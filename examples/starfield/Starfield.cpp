@@ -9,6 +9,7 @@
 struct Star {
 	ds::vec3 pos;
 	ds::vec3 velocity;
+	int layer;
 };
 
 const int STARFIELD_LAYERS = 3;
@@ -58,8 +59,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		for (int j = 0; j < STARS_PER_LAYER; ++j) {
 			Star& s = stars[i * STARS_PER_LAYER + j];
 			s.pos = ds::vec3(ds::random(-8.0f, 8.0f), ds::random(-4.0f, 4.0f), static_cast<float>(i));
-			float v = static_cast<float>(i) * 0.5f + ds::random(0.2f, 0.3f);
+			float v = (2.0f - static_cast<float>(i)) * 0.5f + ds::random(0.2f, 0.3f);
 			s.velocity = ds::vec3(-v, 0.0f, 0.0f);
+			s.layer = i;
 		}
 	}
 
@@ -95,7 +97,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			if (s.pos.x < -10.0f) {
 				s.pos.x = 10.0f;
 				s.pos.y = ds::random(-8.0f, 8.0f);
-				float v = static_cast<float>(i) * 0.5f + ds::random(0.2f, 0.3f);
+				float v = (2.0f - static_cast<float>(s.layer)) * 0.5f + ds::random(0.2f, 0.3f);
 				s.velocity = ds::vec3(-v, 0.0f, 0.0f);
 			}
 		}
