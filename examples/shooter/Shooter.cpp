@@ -8,6 +8,7 @@
 #include "Starfield.h"
 #include "Mesh.h"
 #include "Bullets.h"
+#include "enemies.h"
 
 // ---------------------------------------------------------------
 // load image using stb_image
@@ -26,6 +27,7 @@ RID loadImage(const char* name) {
 	stbi_image_free(data);
 	return textureID;
 }
+
 
 // ---------------------------------------------------------------
 // main method
@@ -51,6 +53,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::Mesh player;
 	ds::createMesh(&player, "ring.obj");
 	player.scale = ds::vec3(0.6f);
+
+	ds::Mesh pulsator;
+	ds::createMesh(&pulsator, "pulsator.obj");
+
+	Enemies enemines;
 
 	Bullets bullets;
 	bullets.num = 0;
@@ -128,6 +135,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		player.rotation.x += 5.0f  * static_cast<float>(ds::getElapsedSeconds());
 
 		ds::renderMesh(&player, basicPass, camera.viewProjectionMatrix);
+
+		pulsator.rotation.x += ds::getElapsedSeconds() * 3.0f;
+
+		ds::renderMesh(&pulsator, basicPass, camera.viewProjectionMatrix);
 
 		ds::dbgPrint(0, 0, "FPS: %d", ds::getFramesPerSecond());
 

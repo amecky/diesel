@@ -5,10 +5,13 @@
     <ClCompile Include="Starfield.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Bullets.cpp" />
+    <ClCompile Include="enemies.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Starfield.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Bullets.h" />
+    <ClInclude Include="enemies.h" />
+    <ClInclude Include="DataArray.h" />
   </ItemGroup>
 </Project>

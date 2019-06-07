@@ -134,12 +134,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Bullets.cpp" />
+    <ClCompile Include="enemies.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Shooter.cpp" />
     <ClCompile Include="Starfield.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bullets.h" />
+    <ClInclude Include="DataArray.h" />
+    <ClInclude Include="enemies.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Starfield.h" />
   </ItemGroup>
