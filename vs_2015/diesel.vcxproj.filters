@@ -6,6 +6,9 @@
     <ClInclude Include="..\features\ds_billboards.h">
       <Filter>features</Filter>
     </ClInclude>
+    <ClInclude Include="..\features\ds_obj_loader.h">
+      <Filter>features</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="features">

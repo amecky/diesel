@@ -5,7 +5,8 @@
 #include "..\common\stb_image.h"
 #include "AmbientLightning_PS_Main.h"
 #include "AmbientLightning_VS_Main.h"
-#include "WaveFrontReader.h"
+#define DS_OBJ_LOADER
+#include "..\..\features\ds_obj_loader.h"
 
 // The tigre https://sketchfab.com/models/95c4008c4c764c078f679d4c320e7b18# is taken from https://sketchfab.com/jeremielouvetz
 struct PNCVertex {
@@ -25,21 +26,16 @@ struct LightBuffer {
 
 
 RID buildTigreDrawItem(RID lightBufferID) {
-	WaveFrontFormat format;
-	format.topology = WFT_TRIANGLE;
-	format.formats = WFI_NORMALS;
-	WaveFrontReader objReader;
-	ds::vec3 positions[10000];
-	ds::vec3 normals[10000];
-	ds::Color colors[10000];
-	int num = objReader.load("tigre_sumatra.obj", format, positions, 0, normals, colors, 10000);
+	ds::ObjLoader objReader;
+	int num = objReader.load("tigre_sumatra.obj");
 
 	PNCVertex* v = new PNCVertex[num];
-	for (int i = 0; i < num; ++i) {
-		v[i] = PNCVertex{ positions[i],normals[i], colors[i] };
+
+	for (size_t i = 0; i < objReader.size(); ++i) {
+		const ds::ObjVertex ov = objReader.get(i);
+		v[i] = PNCVertex{ ov.position ,ov.normal, ov.color };
 	}
 
-	
 	RID vertexShader = ds::createShader(ds::ShaderDesc()
 		.Data(AmbientLightning_VS_Main)
 		.DataSize(sizeof(AmbientLightning_VS_Main))
@@ -82,8 +78,7 @@ RID buildTigreDrawItem(RID lightBufferID) {
 
 	ds::DrawCommand drawCmd = { num, ds::DrawType::DT_VERTICES, ds::PrimitiveTypes::TRIANGLE_LIST };
 
-	RID cubeStack[] = { basicGroup };
-	RID cubeItem = ds::compile(drawCmd, cubeStack, 1);
+	RID cubeItem = ds::compile(drawCmd, basicGroup);
 	return cubeItem;
 }
 

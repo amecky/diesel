@@ -72,3 +72,6 @@ vs_2015_c/diesel.opensdf
 examples/water/Debug/
 *.ipch
 vs_2015/.vs/diesel/v15/.suo
+examples/shooter/Debug/
+examples/starfield/Debug/
+vs_2015/.vs/

@@ -1,7 +1,8 @@
 #define DS_IMPLEMENTATION
 #define DS_MATH_IMPLEMENTATION
 #include "..\..\diesel.h"
-#include "..\common\WaveFrontReader.h"
+#define DS_OBJ_LOADER
+#include "..\..\features\ds_obj_loader.h"
 #include "..\common\Camera.h"
 #include "Instancing_VS_Main.h"
 #include "Instancing_PS_Main.h"
@@ -45,8 +46,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	ds::vec3 rotation(-ds::PI * 0.5f, 0.0f, 0.0f);
 	ds::matrix rotX = ds::matRotationX(rotation.x);
 	ds::matrix worldOffset = ds::matTranslate(ds::vec3(-0.5f, -0.125f, 0.375f));
-	ObjVertex vertices[2048];
-	WaveFrontReader reader;
+	ds::ObjVertex vertices[2048];
+	ds::ObjLoader reader;
 	int num = reader.load("ring.obj");// , &worldOffset);// , &rotX);
 	
 	for (size_t i = 0; i < reader.size(); ++i) {
@@ -164,7 +165,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		.BufferType(ds::BufferType::STATIC)
 		.NumVertices(num)
 		.Data(vertices)
-		.VertexSize(sizeof(ObjVertex))
+		.VertexSize(sizeof(ds::ObjVertex))
 	);
 	RID idid = ds::createVertexBuffer(ds::VertexBufferDesc()
 		.BufferType(ds::BufferType::DYNAMIC)
